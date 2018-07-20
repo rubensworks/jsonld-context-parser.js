@@ -1,0 +1,16 @@
+# JSON-LD Context Flatten
+
+[![Build Status](https://travis-ci.org/rubensworks/jsonld-context-flatten.js.svg?branch=master)](https://travis-ci.org/rubensworks/jsonld-context-flatten.js)
+[![Coverage Status](https://coveralls.io/repos/github/rubensworks/jsonld-context-flatten.js/badge.svg?branch=master)](https://coveralls.io/github/rubensworks/jsonld-context-flatten.js?branch=master)
+[![npm version](https://badge.fury.io/js/jsonld-context-flatten.svg)](https://www.npmjs.com/package/jsonld-context-flatten)
+
+A [JSON-LD](https://json-ld.org/) [`@context`](https://json-ld.org/spec/latest/json-ld/#the-context) flattener.
+
+## Usage
+
+TODO
+
+## License
+This software is written by [Ruben Taelman](http://rubensworks.net/).
+
+This code is released under the [MIT license](http://opensource.org/licenses/MIT).
