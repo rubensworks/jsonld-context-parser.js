@@ -44,7 +44,7 @@
   },
   "jest": {
     "setupFiles": [
-      "./test/setupJest.ts"
+      "./setupJest.js"
     ],
     "transform": {
       "^.+\\.ts$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
