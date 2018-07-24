@@ -49,6 +49,21 @@ export class ContextParser implements IDocumentLoader {
     return null;
   }
 
+  /**
+   * Expand the prefix of the given term if it has one,
+   * otherwise return the term as-is.
+   * @param {string} term A term that is an URL or a prefixed URL.
+   * @param {IJsonLdContextNormalized} context A context.
+   * @return {string} The expanded term or the term as-is.
+   */
+  public static expandPrefixedTerm(term: string, context: IJsonLdContextNormalized): string {
+    const prefix: string = ContextParser.getPrefix(term, context);
+    if (prefix) {
+      return context[prefix] + term.substr(prefix.length + 1);
+    }
+    return term;
+  }
+
   public async parse(context: JsonLdContext,
                      parentContext?: IJsonLdContextNormalized): Promise<IJsonLdContextNormalized> {
     if (typeof context === 'string') {
