@@ -17,6 +17,7 @@
   },
   "include": [
     "index.ts",
+    "bin/**/*",
     "lib/**/*",
     "perf/**/*"
   ],

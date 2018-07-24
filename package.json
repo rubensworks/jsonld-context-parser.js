@@ -20,6 +20,8 @@
   "homepage": "https://github.com/rubensworks/jsonld-context-parser.js#readme",
   "license": "MIT",
   "files": [
+    "bin/**/*.d.ts",
+    "bin/**/*.js",
     "lib/**/*.d.ts",
     "lib/**/*.js",
     "index.d.ts",
@@ -30,6 +32,9 @@
     "lint",
     "test"
   ],
+  "bin": {
+    "jsonld-context-parse": "jsonld-context-parse"
+  },
   "devDependencies": {
     "@types/isomorphic-fetch": "^0.0.34",
     "@types/jest": "^23.3.0",
