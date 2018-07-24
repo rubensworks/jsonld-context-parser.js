@@ -1,5 +1,5 @@
 {
-  "name": "jsonld-context-flatten",
+  "name": "jsonld-context-parser",
   "version": "1.0.0",
   "description": "Flattens JSON-LD contexts",
   "keywords": [
@@ -12,12 +12,12 @@
   ],
   "main": "index.js",
   "typings": "index",
-  "repository": "git@github.com:rubensworks/jsonld-context-flatten.js.git",
+  "repository": "git@github.com:rubensworks/jsonld-context-parser.js.git",
   "author": "Ruben Taelman <rubensworks@gmail.com>",
   "bugs": {
-    "url": "https://github.com/rubensworks/jsonld-context-flatten.js/issues"
+    "url": "https://github.com/rubensworks/jsonld-context-parser.js/issues"
   },
-  "homepage": "https://github.com/rubensworks/jsonld-context-flatten.js#readme",
+  "homepage": "https://github.com/rubensworks/jsonld-context-parser.js#readme",
   "license": "MIT",
   "files": [
     "lib/**/*.d.ts",
