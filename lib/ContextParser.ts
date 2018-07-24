@@ -22,8 +22,8 @@ export class ContextParser implements IDocumentLoader {
     if (typeof context === 'string') {
       return this.parse(await this.load(context), parentContext);
     } else if (Array.isArray(context)) {
-      return Object.assign.call(null, await Promise.all(context
-        .map((contextEntry) => this.parse(contextEntry, parentContext))));
+      return Object.assign.apply(null, [{}].concat(await Promise.all(context
+        .map((contextEntry) => this.parse(contextEntry, parentContext)))));
     } else {
       // We have an actual context object.
       // TODO

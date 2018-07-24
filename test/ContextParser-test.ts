@@ -38,15 +38,55 @@ describe('ContextParser', () => {
       expect(parser.documentLoader).toBe(documentLoader);
     });
 
-    it('should parse a valid context URL', () => {
-      return expect(parser.parse('http://example.org/simple.jsonld')).resolves.toEqual({
-        name: "http://xmlns.com/foaf/0.1/name",
-        xsd: "http://www.w3.org/2001/XMLSchema#",
+    describe('for parsing URLs', () => {
+      it('should parse a valid context URL', () => {
+        return expect(parser.parse('http://example.org/simple.jsonld')).resolves.toEqual({
+          name: "http://xmlns.com/foaf/0.1/name",
+          xsd: "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+
+      it('should fail to parse an invalid source', () => {
+        return expect(parser.parse('http://example.org/invalid.jsonld')).rejects.toBeTruthy();
       });
     });
 
-    it('should fail to parse an invalid source', () => {
-      return expect(parser.parse('http://example.org/invalid.jsonld')).rejects.toBeTruthy();
+    describe('for parsing arrays', () => {
+      it('should parse an empty array', () => {
+        return expect(parser.parse([])).resolves.toEqual({});
+      });
+
+      it('should parse an array with one string', () => {
+        return expect(parser.parse([
+          'http://example.org/simple.jsonld',
+        ])).resolves.toEqual({
+          name: "http://xmlns.com/foaf/0.1/name",
+          xsd: "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+
+      it('should parse an array with two strings', () => {
+        return expect(parser.parse([
+          'http://example.org/simple.jsonld',
+          'http://example.org/simple2.jsonld',
+        ])).resolves.toEqual({
+          name: "http://xmlns.com/foaf/0.1/name",
+          nickname: "http://xmlns.com/foaf/0.1/nick",
+          xsd: "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+
+      it('should parse an array with an object and a string', () => {
+        return expect(parser.parse([
+          {
+            npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
+          },
+          'http://example.org/simple2.jsonld',
+        ])).resolves.toEqual({
+          nickname: "http://xmlns.com/foaf/0.1/nick",
+          npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
+        });
+      });
     });
   });
 });
