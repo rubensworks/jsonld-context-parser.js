@@ -169,6 +169,32 @@ describe('ContextParser', () => {
     });
   });
 
+  describe('#idifyReverseTerms', () => {
+    it('should not modify an empty context', async () => {
+      expect(ContextParser.idifyReverseTerms({})).toEqual({});
+    });
+
+    it('should add an @id for a @reverse', async () => {
+      expect(ContextParser.idifyReverseTerms({
+        Example: { '@reverse': 'ex:Example' },
+        ex: 'http://example.org/',
+      })).toEqual({
+        Example: { '@reverse': 'ex:Example', '@id': 'ex:Example' },
+        ex: 'http://example.org/',
+      });
+    });
+
+    it('should not add an @id for a @reverse that already has an @id', async () => {
+      expect(ContextParser.idifyReverseTerms({
+        Example: { '@reverse': 'ex:Example', '@id': 'ex:AnotherExample' },
+        ex: 'http://example.org/',
+      })).toEqual({
+        Example: { '@reverse': 'ex:Example', '@id': 'ex:AnotherExample' },
+        ex: 'http://example.org/',
+      });
+    });
+  });
+
   describe('when instantiated without options', () => {
     let parser;
 

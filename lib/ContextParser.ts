@@ -74,6 +74,24 @@ export class ContextParser implements IDocumentLoader {
   }
 
   /**
+   * Add an @id term for all @reverse terms.
+   * @param {IJsonLdContextNormalized} context A context.
+   * @return {IJsonLdContextNormalized} The mutated input context.
+   */
+  public static idifyReverseTerms(context: IJsonLdContextNormalized): IJsonLdContextNormalized {
+    for (const key of Object.keys(context)) {
+      const value: IPrefixValue = context[key];
+      if (typeof value === 'object') {
+        if (value['@reverse'] && !value['@id']) {
+          value['@id'] = value['@reverse'];
+        }
+      }
+    }
+
+    return context;
+  }
+
+  /**
    * Expand all prefixed terms in the given context.
    * @param {IJsonLdContextNormalized} context A context.
    * @return {IJsonLdContextNormalized} The mutated input context.
@@ -120,6 +138,7 @@ export class ContextParser implements IDocumentLoader {
     } else {
       // We have an actual context object.
       context = { ...parentContext, ...context };
+      ContextParser.idifyReverseTerms(context);
       ContextParser.expandPrefixedTerms(context);
       return context;
     }
