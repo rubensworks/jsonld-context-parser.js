@@ -50,7 +50,11 @@ describe('ContextParser', () => {
       expect(ContextParser.isPrefixValue({ '@id': 'bla' })).toBeTruthy();
     });
 
-    it('should be false for objects without @id', async () => {
+    it('should be true for objects with @type', async () => {
+      expect(ContextParser.isPrefixValue({ '@type': 'bla' })).toBeTruthy();
+    });
+
+    it('should be false for objects without @id and @type', async () => {
       expect(ContextParser.isPrefixValue({ '@notid': 'bla' })).toBeFalsy();
     });
   });
@@ -90,7 +94,7 @@ describe('ContextParser', () => {
       });
     });
 
-    it('should expand a context with object prefixes', async () => {
+    it('should expand a context with object @id prefixes', async () => {
       expect(ContextParser.expandPrefixedTerms({
         Example: { '@id': 'ex:Example' },
         ex: 'http://example.org/',
@@ -100,7 +104,7 @@ describe('ContextParser', () => {
       });
     });
 
-    it('should expand a context with nested string prefixes', async () => {
+    it('should expand a context with nested object @id prefixes', async () => {
       expect(ContextParser.expandPrefixedTerms({
         Example: { '@id': 'exabc:Example' },
         ex: 'http://example.org/',
@@ -112,7 +116,39 @@ describe('ContextParser', () => {
       });
     });
 
-    it('should not expand object prefixes that are not @id', async () => {
+    it('should expand a context with object @type prefixes', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        Example: { '@type': 'ex:Example' },
+        ex: 'http://example.org/',
+      })).toEqual({
+        Example: { '@type': 'http://example.org/Example' },
+        ex: 'http://example.org/',
+      });
+    });
+
+    it('should expand a context with nested object @type prefixes', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        Example: { '@type': 'exabc:Example' },
+        ex: 'http://example.org/',
+        exabc: 'ex:abc/',
+      })).toEqual({
+        Example: { '@type': 'http://example.org/abc/Example' },
+        ex: 'http://example.org/',
+        exabc: 'http://example.org/abc/',
+      });
+    });
+
+    it('should expand a context with object prefixes with @id and @type', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        Example: { '@id': 'ex:Example', '@type': 'ex:ExampleType' },
+        ex: 'http://example.org/',
+      })).toEqual({
+        Example: { '@id': 'http://example.org/Example', '@type': 'http://example.org/ExampleType' },
+        ex: 'http://example.org/',
+      });
+    });
+
+    it('should not expand object prefixes that are not @id or @type', async () => {
       expect(ContextParser.expandPrefixedTerms({
         Example: { '@id': 'ex:Example', '@bla': 'ex:Example' },
         ex: 'http://example.org/',
@@ -122,7 +158,7 @@ describe('ContextParser', () => {
       });
     });
 
-    it('should not expand object prefixes without @id', async () => {
+    it('should not expand object prefixes without @id and @type', async () => {
       expect(ContextParser.expandPrefixedTerms({
         Example: { '@bla': 'ex:Example' },
         ex: 'http://example.org/',
@@ -249,6 +285,149 @@ describe('ContextParser', () => {
           name: "http://xmlns.com/foaf/0.1/name",
           xsd: "http://www.w3.org/2001/XMLSchema#",
         });
+      });
+
+      it('should parse a complex context', () => {
+        // tslint:disable:object-literal-sort-keys
+        // tslint:disable:max-line-length
+        return expect(parser.parse('http://example.org/complex.jsonld')).resolves.toEqual({
+          "@vocab": "unknown://",
+          "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+          "xsd": "http://www.w3.org/2001/XMLSchema#",
+          "oo": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#",
+          "Module": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#Module",
+          },
+          "Class": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#Class",
+          },
+          "AbstractClass": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#AbstractClass",
+          },
+          "Instance": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#ComponentInstance",
+          },
+          "components": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#component",
+          },
+          "parameters": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#parameter",
+          },
+          "constructorArguments": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#constructorArguments",
+            "@container": "@list",
+          },
+          "unique": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#uniqueValue",
+          },
+          "required": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#required",
+          },
+          "default": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#defaultValue",
+          },
+          "defaultScoped": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#defaultScoped",
+          },
+          "defaultScope": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#defaultScope",
+            "@type": "@id",
+          },
+          "defaultScopedValue": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#defaultScopedValue",
+          },
+          "arguments": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#arguments",
+            "@container": "@list",
+          },
+          "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+          "comment": {
+            "@id": "http://www.w3.org/2000/01/rdf-schema#comment",
+            "@type": "@id",
+          },
+          "extends": {
+            "@id": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+            "@type": "@id",
+          },
+          "range": {
+            "@id": "http://www.w3.org/2000/01/rdf-schema#range",
+            "@type": "@id",
+          },
+          "owl": "http://www.w3.org/2002/07/owl#",
+          "import": {
+            "@id": "http://www.w3.org/2002/07/owl#imports",
+          },
+          "InheritanceValue": {
+            "@id": "http://www.w3.org/2002/07/owl#Restriction",
+          },
+          "inheritValues": {
+            "@id": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+            "@type": "@id",
+          },
+          "onParameter": {
+            "@id": "http://www.w3.org/2002/07/owl#onProperty",
+            "@type": "@id",
+          },
+          "from": {
+            "@id": "http://www.w3.org/2002/07/owl#allValuesFrom",
+            "@type": "@id",
+          },
+          "doap": "http://usefulinc.com/ns/doap#",
+          "requireName": {
+            "@id": "http://usefulinc.com/ns/doap#name",
+          },
+          "requireElement": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#componentPath",
+          },
+          "om": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#",
+          "ObjectMapping": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#ObjectMapping",
+          },
+          "ArrayMapping": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#ArrayMapping",
+          },
+          "fields": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#field",
+            "@type": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#ObjectMapEntry",
+          },
+          "elements": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#elements",
+            "@type": "@id",
+            "@container": "@list",
+          },
+          "collectEntries": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#collectsEntriesFrom",
+            "@type": "@id",
+          },
+          "keyRaw": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldName",
+          },
+          "key": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldName",
+            "@type": "@id",
+          },
+          "value": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldValue",
+            "@type": "@id",
+          },
+          "valueRaw": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldValue",
+          },
+          "valueRawReference": {
+            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldValueRaw",
+            "@type": "@id",
+          },
+          "npmd": "https://linkedsoftwaredependencies.org/bundles/npm/",
+          "cais": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/",
+          "ActorInitSparql": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/Actor/Init/Sparql",
+          "mediatorQueryOperation": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorQueryOperation",
+          "mediatorSparqlParse": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorSparqlParse",
+          "mediatorSparqlSerialize": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorSparqlSerialize",
+          "mediatorSparqlSerializeMediaTypeCombiner": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorSparqlSerializeMediaTypeCombiner",
+          "mediatorContextPreprocess": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorContextPreprocess",
+        });
+        // tslint:enable:object-literal-sort-keys
+        // tslint:enable:max-line-length
       });
     });
   });

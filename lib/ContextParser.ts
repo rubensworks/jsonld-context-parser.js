@@ -70,7 +70,7 @@ export class ContextParser implements IDocumentLoader {
    * @return {boolean} If it can be a prefix value.
    */
   public static isPrefixValue(value: any): boolean {
-    return value && (typeof value === 'string' || value['@id']);
+    return value && (typeof value === 'string' || value['@id'] || value['@type']);
   }
 
   /**
@@ -92,9 +92,18 @@ export class ContextParser implements IDocumentLoader {
           }
         } else {
           const id = value['@id'];
-          context[key]['@id'] = ContextParser.expandPrefixedTerm(id, context);
-          if (id === context[key]['@id']) {
-            break;
+          const type = value['@type'];
+          if (id) {
+            context[key]['@id'] = ContextParser.expandPrefixedTerm(id, context);
+            if (id === context[key]['@id']) {
+              break;
+            }
+          }
+          if (type) {
+            context[key]['@type'] = ContextParser.expandPrefixedTerm(type, context);
+            if (type === context[key]['@type']) {
+              break;
+            }
           }
         }
       }
