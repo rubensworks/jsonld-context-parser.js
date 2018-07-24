@@ -46,6 +46,24 @@ describe('ContextParser', () => {
         });
       });
 
+      it('should cache documents', async () => {
+        const spy = jest.spyOn(parser.documentLoader, 'load');
+
+        await parser.parse('http://example.org/simple.jsonld');
+
+        expect(parser.documentCache['http://example.org/simple.jsonld']).toEqual({
+          name: "http://xmlns.com/foaf/0.1/name",
+          xsd: "http://www.w3.org/2001/XMLSchema#",
+        });
+
+        await expect(parser.parse('http://example.org/simple.jsonld')).resolves.toEqual({
+          name: "http://xmlns.com/foaf/0.1/name",
+          xsd: "http://www.w3.org/2001/XMLSchema#",
+        });
+
+        expect(spy).toHaveBeenCalledTimes(1);
+      });
+
       it('should fail to parse an invalid source', () => {
         return expect(parser.parse('http://example.org/invalid.jsonld')).rejects.toBeTruthy();
       });
