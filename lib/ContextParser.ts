@@ -4,7 +4,7 @@ import {IDocumentLoader} from "./IDocumentLoader";
 import {IJsonLdContextNormalized, IPrefixValue, JsonLdContext} from "./JsonLdContext";
 
 /**
- * Flattens JSON-LD contexts
+ * Parses JSON-LD contexts.
  */
 export class ContextParser implements IDocumentLoader {
 
@@ -128,6 +128,12 @@ export class ContextParser implements IDocumentLoader {
     return context;
   }
 
+  /**
+   * Parse a JSON-LD context in any form.
+   * @param {JsonLdContext} context A context, URL to a context, or an array of contexts/URLs.
+   * @param {IJsonLdContextNormalized} parentContext The parent context.
+   * @return {Promise<IJsonLdContextNormalized>} A promise resolving to the context.
+   */
   public async parse(context: JsonLdContext,
                      parentContext?: IJsonLdContextNormalized): Promise<IJsonLdContextNormalized> {
     if (typeof context === 'string') {
