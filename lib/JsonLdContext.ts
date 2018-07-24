@@ -6,6 +6,7 @@ export interface IJsonLdContextNormalized {
   '@base'?: Uri;            // 1.0; https://json-ld.org/spec/latest/json-ld/#base-iri
   '@vocab'?: Uri;           // 1.0; https://json-ld.org/spec/latest/json-ld/#default-vocabulary
   '@language'?: Language;   // 1.0; https://json-ld.org/spec/latest/json-ld/#string-internationalization
+  [id: string]: any;
   // We can not define the following entries here due to TS restrictions
   // [alias: string]: Uri;
   // [prefix: string]: IPrefixValue; // 1.0; https://json-ld.org/spec/latest/json-ld/#iri-expansion-within-a-context

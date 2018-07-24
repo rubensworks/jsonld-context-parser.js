@@ -17,6 +17,38 @@ export class ContextParser implements IDocumentLoader {
     this.documentCache = {};
   }
 
+  /**
+   * Get the prefix from the given term.
+   * @see https://json-ld.org/spec/latest/json-ld/#compact-iris
+   * @param {string} term A term that is an URL or a prefixed URL.
+   * @param {IJsonLdContextNormalized} context A context.
+   * @return {string} The prefix or null.
+   */
+  public static getPrefix(term: string, context: IJsonLdContextNormalized): string {
+    const separatorPos: number = term.indexOf(':');
+    if (separatorPos >= 0) {
+      // Suffix can not begin with two slashes
+      if (term.length > separatorPos + 1
+        && term.charAt(separatorPos + 1) === '/'
+        && term.charAt(separatorPos + 2) === '/') {
+        return null;
+      }
+
+      const prefix: string = term.substr(0, separatorPos);
+
+      // Prefix can not be an underscore (this is a blank node)
+      if (prefix === '_') {
+        return null;
+      }
+
+      // Prefix must match a term in the active context
+      if (context[prefix]) {
+        return prefix;
+      }
+    }
+    return null;
+  }
+
   public async parse(context: JsonLdContext,
                      parentContext?: IJsonLdContextNormalized): Promise<IJsonLdContextNormalized> {
     if (typeof context === 'string') {

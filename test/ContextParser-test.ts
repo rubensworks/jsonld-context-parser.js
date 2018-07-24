@@ -1,6 +1,32 @@
 import {ContextParser, FetchDocumentLoader} from "../index";
 
 describe('ContextParser', () => {
+  describe('#getPrefix', () => {
+    it('return a null when no colon exists', async () => {
+      expect(ContextParser.getPrefix('abc', { '//': 'abc' })).toBe(null);
+    });
+
+    it('return a null for just a colon', async () => {
+      expect(ContextParser.getPrefix(':', { '//': 'abc' })).toBe(null);
+    });
+
+    it('return a null for double slashed suffixes', async () => {
+      expect(ContextParser.getPrefix('http://abc', { '//': 'abc' })).toBe(null);
+    });
+
+    it('return a null for blank nodes', async () => {
+      expect(ContextParser.getPrefix('_:abc', { _: 'abc' })).toBe(null);
+    });
+
+    it('return a null for a non-existing term', async () => {
+      expect(ContextParser.getPrefix('abc:def', { def: 'abc' })).toBe(null);
+    });
+
+    it('return a null for a non-existing term', async () => {
+      expect(ContextParser.getPrefix('abc:def', { abc: 'ABC' })).toBe('abc');
+    });
+  });
+
   describe('when instantiated without options', () => {
     let parser;
 
