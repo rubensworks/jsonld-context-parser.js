@@ -1,7 +1,7 @@
 import 'isomorphic-fetch';
 import {FetchDocumentLoader} from "./FetchDocumentLoader";
 import {IDocumentLoader} from "./IDocumentLoader";
-import {IJsonLdContextNormalized, JsonLdContext} from "./JsonLdContext";
+import {IJsonLdContextNormalized, IPrefixValue, JsonLdContext} from "./JsonLdContext";
 
 /**
  * Flattens JSON-LD contexts
@@ -64,16 +64,56 @@ export class ContextParser implements IDocumentLoader {
     return term;
   }
 
+  /**
+   * Check if the given context value can be a prefix value.
+   * @param value A context value.
+   * @return {boolean} If it can be a prefix value.
+   */
+  public static isPrefixValue(value: any): boolean {
+    return value && (typeof value === 'string' || value['@id']);
+  }
+
+  /**
+   * Expand all prefixed terms in the given context/
+   * @param {IJsonLdContextNormalized} context A context.
+   * @return {IJsonLdContextNormalized} A copy of the input context where all prefixes are expanded.
+   */
+  public static expandPrefixedTerms(context: IJsonLdContextNormalized): IJsonLdContextNormalized {
+    context = { ... context };
+
+    for (const key of Object.keys(context)) {
+      // Loop because prefixes might be nested
+      while (ContextParser.isPrefixValue(context[key])) {
+        const value: IPrefixValue = context[key];
+        if (typeof value === 'string') {
+          context[key] = ContextParser.expandPrefixedTerm(value, context);
+          if (value === context[key]) {
+            break;
+          }
+        } else {
+          const id = value['@id'];
+          context[key]['@id'] = ContextParser.expandPrefixedTerm(id, context);
+          if (id === context[key]['@id']) {
+            break;
+          }
+        }
+      }
+    }
+
+    return context;
+  }
+
   public async parse(context: JsonLdContext,
                      parentContext?: IJsonLdContextNormalized): Promise<IJsonLdContextNormalized> {
     if (typeof context === 'string') {
       return this.parse(await this.load(context), parentContext);
     } else if (Array.isArray(context)) {
-      return Object.assign.apply(null, [{}].concat(await Promise.all(context
-        .map((contextEntry) => this.parse(contextEntry, parentContext)))));
+      return context.reduce((accContextPromise, contextEntry) => accContextPromise
+        .then((accContext) => this.parse(contextEntry, accContext)), Promise.resolve({}));
     } else {
       // We have an actual context object.
-      // TODO
+      context = { ...parentContext, ...context };
+      context = ContextParser.expandPrefixedTerms(context);
       return context;
     }
   }

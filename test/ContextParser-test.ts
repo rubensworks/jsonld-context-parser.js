@@ -37,6 +37,102 @@ describe('ContextParser', () => {
     });
   });
 
+  describe('#isPrefixValue', () => {
+    it('should be false for null', async () => {
+      expect(ContextParser.isPrefixValue(null)).toBeFalsy();
+    });
+
+    it('should be true for strings', async () => {
+      expect(ContextParser.isPrefixValue('abc')).toBeTruthy();
+    });
+
+    it('should be true for objects with @id', async () => {
+      expect(ContextParser.isPrefixValue({ '@id': 'bla' })).toBeTruthy();
+    });
+
+    it('should be false for objects without @id', async () => {
+      expect(ContextParser.isPrefixValue({ '@notid': 'bla' })).toBeFalsy();
+    });
+  });
+
+  describe('#expandPrefixedTerms', () => {
+    it('should not modify an empty context', async () => {
+      expect(ContextParser.expandPrefixedTerms({})).toEqual({});
+    });
+
+    it('should not modify a context without prefixes', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        abc: 'def',
+      })).toEqual({
+        abc: 'def',
+      });
+    });
+
+    it('should expand a context with string prefixes', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        Example: 'ex:Example',
+        ex: 'http://example.org/',
+      })).toEqual({
+        Example: 'http://example.org/Example',
+        ex: 'http://example.org/',
+      });
+    });
+
+    it('should expand a context with nested string prefixes', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        Example: 'exabc:Example',
+        ex: 'http://example.org/',
+        exabc: 'ex:abc/',
+      })).toEqual({
+        Example: 'http://example.org/abc/Example',
+        ex: 'http://example.org/',
+        exabc: 'http://example.org/abc/',
+      });
+    });
+
+    it('should expand a context with object prefixes', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        Example: { '@id': 'ex:Example' },
+        ex: 'http://example.org/',
+      })).toEqual({
+        Example: { '@id': 'http://example.org/Example' },
+        ex: 'http://example.org/',
+      });
+    });
+
+    it('should expand a context with nested string prefixes', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        Example: { '@id': 'exabc:Example' },
+        ex: 'http://example.org/',
+        exabc: 'ex:abc/',
+      })).toEqual({
+        Example: { '@id': 'http://example.org/abc/Example' },
+        ex: 'http://example.org/',
+        exabc: 'http://example.org/abc/',
+      });
+    });
+
+    it('should not expand object prefixes that are not @id', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        Example: { '@id': 'ex:Example', '@bla': 'ex:Example' },
+        ex: 'http://example.org/',
+      })).toEqual({
+        Example: { '@id': 'http://example.org/Example', '@bla': 'ex:Example' },
+        ex: 'http://example.org/',
+      });
+    });
+
+    it('should not expand object prefixes without @id', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        Example: { '@bla': 'ex:Example' },
+        ex: 'http://example.org/',
+      })).toEqual({
+        Example: { '@bla': 'ex:Example' },
+        ex: 'http://example.org/',
+      });
+    });
+  });
+
   describe('when instantiated without options', () => {
     let parser;
 
@@ -139,6 +235,19 @@ describe('ContextParser', () => {
         ])).resolves.toEqual({
           nickname: "http://xmlns.com/foaf/0.1/nick",
           npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
+        });
+      });
+
+      it('should parse and expand prefixes', () => {
+        return expect(parser.parse([
+          'http://example.org/simple.jsonld',
+          {
+            myint: { "@id": "xsd:integer" },
+          },
+        ])).resolves.toEqual({
+          myint: { "@id": "http://www.w3.org/2001/XMLSchema#integer" },
+          name: "http://xmlns.com/foaf/0.1/name",
+          xsd: "http://www.w3.org/2001/XMLSchema#",
         });
       });
     });
