@@ -74,13 +74,11 @@ export class ContextParser implements IDocumentLoader {
   }
 
   /**
-   * Expand all prefixed terms in the given context/
+   * Expand all prefixed terms in the given context.
    * @param {IJsonLdContextNormalized} context A context.
-   * @return {IJsonLdContextNormalized} A copy of the input context where all prefixes are expanded.
+   * @return {IJsonLdContextNormalized} The mutated input context.
    */
   public static expandPrefixedTerms(context: IJsonLdContextNormalized): IJsonLdContextNormalized {
-    context = { ... context };
-
     for (const key of Object.keys(context)) {
       // Loop because prefixes might be nested
       while (ContextParser.isPrefixValue(context[key])) {
@@ -122,7 +120,7 @@ export class ContextParser implements IDocumentLoader {
     } else {
       // We have an actual context object.
       context = { ...parentContext, ...context };
-      context = ContextParser.expandPrefixedTerms(context);
+      ContextParser.expandPrefixedTerms(context);
       return context;
     }
   }
