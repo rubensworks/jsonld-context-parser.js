@@ -43,7 +43,9 @@
     "typescript": "^2.6.2"
   },
   "jest": {
-    "setupTestFrameworkScriptFile": "jest-rdf",
+    "setupFiles": [
+      "./test/setupJest.ts"
+    ],
     "transform": {
       "^.+\\.ts$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
     },

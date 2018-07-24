@@ -1,6 +1,6 @@
 // tslint:disable:max-line-length
 
-export type JsonLdContext = IJsonLdContextNormalized | (IJsonLdContextNormalized | string)[];
+export type JsonLdContext = IJsonLdContextNormalized | string | (IJsonLdContextNormalized | string)[];
 
 export interface IJsonLdContextNormalized {
   '@base'?: Uri;            // 1.0; https://json-ld.org/spec/latest/json-ld/#base-iri
