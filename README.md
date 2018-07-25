@@ -11,7 +11,7 @@ This parser has the following functionality:
 * Normalize JSON contexts.
 * Merge arrays of contexts.
 * Create `@id` entries for all `@reverse` occurences.
-* Expand prefixes in string values, `@id`, `@type` and `@reverse`.
+* Expand prefixes and `@vocab` in string values, `@id`, `@type` and `@reverse`.
 
 ## Install
 

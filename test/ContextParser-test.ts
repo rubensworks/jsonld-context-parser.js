@@ -35,6 +35,18 @@ describe('ContextParser', () => {
     it('to return when a prefix applies', async () => {
       expect(ContextParser.expandPrefixedTerm('def:123', { def: 'DEF/' })).toBe('DEF/123');
     });
+
+    it('to return when @vocab exists but not applies', async () => {
+      expect(ContextParser.expandPrefixedTerm('def:123', { '@vocab': 'bbb/' })).toBe('def:123');
+    });
+
+    it('to return when @vocab exists and applies', async () => {
+      expect(ContextParser.expandPrefixedTerm('def', { '@vocab': 'bbb/' })).toBe('bbb/def');
+    });
+
+    it('to return when @vocab exists and applies, but is disabled', async () => {
+      expect(ContextParser.expandPrefixedTerm('def', { '@vocab': 'bbb/', 'def': null })).toBe('def');
+    });
   });
 
   describe('#isPrefixValue', () => {

@@ -60,6 +60,11 @@ export class ContextParser implements IDocumentLoader {
     const prefix: string = ContextParser.getPrefix(term, context);
     if (prefix) {
       return context[prefix] + term.substr(prefix.length + 1);
+    } else if (context['@vocab'] && term.charAt(0) !== '@' && term.indexOf(':') < 0) {
+      // Expand @vocab, unless the term value in the context is null
+      if (context[term] !== null) {
+        return context['@vocab'] + term;
+      }
     }
     return term;
   }
