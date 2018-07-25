@@ -136,22 +136,28 @@ export class ContextParser implements IDocumentLoader {
   /**
    * Parse a JSON-LD context in any form.
    * @param {JsonLdContext} context A context, URL to a context, or an array of contexts/URLs.
+   * @param {string} baseIri An optional base IRI to set.
    * @param {IJsonLdContextNormalized} parentContext The parent context.
    * @return {Promise<IJsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
+                     baseIri?: string,
                      parentContext?: IJsonLdContextNormalized): Promise<IJsonLdContextNormalized> {
     if (typeof context === 'string') {
-      return this.parse(await this.load(context), parentContext);
+      return this.parse(await this.load(context), baseIri, parentContext);
     } else if (Array.isArray(context)) {
       return context.reduce((accContextPromise, contextEntry) => accContextPromise
-        .then((accContext) => this.parse(contextEntry, accContext)), Promise.resolve({}));
+        .then((accContext) => this.parse(contextEntry, baseIri, accContext)), Promise.resolve({}));
     } else {
       // We have an actual context object.
-      context = { ...parentContext, ...context };
-      ContextParser.idifyReverseTerms(context);
-      ContextParser.expandPrefixedTerms(context);
-      return context;
+      let newContext: any = {};
+      if (baseIri) {
+        newContext['@base'] = baseIri;
+      }
+      newContext = { ...newContext, ...parentContext, ...context };
+      ContextParser.idifyReverseTerms(newContext);
+      ContextParser.expandPrefixedTerms(newContext);
+      return newContext;
     }
   }
 

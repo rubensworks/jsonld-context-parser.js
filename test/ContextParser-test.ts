@@ -325,6 +325,22 @@ describe('ContextParser', () => {
         });
       });
 
+      it('should parse with a base IRI', () => {
+        return expect(parser.parse('http://example.org/simple.jsonld', 'http://myexample.org/'))
+          .resolves.toEqual({
+            '@base': 'http://myexample.org/',
+            'name': "http://xmlns.com/foaf/0.1/name",
+            'xsd': "http://www.w3.org/2001/XMLSchema#",
+          });
+      });
+
+      it('should parse with a base IRI and not override the inner @base', () => {
+        return expect(parser.parse({ '@base': 'http://myotherexample.org/' }, 'http://myexample.org/'))
+          .resolves.toEqual({
+            '@base': 'http://myotherexample.org/',
+          });
+      });
+
       it('should parse a complex context', () => {
         // tslint:disable:object-literal-sort-keys
         // tslint:disable:max-line-length

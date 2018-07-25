@@ -10,6 +10,7 @@ This parser has the following functionality:
 * Fetch contexts by URLs.
 * Normalize JSON contexts.
 * Merge arrays of contexts.
+* Create a default `@base` entry if a base IRI is provided.
 * Create `@id` entries for all `@reverse` occurences.
 * Expand prefixes and `@vocab` in string values, `@id`, `@type` and `@reverse`.
 
