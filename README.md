@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/rubensworks/jsonld-context-parser.js.svg?branch=master)](https://travis-ci.org/rubensworks/jsonld-context-parser.js)
 [![Coverage Status](https://coveralls.io/repos/github/rubensworks/jsonld-context-parser.js/badge.svg?branch=master)](https://coveralls.io/github/rubensworks/jsonld-context-parser.js?branch=master)
-[![npm version](https://badge.fury.io/js/jsonld-context-parser.svg)](https://www.npmjs.com/package/jsonld-context-parser)
+[![npm version](https://badge.fury.io/js/jsonld-context-parser.svg)](https://www.npmjs.com/package/jsonld-context-parser) [![Greenkeeper badge](https://badges.greenkeeper.io/rubensworks/jsonld-context-parser.js.svg)](https://greenkeeper.io/)
 
 A [JSON-LD](https://json-ld.org/) [`@context`](https://json-ld.org/spec/latest/json-ld/#the-context) parser that will normalize these contexts so that they can easily be used in your application.
 
