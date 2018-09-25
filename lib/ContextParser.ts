@@ -57,6 +57,9 @@ export class ContextParser implements IDocumentLoader {
    * @return {string} The expanded term or the term as-is.
    */
   public static expandPrefixedTerm(term: string, context: IJsonLdContextNormalized): string {
+    if (context[term]) {
+      return context[term];
+    }
     const prefix: string = ContextParser.getPrefix(term, context);
     if (prefix) {
       return context[prefix] + term.substr(prefix.length + 1);

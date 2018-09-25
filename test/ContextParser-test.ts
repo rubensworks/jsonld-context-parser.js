@@ -36,6 +36,10 @@ describe('ContextParser', () => {
       expect(ContextParser.expandPrefixedTerm('def:123', { def: 'DEF/' })).toBe('DEF/123');
     });
 
+    it('to return when a direct value applies', async () => {
+      expect(ContextParser.expandPrefixedTerm('abc', { abc: 'DEF' })).toBe('DEF');
+    });
+
     it('to return when @vocab exists but not applies', async () => {
       expect(ContextParser.expandPrefixedTerm('def:123', { '@vocab': 'bbb/' })).toBe('def:123');
     });
