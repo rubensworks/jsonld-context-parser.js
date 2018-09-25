@@ -13,6 +13,7 @@ This parser has the following functionality:
 * Create a default `@base` entry if a base IRI is provided.
 * Create `@id` entries for all `@reverse` occurences.
 * Expand prefixes and `@vocab` in string values, `@id`, `@type` and `@reverse`.
+* Term expansion with the `ContextParser.expandTerm` helper function.
 
 ## Install
 
