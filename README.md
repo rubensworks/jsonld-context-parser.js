@@ -64,6 +64,21 @@ const myContext = await myParser.parse([
 ]);
 ```
 
+#### Expand a term
+
+Based on a context, terms can be expanded.
+
+```
+// Expands if `name` is present in the context
+ContextParser.expandTerm('name', context);
+
+// Expands if `foaf` is present in the context
+ContextParser.expandTerm('foaf:name', context);
+
+// Returns the URI as-is
+ContextParser.expandTerm('http://xmlns.com/foaf/0.1/name', context);
+```
+
 ### Command-line
 
 A command-line tool is provided to quickly normalize any context by URL, file or string.
