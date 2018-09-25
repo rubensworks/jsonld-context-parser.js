@@ -50,13 +50,13 @@ export class ContextParser implements IDocumentLoader {
   }
 
   /**
-   * Expand the prefix of the given term if it has one,
+   * Expand the term or prefix of the given term if it has one,
    * otherwise return the term as-is.
    * @param {string} term A term that is an URL or a prefixed URL.
    * @param {IJsonLdContextNormalized} context A context.
    * @return {string} The expanded term or the term as-is.
    */
-  public static expandPrefixedTerm(term: string, context: IJsonLdContextNormalized): string {
+  public static expandTerm(term: string, context: IJsonLdContextNormalized): string {
     if (context[term]) {
       return context[term];
     }
@@ -110,7 +110,7 @@ export class ContextParser implements IDocumentLoader {
       while (ContextParser.isPrefixValue(context[key])) {
         const value: IPrefixValue = context[key];
         if (typeof value === 'string') {
-          context[key] = ContextParser.expandPrefixedTerm(value, context);
+          context[key] = ContextParser.expandTerm(value, context);
           if (value === context[key]) {
             break;
           }
@@ -118,13 +118,13 @@ export class ContextParser implements IDocumentLoader {
           const id = value['@id'];
           const type = value['@type'];
           if (id) {
-            context[key]['@id'] = ContextParser.expandPrefixedTerm(id, context);
+            context[key]['@id'] = ContextParser.expandTerm(id, context);
             if (id === context[key]['@id']) {
               break;
             }
           }
           if (type) {
-            context[key]['@type'] = ContextParser.expandPrefixedTerm(type, context);
+            context[key]['@type'] = ContextParser.expandTerm(type, context);
             if (type === context[key]['@type']) {
               break;
             }
