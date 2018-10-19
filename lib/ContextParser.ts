@@ -50,23 +50,49 @@ export class ContextParser implements IDocumentLoader {
   }
 
   /**
+   * From a given context entry value, get the string value, or the @id field.
+   * @param contextValue A value for a term in a context.
+   * @return {string} The id value, or null.
+   */
+  public static getContextValueId(contextValue: any): string {
+    if (typeof contextValue === 'string') {
+      return contextValue;
+    }
+    const id = contextValue['@id'];
+    return id ? id : null;
+  }
+
+  /**
    * Expand the term or prefix of the given term if it has one,
    * otherwise return the term as-is.
    * @param {string} term A term that is an URL or a prefixed URL.
    * @param {IJsonLdContextNormalized} context A context.
+   * @param {boolean} vocab If the term is a predicate or type and should be expanded based on @vocab,
+   *                        otherwise it is considered a regular term that is expanded based on @base.
    * @return {string} The expanded term or the term as-is.
    */
-  public static expandTerm(term: string, context: IJsonLdContextNormalized): string {
+  public static expandTerm(term: string, context: IJsonLdContextNormalized, vocab?: boolean): string {
     if (context[term]) {
-      return context[term];
+      const value = this.getContextValueId(context[term]);
+      if (value) {
+        return value;
+      }
     }
     const prefix: string = ContextParser.getPrefix(term, context);
     if (prefix) {
-      return context[prefix] + term.substr(prefix.length + 1);
-    } else if (context['@vocab'] && term.charAt(0) !== '@' && term.indexOf(':') < 0) {
+      const value = this.getContextValueId(context[prefix]);
+      if (value) {
+        return value + term.substr(prefix.length + 1);
+      }
+    } else if (vocab && context['@vocab'] && term.charAt(0) !== '@' && term.indexOf(':') < 0) {
       // Expand @vocab, unless the term value in the context is null
       if (context[term] !== null) {
         return context['@vocab'] + term;
+      }
+    } else if (!vocab && context['@base'] && term.charAt(0) !== '@' && term.indexOf(':') < 0) {
+      // Expand @base, unless the term value in the context is null
+      if (context[term] !== null) {
+        return context['@base'] + term;
       }
     }
     return term;
@@ -106,27 +132,30 @@ export class ContextParser implements IDocumentLoader {
    */
   public static expandPrefixedTerms(context: IJsonLdContextNormalized): IJsonLdContextNormalized {
     for (const key of Object.keys(context)) {
-      // Loop because prefixes might be nested
-      while (ContextParser.isPrefixValue(context[key])) {
-        const value: IPrefixValue = context[key];
-        if (typeof value === 'string') {
-          context[key] = ContextParser.expandTerm(value, context);
-          if (value === context[key]) {
-            break;
-          }
-        } else {
-          const id = value['@id'];
-          const type = value['@type'];
-          if (id) {
-            context[key]['@id'] = ContextParser.expandTerm(id, context);
-            if (id === context[key]['@id']) {
+      // No need to alter @vocab and @base entries
+      if (key !== '@vocab' && key !== '@base') {
+        // Loop because prefixes might be nested
+        while (ContextParser.isPrefixValue(context[key])) {
+          const value: IPrefixValue = context[key];
+          if (typeof value === 'string') {
+            context[key] = ContextParser.expandTerm(value, context);
+            if (value === context[key]) {
               break;
             }
-          }
-          if (type) {
-            context[key]['@type'] = ContextParser.expandTerm(type, context);
-            if (type === context[key]['@type']) {
-              break;
+          } else {
+            const id = value['@id'];
+            const type = value['@type'];
+            if (id) {
+              context[key]['@id'] = ContextParser.expandTerm(id, context);
+              if (id === context[key]['@id']) {
+                break;
+              }
+            }
+            if (type) {
+              context[key]['@type'] = ContextParser.expandTerm(type, context);
+              if (type === context[key]['@type']) {
+                break;
+              }
             }
           }
         }

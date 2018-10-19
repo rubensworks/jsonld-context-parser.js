@@ -28,28 +28,104 @@ describe('ContextParser', () => {
   });
 
   describe('#expandTerm', () => {
-    it('to return when no prefix applies', async () => {
-      expect(ContextParser.expandTerm('abc:123', { def: 'DEF/' })).toBe('abc:123');
+    describe('in vocab-mode', () => {
+      it('to return when no prefix applies', async () => {
+        expect(ContextParser.expandTerm('abc:123', {def: 'DEF/'}, true)).toBe('abc:123');
+      });
+
+      it('to return when no prefix applies without @id', async () => {
+        expect(ContextParser.expandTerm('def:123', {def: {}}, true)).toBe('def:123');
+      });
+
+      it('to return when no term applies without @id', async () => {
+        expect(ContextParser.expandTerm('def', {def: {}}, true)).toBe('def');
+      });
+
+      it('to return when a prefix applies', async () => {
+        expect(ContextParser.expandTerm('def:123', {def: 'DEF/'}, true)).toBe('DEF/123');
+      });
+
+      it('to return when a prefix applies with @id', async () => {
+        expect(ContextParser.expandTerm('def:123', {def: { '@id': 'DEF/' }}, true)).toBe('DEF/123');
+      });
+
+      it('to return when a direct value applies', async () => {
+        expect(ContextParser.expandTerm('abc', {abc: 'DEF'}, true)).toBe('DEF');
+      });
+
+      it('to return when @vocab exists but not applies', async () => {
+        expect(ContextParser.expandTerm('def:123', {'@vocab': 'bbb/'}, true)).toBe('def:123');
+      });
+
+      it('to return when @vocab exists and applies', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/'}, true)).toBe('bbb/def');
+      });
+
+      it('to return when @vocab exists and applies, but is disabled', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/', 'def': null}, true)).toBe('def');
+      });
+
+      it('to return when @base exists but not applies', async () => {
+        expect(ContextParser.expandTerm('def:123', {'@base': 'bbb/'}, true)).toBe('def:123');
+      });
+
+      it('to return when @base exists and applies', async () => {
+        expect(ContextParser.expandTerm('def', {'@base': 'bbb/'}, true)).toBe('def');
+      });
+
+      it('to return when @base exists and applies, but is disabled', async () => {
+        expect(ContextParser.expandTerm('def', {'@base': 'bbb/', 'def': null}, true)).toBe('def');
+      });
     });
 
-    it('to return when a prefix applies', async () => {
-      expect(ContextParser.expandTerm('def:123', { def: 'DEF/' })).toBe('DEF/123');
-    });
+    describe('in base-mode', () => {
+      it('to return when no prefix applies', async () => {
+        expect(ContextParser.expandTerm('abc:123', {def: 'DEF/'}, false)).toBe('abc:123');
+      });
 
-    it('to return when a direct value applies', async () => {
-      expect(ContextParser.expandTerm('abc', { abc: 'DEF' })).toBe('DEF');
-    });
+      it('to return when no prefix applies with @id', async () => {
+        expect(ContextParser.expandTerm('def:123', {def: {}}, false)).toBe('def:123');
+      });
 
-    it('to return when @vocab exists but not applies', async () => {
-      expect(ContextParser.expandTerm('def:123', { '@vocab': 'bbb/' })).toBe('def:123');
-    });
+      it('to return when no term applies with @id', async () => {
+        expect(ContextParser.expandTerm('def', {def: {}}, false)).toBe('def');
+      });
 
-    it('to return when @vocab exists and applies', async () => {
-      expect(ContextParser.expandTerm('def', { '@vocab': 'bbb/' })).toBe('bbb/def');
-    });
+      it('to return when a prefix applies', async () => {
+        expect(ContextParser.expandTerm('def:123', {def: 'DEF/'}, false)).toBe('DEF/123');
+      });
 
-    it('to return when @vocab exists and applies, but is disabled', async () => {
-      expect(ContextParser.expandTerm('def', { '@vocab': 'bbb/', 'def': null })).toBe('def');
+      it('to return when a prefix applies with @id', async () => {
+        expect(ContextParser.expandTerm('def:123', {def: { '@id': 'DEF/'} }, false)).toBe('DEF/123');
+      });
+
+      it('to return when a direct value applies', async () => {
+        expect(ContextParser.expandTerm('abc', {abc: 'DEF'}, false)).toBe('DEF');
+      });
+
+      it('to return when @vocab exists but not applies', async () => {
+        expect(ContextParser.expandTerm('def:123', {'@vocab': 'bbb/'}, false)).toBe('def:123');
+      });
+
+      it('to return when @vocab exists and applies', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/'}, false)).toBe('def');
+      });
+
+      it('to return when @vocab exists and applies, but is disabled', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/', 'def': null}, false)).toBe('def');
+      });
+
+      it('to return when @base exists but not applies', async () => {
+        expect(ContextParser.expandTerm('def:123', {'@base': 'bbb/'}, false)).toBe('def:123');
+      });
+
+      it('to return when @base exists and applies', async () => {
+        expect(ContextParser.expandTerm('def', {'@base': 'bbb/'}, false)).toBe('bbb/def');
+      });
+
+      it('to return when @base exists and applies, but is disabled', async () => {
+        expect(ContextParser.expandTerm('def', {'@base': 'bbb/', 'def': null}, false)).toBe('def');
+      });
     });
   });
 
