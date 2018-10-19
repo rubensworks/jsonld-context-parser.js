@@ -5,8 +5,10 @@ describe('FetchDocumentLoader', () => {
 
   it('should fetch a valid source', () => {
     return expect(loader.load('http://example.org/simple.jsonld')).resolves.toEqual({
-      name: "http://xmlns.com/foaf/0.1/name",
-      xsd: "http://www.w3.org/2001/XMLSchema#",
+      '@context': {
+        name: "http://xmlns.com/foaf/0.1/name",
+        xsd: "http://www.w3.org/2001/XMLSchema#",
+      },
     });
   });
 

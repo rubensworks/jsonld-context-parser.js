@@ -197,7 +197,7 @@ export class ContextParser implements IDocumentLoader {
     if (this.documentCache[url]) {
       return {... this.documentCache[url]};
     }
-    return this.documentCache[url] = await this.parse(await this.documentLoader.load(url));
+    return this.documentCache[url] = (await this.parse(await this.documentLoader.load(url)))['@context'];
   }
 
 }
