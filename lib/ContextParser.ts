@@ -176,7 +176,10 @@ export class ContextParser implements IDocumentLoader {
   public async parse(context: JsonLdContext,
                      baseIri?: string,
                      parentContext?: IJsonLdContextNormalized): Promise<IJsonLdContextNormalized> {
-    if (typeof context === 'string') {
+    if (!context) {
+      // Context that are explicitly set to null are empty.
+      return {};
+    } else if (typeof context === 'string') {
       return this.parse(await this.load(context), baseIri, parentContext);
     } else if (Array.isArray(context)) {
       return context.reduce((accContextPromise, contextEntry) => accContextPromise

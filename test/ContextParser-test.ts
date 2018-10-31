@@ -357,6 +357,16 @@ describe('ContextParser', () => {
       });
     });
 
+    describe('for parsing null', () => {
+      it('should parse to an empty context', () => {
+        return expect(parser.parse(null)).resolves.toEqual({});
+      });
+
+      it('should parse to an empty context, even when a parent context is given', () => {
+        return expect(parser.parse(null, null, { a: 'b' })).resolves.toEqual({});
+      });
+    });
+
     describe('for parsing arrays', () => {
       it('should parse an empty array', () => {
         return expect(parser.parse([])).resolves.toEqual({});
