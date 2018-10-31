@@ -1,4 +1,5 @@
 import 'isomorphic-fetch';
+import {resolve} from "relative-to-absolute-iri";
 import {FetchDocumentLoader} from "./FetchDocumentLoader";
 import {IDocumentLoader} from "./IDocumentLoader";
 import {IJsonLdContextNormalized, IPrefixValue, JsonLdContext} from "./JsonLdContext";
@@ -92,7 +93,7 @@ export class ContextParser implements IDocumentLoader {
     } else if (!vocab && context['@base'] && term.charAt(0) !== '@' && term.indexOf(':') < 0) {
       // Expand @base, unless the term value in the context is null
       if (context[term] !== null) {
-        return context['@base'] + term;
+        return resolve(term, context['@base']);
       }
     }
     return term;
@@ -115,7 +116,7 @@ export class ContextParser implements IDocumentLoader {
   public static idifyReverseTerms(context: IJsonLdContextNormalized): IJsonLdContextNormalized {
     for (const key of Object.keys(context)) {
       const value: IPrefixValue = context[key];
-      if (typeof value === 'object') {
+      if (value && typeof value === 'object') {
         if (value['@reverse'] && !value['@id']) {
           value['@id'] = value['@reverse'];
         }

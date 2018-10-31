@@ -58,7 +58,8 @@ describe('ContextParser', () => {
       });
 
       it('to return when @vocab exists and applies', async () => {
-        expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/'}, true)).toBe('bbb/def');
+        expect(ContextParser.expandTerm('def', {'@vocab': 'http://bbb/'}, true))
+          .toBe('http://bbb/def');
       });
 
       it('to return when @vocab exists and applies, but is disabled', async () => {
@@ -120,7 +121,8 @@ describe('ContextParser', () => {
       });
 
       it('to return when @base exists and applies', async () => {
-        expect(ContextParser.expandTerm('def', {'@base': 'bbb/'}, false)).toBe('bbb/def');
+        expect(ContextParser.expandTerm('def', {'@base': 'http://bbb/'}, false))
+          .toBe('http://bbb/def');
       });
 
       it('to return when @base exists and applies, but is disabled', async () => {
