@@ -19,9 +19,11 @@ Usage:
 const type = argv[0];
 
 let input: any;
+let external: boolean = false;
 switch (type) {
 case 'url':
   input = argv[1];
+  external = true;
   break;
 case 'file':
   input = JSON.parse(readFileSync(argv[1], 'utf8'));
@@ -35,7 +37,7 @@ default:
   break;
 }
 
-new ContextParser().parse(input)
+new ContextParser().parse(input, null, null, external)
   .then((context) => {
     process.stdout.write(JSON.stringify(context, null, '  '));
     process.stdout.write('\n');

@@ -334,6 +334,26 @@ describe('ContextParser', () => {
         });
       });
 
+      it('should parse and ignore the @base IRI', () => {
+        return expect(parser.parse('http://example.org/base.jsonld')).resolves.toEqual({
+          nickname: 'http://xmlns.com/foaf/0.1/nick',
+        });
+      });
+
+      it('should parse and ignore the @base IRI, but not when a custom base IRI is given', () => {
+        return expect(parser.parse('http://example.org/base.jsonld', 'abc')).resolves.toEqual({
+          '@base': 'abc',
+          'nickname': 'http://xmlns.com/foaf/0.1/nick',
+        });
+      });
+
+      it('should parse and ignore the @base IRI, but not from the parent context', () => {
+        return expect(parser.parse('http://example.org/base.jsonld', null, { '@base': 'abc' })).resolves.toEqual({
+          '@base': 'abc',
+          'nickname': 'http://xmlns.com/foaf/0.1/nick',
+        });
+      });
+
       it('should cache documents', async () => {
         const spy = jest.spyOn(parser.documentLoader, 'load');
 

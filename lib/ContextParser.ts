@@ -171,25 +171,35 @@ export class ContextParser implements IDocumentLoader {
    * @param {JsonLdContext} context A context, URL to a context, or an array of contexts/URLs.
    * @param {string} baseIri An optional base IRI to set.
    * @param {IJsonLdContextNormalized} parentContext The parent context.
+   * @param {boolean} external If the parsing context is an external context.
    * @return {Promise<IJsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
                      baseIri?: string,
-                     parentContext?: IJsonLdContextNormalized): Promise<IJsonLdContextNormalized> {
+                     parentContext?: IJsonLdContextNormalized,
+                     external?: boolean): Promise<IJsonLdContextNormalized> {
     if (!context) {
       // Context that are explicitly set to null are empty.
       return {};
     } else if (typeof context === 'string') {
-      return this.parse(await this.load(context), baseIri, parentContext);
+      return this.parse(await this.load(context), baseIri, parentContext, true);
     } else if (Array.isArray(context)) {
       return context.reduce((accContextPromise, contextEntry) => accContextPromise
-        .then((accContext) => this.parse(contextEntry, baseIri, accContext)), Promise.resolve({}));
+        .then((accContext) => this.parse(contextEntry, baseIri, accContext, external)), Promise.resolve({}));
     } else {
       // We have an actual context object.
       let newContext: any = {};
+
+      // According to the JSON-LD spec, @base must be ignored from external contexts.
+      if (external) {
+        delete context['@base'];
+      }
+
+      // Override the base IRI if provided.
       if (baseIri) {
         newContext['@base'] = baseIri;
       }
+
       newContext = { ...newContext, ...parentContext, ...context };
       ContextParser.idifyReverseTerms(newContext);
       ContextParser.expandPrefixedTerms(newContext);
@@ -201,7 +211,8 @@ export class ContextParser implements IDocumentLoader {
     if (this.documentCache[url]) {
       return {... this.documentCache[url]};
     }
-    return this.documentCache[url] = (await this.parse(await this.documentLoader.load(url)))['@context'];
+    return this.documentCache[url] = (await this.parse(await this.documentLoader.load(url),
+      null, null, true))['@context'];
   }
 
 }
