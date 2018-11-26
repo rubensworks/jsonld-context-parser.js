@@ -261,6 +261,26 @@ describe('ContextParser', () => {
         ex: 'http://example.org/',
       });
     });
+
+    it('should expand a context with object prefixes without @id and with @type', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        ex: 'http://ex.org/',
+        p: { '@id': 'http://ex.org/pred1', '@type': 'ex:mytype' },
+      })).toEqual({
+        ex: 'http://ex.org/',
+        p: { '@id': 'http://ex.org/pred1', '@type': 'http://ex.org/mytype' },
+      });
+    });
+
+    it('should expand a context with object prefixes with @id and without @type', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        ex: 'http://ex.org/',
+        p: { '@id': 'ex:pred1', '@type': 'http://ex.org/mytype' },
+      })).toEqual({
+        ex: 'http://ex.org/',
+        p: { '@id': 'http://ex.org/pred1', '@type': 'http://ex.org/mytype' },
+      });
+    });
   });
 
   describe('#idifyReverseTerms', () => {

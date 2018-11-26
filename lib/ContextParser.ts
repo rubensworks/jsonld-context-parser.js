@@ -138,26 +138,24 @@ export class ContextParser implements IDocumentLoader {
         // Loop because prefixes might be nested
         while (ContextParser.isPrefixValue(context[key])) {
           const value: IPrefixValue = context[key];
+          let changed: boolean = false;
           if (typeof value === 'string') {
             context[key] = ContextParser.expandTerm(value, context);
-            if (value === context[key]) {
-              break;
-            }
+            changed = changed || value !== context[key];
           } else {
             const id = value['@id'];
             const type = value['@type'];
             if (id) {
               context[key]['@id'] = ContextParser.expandTerm(id, context);
-              if (id === context[key]['@id']) {
-                break;
-              }
+              changed = changed || id !== context[key]['@id'];
             }
             if (type) {
               context[key]['@type'] = ContextParser.expandTerm(type, context);
-              if (type === context[key]['@type']) {
-                break;
-              }
+              changed = changed || type !== context[key]['@type'];
             }
+          }
+          if (!changed) {
+            break;
           }
         }
       }
