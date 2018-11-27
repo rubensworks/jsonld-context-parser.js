@@ -281,6 +281,18 @@ describe('ContextParser', () => {
         p: { '@id': 'http://ex.org/pred1', '@type': 'http://ex.org/mytype' },
       });
     });
+
+    it('should not expand @language', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@base': 'http://ex.org/',
+        '@language': 'en',
+        'p': { '@id': 'pred1', '@language': 'nl' },
+      })).toEqual({
+        '@base': 'http://ex.org/',
+        '@language': 'en',
+        'p': { '@id': 'http://ex.org/pred1', '@language': 'nl' },
+      });
+    });
   });
 
   describe('#idifyReverseTerms', () => {

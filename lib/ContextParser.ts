@@ -9,6 +9,13 @@ import {IJsonLdContextNormalized, IPrefixValue, JsonLdContext} from "./JsonLdCon
  */
 export class ContextParser implements IDocumentLoader {
 
+  // Keys in the contexts that will not be expanded based on the base IRI
+  private static readonly EXPAND_KEYS_BLACKLIST: string[] = [
+    '@base',
+    '@vocab',
+    '@language',
+  ];
+
   private readonly documentLoader: IDocumentLoader;
   private readonly documentCache: {[url: string]: any};
 
@@ -133,8 +140,8 @@ export class ContextParser implements IDocumentLoader {
    */
   public static expandPrefixedTerms(context: IJsonLdContextNormalized): IJsonLdContextNormalized {
     for (const key of Object.keys(context)) {
-      // No need to alter @vocab and @base entries
-      if (key !== '@vocab' && key !== '@base') {
+      // Only expand allowed keys
+      if (ContextParser.EXPAND_KEYS_BLACKLIST.indexOf(key) < 0) {
         // Loop because prefixes might be nested
         while (ContextParser.isPrefixValue(context[key])) {
           const value: IPrefixValue = context[key];
