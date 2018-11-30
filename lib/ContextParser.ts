@@ -63,7 +63,7 @@ export class ContextParser implements IDocumentLoader {
    * @return {string} The id value, or null.
    */
   public static getContextValueId(contextValue: any): string {
-    if (typeof contextValue === 'string') {
+    if (contextValue === null || typeof contextValue === 'string') {
       return contextValue;
     }
     const id = contextValue['@id'];
@@ -77,15 +77,25 @@ export class ContextParser implements IDocumentLoader {
    * @param {IJsonLdContextNormalized} context A context.
    * @param {boolean} vocab If the term is a predicate or type and should be expanded based on @vocab,
    *                        otherwise it is considered a regular term that is expanded based on @base.
-   * @return {string} The expanded term or the term as-is.
+   * @return {string} The expanded term, the term as-is, or null if it was explicitly disabled in the context.
    */
   public static expandTerm(term: string, context: IJsonLdContextNormalized, vocab?: boolean): string {
-    if (context[term]) {
-      const value = this.getContextValueId(context[term]);
+    const contextValue = context[term];
+
+    // Immediately return if the term was disabled in the context
+    if (contextValue === null) {
+      return null;
+    }
+
+    // Check the @id
+    if (contextValue) {
+      const value = this.getContextValueId(contextValue);
       if (value) {
         return value;
       }
     }
+
+    // Check if the term is prefixed
     const prefix: string = ContextParser.getPrefix(term, context);
     if (prefix) {
       const value = this.getContextValueId(context[prefix]);
@@ -93,15 +103,9 @@ export class ContextParser implements IDocumentLoader {
         return value + term.substr(prefix.length + 1);
       }
     } else if (vocab && context['@vocab'] && term.charAt(0) !== '@' && term.indexOf(':') < 0) {
-      // Expand @vocab, unless the term value in the context is null
-      if (context[term] !== null) {
-        return context['@vocab'] + term;
-      }
+      return context['@vocab'] + term;
     } else if (!vocab && context['@base'] && term.charAt(0) !== '@' && term.indexOf(':') < 0) {
-      // Expand @base, unless the term value in the context is null
-      if (context[term] !== null) {
-        return resolve(term, context['@base']);
-      }
+      return resolve(term, context['@base']);
     }
     return term;
   }
