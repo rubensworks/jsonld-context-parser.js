@@ -340,6 +340,28 @@ describe('ContextParser', () => {
         'p': { '@id': 'http://vocab.org/p', '@type': 'http://vocab.org/type' },
       });
     });
+
+    it('should let @type fallback to base when when vocab is disabled', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@base': 'http://base.org/',
+        '@vocab': null,
+        'p': { '@id': 'p', '@type': 'type' },
+      })).toEqual({
+        '@base': 'http://base.org/',
+        '@vocab': null,
+        'p': { '@id': 'p', '@type': 'http://base.org/type' },
+      });
+    });
+
+    it('should let @type fallback to base when when vocab is not present', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@base': 'http://base.org/',
+        'p': { '@id': 'p', '@type': 'type' },
+      })).toEqual({
+        '@base': 'http://base.org/',
+        'p': { '@id': 'p', '@type': 'http://base.org/type' },
+      });
+    });
   });
 
   describe('#idifyReverseTerms', () => {
