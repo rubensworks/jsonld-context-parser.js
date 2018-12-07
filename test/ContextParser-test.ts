@@ -289,13 +289,39 @@ describe('ContextParser', () => {
 
     it('should not expand @language', async () => {
       expect(ContextParser.expandPrefixedTerms({
-        '@base': 'http://ex.org/',
+        '@base': 'http://base.org/',
         '@language': 'en',
+        '@vocab': 'http://vocab.org/',
         'p': { '@id': 'pred1', '@language': 'nl' },
       })).toEqual({
-        '@base': 'http://ex.org/',
+        '@base': 'http://base.org/',
         '@language': 'en',
-        'p': { '@id': 'http://ex.org/pred1', '@language': 'nl' },
+        '@vocab': 'http://vocab.org/',
+        'p': { '@id': 'http://vocab.org/pred1', '@language': 'nl' },
+      });
+    });
+
+    it('should expand terms based on the vocab IRI', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@base': 'http://base.org/',
+        '@vocab': 'http://vocab.org/',
+        'p': 'p',
+      })).toEqual({
+        '@base': 'http://base.org/',
+        '@vocab': 'http://vocab.org/',
+        'p': 'http://vocab.org/p',
+      });
+    });
+
+    it('should expand nested terms based on the vocab IRI', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@base': 'http://base.org/',
+        '@vocab': 'http://vocab.org/',
+        'p': { '@id': 'p', '@type': 'type' },
+      })).toEqual({
+        '@base': 'http://base.org/',
+        '@vocab': 'http://vocab.org/',
+        'p': { '@id': 'http://vocab.org/p', '@type': 'http://vocab.org/type' },
       });
     });
   });

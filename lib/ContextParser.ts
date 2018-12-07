@@ -151,17 +151,17 @@ export class ContextParser implements IDocumentLoader {
           const value: IPrefixValue = context[key];
           let changed: boolean = false;
           if (typeof value === 'string') {
-            context[key] = ContextParser.expandTerm(value, context);
+            context[key] = ContextParser.expandTerm(value, context, true);
             changed = changed || value !== context[key];
           } else {
             const id = value['@id'];
             const type = value['@type'];
             if (id) {
-              context[key]['@id'] = ContextParser.expandTerm(id, context);
+              context[key]['@id'] = ContextParser.expandTerm(id, context, true);
               changed = changed || id !== context[key]['@id'];
             }
             if (type) {
-              context[key]['@type'] = ContextParser.expandTerm(type, context);
+              context[key]['@type'] = ContextParser.expandTerm(type, context, true);
               changed = changed || type !== context[key]['@type'];
             }
           }
