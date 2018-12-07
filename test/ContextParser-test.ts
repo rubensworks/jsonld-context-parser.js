@@ -362,6 +362,16 @@ describe('ContextParser', () => {
         'p': { '@id': 'p', '@type': 'http://base.org/type' },
       });
     });
+
+    it('should not expand @type: @vocab', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@vocab': 'http://vocab.org/',
+        'p': { '@id': 'p', '@type': '@vocab' },
+      })).toEqual({
+        '@vocab': 'http://vocab.org/',
+        'p': { '@id': 'http://vocab.org/p', '@type': '@vocab' },
+      });
+    });
   });
 
   describe('#idifyReverseTerms', () => {

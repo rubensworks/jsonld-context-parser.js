@@ -160,7 +160,7 @@ export class ContextParser implements IDocumentLoader {
               context[key]['@id'] = ContextParser.expandTerm(id, context, true);
               changed = changed || id !== context[key]['@id'];
             }
-            if (type) {
+            if (type && type !== '@vocab') {
               // First check @vocab, then fallback to @base
               context[key]['@type'] = ContextParser.expandTerm(type, context, true);
               if (type === context[key]['@type']) {
