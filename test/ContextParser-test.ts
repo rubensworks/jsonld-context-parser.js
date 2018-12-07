@@ -71,6 +71,10 @@ describe('ContextParser', () => {
         expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/', 'def': null}, true)).toBe(null);
       });
 
+      it('to return when @vocab exists and applies, but is disabled via @id', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/', 'def': { '@id': null }}, true)).toBe(null);
+      });
+
       it('to return when @base exists but not applies', async () => {
         expect(ContextParser.expandTerm('def:123', {'@base': 'bbb/'}, true)).toBe('def:123');
       });
@@ -81,6 +85,10 @@ describe('ContextParser', () => {
 
       it('to return when @base exists and applies, but is disabled', async () => {
         expect(ContextParser.expandTerm('def', {'@base': 'bbb/', 'def': null}, true)).toBe(null);
+      });
+
+      it('to return when @base exists and applies, but is disabled via @id', async () => {
+        expect(ContextParser.expandTerm('def', {'@base': 'bbb/', 'def': { '@id': null }}, true)).toBe(null);
       });
     });
 
@@ -121,6 +129,10 @@ describe('ContextParser', () => {
         expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/', 'def': null}, false)).toBe(null);
       });
 
+      it('to return when @vocab exists and applies, but is disabled via @id', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/', 'def': { '@id': null }}, false)).toBe(null);
+      });
+
       it('to return when @base exists but not applies', async () => {
         expect(ContextParser.expandTerm('def:123', {'@base': 'bbb/'}, false)).toBe('def:123');
       });
@@ -132,6 +144,10 @@ describe('ContextParser', () => {
 
       it('to return when @base exists and applies, but is disabled', async () => {
         expect(ContextParser.expandTerm('def', {'@base': 'bbb/', 'def': null}, false)).toBe(null);
+      });
+
+      it('to return when @base exists and applies, but is disabled via @id', async () => {
+        expect(ContextParser.expandTerm('def', {'@base': 'bbb/', 'def': { '@id': null }}, false)).toBe(null);
       });
     });
   });

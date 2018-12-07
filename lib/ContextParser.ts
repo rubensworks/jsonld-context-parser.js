@@ -83,7 +83,7 @@ export class ContextParser implements IDocumentLoader {
     const contextValue = context[term];
 
     // Immediately return if the term was disabled in the context
-    if (contextValue === null) {
+    if (contextValue === null || (contextValue && contextValue['@id'] === null)) {
       return null;
     }
 
