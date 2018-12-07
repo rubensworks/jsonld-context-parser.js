@@ -113,8 +113,8 @@ describe('ContextParser', () => {
         expect(ContextParser.expandTerm('def:123', {def: { '@id': 'DEF/'} }, false)).toBe('DEF/123');
       });
 
-      it('to return when a direct value applies', async () => {
-        expect(ContextParser.expandTerm('abc', {abc: 'DEF'}, false)).toBe('DEF');
+      it('to return when a direct value applies, but ignore it in base-mode', async () => {
+        expect(ContextParser.expandTerm('abc', {abc: 'DEF'}, false)).toBe('abc');
       });
 
       it('to return when @vocab exists but not applies', async () => {

@@ -73,6 +73,15 @@ export class ContextParser implements IDocumentLoader {
   /**
    * Expand the term or prefix of the given term if it has one,
    * otherwise return the term as-is.
+   *
+   * Iff in vocab-mode, then other references to other terms in the context can be used,
+   * such as to `myTerm`:
+   * ```
+   * {
+   *   "myTerm": "http://example.org/myLongTerm"
+   * }
+   * ```
+   *
    * @param {string} term A term that is an URL or a prefixed URL.
    * @param {IJsonLdContextNormalized} context A context.
    * @param {boolean} vocab If the term is a predicate or type and should be expanded based on @vocab,
@@ -88,7 +97,7 @@ export class ContextParser implements IDocumentLoader {
     }
 
     // Check the @id
-    if (contextValue) {
+    if (contextValue && vocab) {
       const value = this.getContextValueId(contextValue);
       if (value && value !== term) {
         return value;
