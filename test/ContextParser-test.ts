@@ -62,6 +62,11 @@ describe('ContextParser', () => {
           .toBe('http://bbb/def');
       });
 
+      it('to return when @vocab exists and applies, but the context key references itself', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': 'http://bbb/', 'def': 'def'}, true)).
+        toBe('http://bbb/def');
+      });
+
       it('to return when @vocab exists and applies, but is disabled', async () => {
         expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/', 'def': null}, true)).toBe(null);
       });

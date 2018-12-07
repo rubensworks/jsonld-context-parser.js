@@ -90,7 +90,7 @@ export class ContextParser implements IDocumentLoader {
     // Check the @id
     if (contextValue) {
       const value = this.getContextValueId(contextValue);
-      if (value) {
+      if (value && value !== term) {
         return value;
       }
     }
