@@ -499,8 +499,9 @@ describe('ContextParser', () => {
     });
 
     describe('for parsing arrays', () => {
-      it('should parse an empty array', () => {
-        return expect(parser.parse([])).resolves.toEqual({});
+      it('should parse an empty array to the parent context', () => {
+        const parentContext = { a: 'b' };
+        return expect(parser.parse([], null, parentContext)).resolves.toBe(parentContext);
       });
 
       it('should parse an array with one string', () => {

@@ -207,7 +207,7 @@ export class ContextParser implements IDocumentLoader {
       return this.parse(await this.load(context), baseIri, parentContext, true);
     } else if (Array.isArray(context)) {
       return context.reduce((accContextPromise, contextEntry) => accContextPromise
-        .then((accContext) => this.parse(contextEntry, baseIri, accContext, external)), Promise.resolve({}));
+        .then((accContext) => this.parse(contextEntry, baseIri, accContext, external)), Promise.resolve(parentContext));
     } else {
       // We have an actual context object.
       let newContext: any = {};
