@@ -191,7 +191,7 @@ export class ContextParser implements IDocumentLoader {
   /**
    * Parse a JSON-LD context in any form.
    * @param {JsonLdContext} context A context, URL to a context, or an array of contexts/URLs.
-   * @param {string} baseIri An optional base IRI to set.
+   * @param {string} baseIri An optional fallback base IRI to set.
    * @param {IJsonLdContextNormalized} parentContext The parent context.
    * @param {boolean} external If the parsing context is an external context.
    * @return {Promise<IJsonLdContextNormalized>} A promise resolving to the context.
@@ -202,7 +202,7 @@ export class ContextParser implements IDocumentLoader {
                      external?: boolean): Promise<IJsonLdContextNormalized> {
     if (!context) {
       // Context that are explicitly set to null are empty.
-      return {};
+      return baseIri ? { '@base': baseIri } : {};
     } else if (typeof context === 'string') {
       return this.parse(await this.load(context), baseIri, parentContext, true);
     } else if (Array.isArray(context)) {
@@ -218,7 +218,7 @@ export class ContextParser implements IDocumentLoader {
       }
 
       // Override the base IRI if provided.
-      if (baseIri) {
+      if (baseIri && !('@base' in newContext)) {
         newContext['@base'] = baseIri;
       }
 

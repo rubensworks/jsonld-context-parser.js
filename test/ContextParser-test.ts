@@ -496,6 +496,11 @@ describe('ContextParser', () => {
       it('should parse to an empty context, even when a parent context is given', () => {
         return expect(parser.parse(null, null, { a: 'b' })).resolves.toEqual({});
       });
+
+      it('should parse to an empty context, but set @base if needed', () => {
+        return expect(parser.parse(null, 'http://base.org/')).resolves
+          .toEqual({ '@base': 'http://base.org/' });
+      });
     });
 
     describe('for parsing arrays', () => {
