@@ -372,6 +372,13 @@ describe('ContextParser', () => {
         'p': { '@id': 'http://vocab.org/p', '@type': '@vocab' },
       });
     });
+
+    it('should error on aliasing of keywords', async () => {
+      expect(() => ContextParser.expandPrefixedTerms({
+        '@id': 'http//ex.org/id',
+      })).toThrow(new Error(`Keywords can not be aliased to something else.
+Tried mapping @id to http//ex.org/id`));
+    });
   });
 
   describe('#idifyReverseTerms', () => {

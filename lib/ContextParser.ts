@@ -15,6 +15,21 @@ export class ContextParser implements IDocumentLoader {
     '@vocab',
     '@language',
   ];
+  // Keys in the contexts that may not be aliased
+  private static readonly ALIAS_KEYS_BLACKLIST: string[] = [
+    '@container',
+    '@graph',
+    '@id',
+    '@index',
+    '@list',
+    '@nest',
+    '@none',
+    '@prefix',
+    '@reverse',
+    '@set',
+    '@type',
+    '@value',
+  ];
 
   private readonly documentLoader: IDocumentLoader;
   private readonly documentCache: {[url: string]: any};
@@ -155,6 +170,12 @@ export class ContextParser implements IDocumentLoader {
     for (const key of Object.keys(context)) {
       // Only expand allowed keys
       if (ContextParser.EXPAND_KEYS_BLACKLIST.indexOf(key) < 0) {
+        // Error if we try to alias a keyword to something else.
+        if (key.startsWith('@') && ContextParser.ALIAS_KEYS_BLACKLIST.indexOf(key) >= 0) {
+          throw new Error(`Keywords can not be aliased to something else.
+Tried mapping ${key} to ${context[key]}`);
+        }
+
         // Loop because prefixes might be nested
         while (ContextParser.isPrefixValue(context[key])) {
           const value: IPrefixValue = context[key];
@@ -242,8 +263,7 @@ export class ContextParser implements IDocumentLoader {
     if (this.documentCache[url]) {
       return {... this.documentCache[url]};
     }
-    return this.documentCache[url] = (await this.parse(await this.documentLoader.load(url),
-      null, null, true))['@context'];
+    return this.documentCache[url] = (await this.documentLoader.load(url))['@context'];
   }
 
 }
