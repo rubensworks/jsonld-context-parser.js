@@ -171,7 +171,7 @@ export class ContextParser implements IDocumentLoader {
       // Only expand allowed keys
       if (ContextParser.EXPAND_KEYS_BLACKLIST.indexOf(key) < 0) {
         // Error if we try to alias a keyword to something else.
-        if (key.startsWith('@') && ContextParser.ALIAS_KEYS_BLACKLIST.indexOf(key) >= 0) {
+        if (key[0] === '@' && ContextParser.ALIAS_KEYS_BLACKLIST.indexOf(key) >= 0) {
           throw new Error(`Keywords can not be aliased to something else.
 Tried mapping ${key} to ${context[key]}`);
         }
