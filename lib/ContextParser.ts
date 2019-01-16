@@ -206,7 +206,16 @@ export class ContextParser implements IDocumentLoader {
     } else if (typeof context === 'string') {
       return this.parse(await this.load(context), baseIri, parentContext, true);
     } else if (Array.isArray(context)) {
-      return context.reduce((accContextPromise, contextEntry) => accContextPromise
+      // As a performance consideration, first load all external contexts in parallel.
+      const contexts = await Promise.all(context.map((subContext) => {
+        if (typeof subContext === 'string') {
+          return this.load(subContext);
+        } else {
+          return subContext;
+        }
+      }));
+
+      return contexts.reduce((accContextPromise, contextEntry) => accContextPromise
         .then((accContext) => this.parse(contextEntry, baseIri, accContext, external)), Promise.resolve(parentContext));
     } else {
       // We have an actual context object.
