@@ -407,6 +407,18 @@ Tried mapping @id to http//ex.org/id`));
     });
   });
 
+  describe('#validate', () => {
+    it('should error on an invalid @vocab', async () => {
+      expect(() => ContextParser.validate(<any> { '@vocab': true }))
+        .toThrow(new Error('Found an invalid @vocab IRI: true'));
+    });
+
+    it('should error on an invalid @base', async () => {
+      expect(() => ContextParser.validate(<any> { '@base': true }))
+        .toThrow(new Error('Found an invalid @base IRI: true'));
+    });
+  });
+
   describe('when instantiated without options', () => {
     let parser;
 

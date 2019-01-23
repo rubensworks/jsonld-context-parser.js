@@ -210,6 +210,19 @@ Tried mapping ${key} to ${context[key]}`);
   }
 
   /**
+   * Validate the entries of the given context.
+   * @param {IJsonLdContextNormalized} context A context.
+   */
+  public static validate(context: IJsonLdContextNormalized) {
+    if ('@vocab' in context && typeof context['@vocab'] !== 'string') {
+      throw new Error(`Found an invalid @vocab IRI: ${context['@vocab']}`);
+    }
+    if ('@base' in context && typeof context['@base'] !== 'string') {
+      throw new Error(`Found an invalid @base IRI: ${context['@base']}`);
+    }
+  }
+
+  /**
    * Parse a JSON-LD context in any form.
    * @param {JsonLdContext} context A context, URL to a context, or an array of contexts/URLs.
    * @param {string} baseIri An optional fallback base IRI to set.
@@ -255,6 +268,7 @@ Tried mapping ${key} to ${context[key]}`);
       newContext = { ...newContext, ...parentContext, ...context };
       ContextParser.idifyReverseTerms(newContext);
       ContextParser.expandPrefixedTerms(newContext);
+      ContextParser.validate(newContext);
       return newContext;
     } else {
       throw new Error(`Tried parsing a context that is not a string, array or object, but got ${context}`);
