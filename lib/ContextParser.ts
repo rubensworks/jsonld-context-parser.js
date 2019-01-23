@@ -33,11 +33,13 @@ export class ContextParser implements IDocumentLoader {
 
   private readonly documentLoader: IDocumentLoader;
   private readonly documentCache: {[url: string]: any};
+  private readonly validate: boolean;
 
   constructor(options?: IContextFlattenerOptions) {
     options = options || {};
     this.documentLoader = options.documentLoader || new FetchDocumentLoader();
     this.documentCache = {};
+    this.validate = !options.skipValidation;
   }
 
   /**
@@ -271,7 +273,9 @@ Tried mapping ${key} to ${context[key]}`);
       newContext = { ...newContext, ...parentContext, ...context };
       ContextParser.idifyReverseTerms(newContext);
       ContextParser.expandPrefixedTerms(newContext);
-      ContextParser.validate(newContext);
+      if (this.validate) {
+        ContextParser.validate(newContext);
+      }
       return newContext;
     } else {
       throw new Error(`Tried parsing a context that is not a string, array or object, but got ${context}`);
@@ -289,4 +293,5 @@ Tried mapping ${key} to ${context[key]}`);
 
 export interface IContextFlattenerOptions {
   documentLoader?: IDocumentLoader;
+  skipValidation?: boolean;
 }

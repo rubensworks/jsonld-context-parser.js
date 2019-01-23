@@ -448,6 +448,18 @@ Tried mapping @id to http//ex.org/id`));
     });
   });
 
+  describe('when instantiated with skipValidation = true', () => {
+    let parser;
+
+    beforeEach(() => {
+      parser = new ContextParser({ skipValidation: true });
+    });
+
+    it('should parse with an invalid context entry', () => {
+      return expect(parser.parse({ '@base': true })).resolves.toEqual({ '@base': true });
+    });
+  });
+
   describe('when instantiated with options and a document loader', () => {
     let documentLoader;
     let parser;
@@ -459,6 +471,13 @@ Tried mapping @id to http//ex.org/id`));
 
     it('should have the given document loader', async () => {
       expect(parser.documentLoader).toBe(documentLoader);
+    });
+
+    describe('for parsing objects', () => {
+      it('should error when parsing a context with an invalid context entry', () => {
+        return expect(parser.parse({ '@base': true })).rejects
+          .toEqual(new Error('Found an invalid @base IRI: true'));
+      });
     });
 
     describe('for parsing URLs', () => {
