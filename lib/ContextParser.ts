@@ -9,6 +9,9 @@ import {IJsonLdContextNormalized, IPrefixValue, JsonLdContext} from "./JsonLdCon
  */
 export class ContextParser implements IDocumentLoader {
 
+  // Regex for valid IRIs
+  public static readonly IRI_REGEX: RegExp = /^([A-Za-z][A-Za-z0-9+-.]*|_):/;
+
   // Keys in the contexts that will not be expanded based on the base IRI
   private static readonly EXPAND_KEYS_BLACKLIST: string[] = [
     '@base',
@@ -30,16 +33,25 @@ export class ContextParser implements IDocumentLoader {
     '@type',
     '@value',
   ];
+  // All valid @container values
+  private static readonly CONTAINERS: string[] = [
+    '@list',
+    '@set',
+    '@index',
+    '@language',
+  ];
 
   private readonly documentLoader: IDocumentLoader;
   private readonly documentCache: {[url: string]: any};
   private readonly validate: boolean;
+  private readonly expandContentTypeToBase: boolean;
 
   constructor(options?: IContextFlattenerOptions) {
     options = options || {};
     this.documentLoader = options.documentLoader || new FetchDocumentLoader();
     this.documentCache = {};
     this.validate = !options.skipValidation;
+    this.expandContentTypeToBase = options.expandContentTypeToBase;
   }
 
   /**
@@ -146,6 +158,15 @@ export class ContextParser implements IDocumentLoader {
   }
 
   /**
+   * Check if the given IRI is valid.
+   * @param {string} iri A potential IRI.
+   * @return {boolean} If the given IRI is valid.
+   */
+  public static isValidIri(iri: string): boolean {
+    return ContextParser.IRI_REGEX.test(iri);
+  }
+
+  /**
    * Add an @id term for all @reverse terms.
    * @param {IJsonLdContextNormalized} context A context.
    * @return {IJsonLdContextNormalized} The mutated input context.
@@ -155,7 +176,11 @@ export class ContextParser implements IDocumentLoader {
       const value: IPrefixValue = context[key];
       if (value && typeof value === 'object') {
         if (value['@reverse'] && !value['@id']) {
-          value['@id'] = value['@reverse'];
+          if (typeof value['@reverse'] !== 'string') {
+            throw new Error(`Invalid @reverse value: '${value['@reverse']}'`);
+          }
+          value['@id'] = <string> value['@reverse'];
+          value['@reverse'] = true;
         }
       }
     }
@@ -166,9 +191,12 @@ export class ContextParser implements IDocumentLoader {
   /**
    * Expand all prefixed terms in the given context.
    * @param {IJsonLdContextNormalized} context A context.
+   * @param {boolean} expandContentTypeToBase If @type inside the context may be expanded
+   *                                          via @base if @vocab is set to null.
    * @return {IJsonLdContextNormalized} The mutated input context.
    */
-  public static expandPrefixedTerms(context: IJsonLdContextNormalized): IJsonLdContextNormalized {
+  public static expandPrefixedTerms(context: IJsonLdContextNormalized,
+                                    expandContentTypeToBase: boolean): IJsonLdContextNormalized {
     for (const key of Object.keys(context)) {
       // Only expand allowed keys
       if (ContextParser.EXPAND_KEYS_BLACKLIST.indexOf(key) < 0) {
@@ -195,7 +223,7 @@ Tried mapping ${key} to ${context[key]}`);
             if (type && type !== '@vocab') {
               // First check @vocab, then fallback to @base
               context[key]['@type'] = ContextParser.expandTerm(type, context, true);
-              if (type === context[key]['@type']) {
+              if (expandContentTypeToBase && type === context[key]['@type']) {
                 context[key]['@type'] = ContextParser.expandTerm(type, context, false);
               }
               changed = changed || type !== context[key]['@type'];
@@ -218,24 +246,83 @@ Tried mapping ${key} to ${context[key]}`);
   public static validate(context: IJsonLdContextNormalized) {
     for (const key of Object.keys(context)) {
       const value = context[key];
+      const valueType = typeof value;
+      // First check if the key is a keyword
       if (key[0] === '@') {
-        // First check if the key is a keyword
         switch (key.substr(1)) {
         case 'vocab':
-          if (value !== null && typeof value !== 'string') {
+          if (value !== null && valueType !== 'string') {
             throw new Error(`Found an invalid @vocab IRI: ${value}`);
           }
           break;
         case 'base':
-          if (value !== null && typeof value !== 'string') {
+          if (value !== null && valueType !== 'string') {
             throw new Error(`Found an invalid @base IRI: ${context[key]}`);
           }
           break;
         case 'language':
-          if (value !== null && typeof value !== 'string') {
+          if (value !== null && valueType !== 'string') {
             throw new Error(`Found an invalid @language string: ${value}`);
           }
           break;
+        }
+      }
+
+      // Otherwise, consider the key a term
+      if (value !== null) {
+        switch (valueType) {
+        case 'string':
+          // Always valid
+          break;
+        case 'object':
+          if (key.indexOf(':') < 0 && !('@id' in value)
+            && (value['@type'] === '@id' ? !context['@base'] : !context['@vocab'])) {
+            throw new Error(`Missing @id in context entry: '${key}': '${JSON.stringify(value)}'`);
+          }
+
+          for (const objectKey of Object.keys(value)) {
+            const objectValue = value[objectKey];
+            if (!objectValue) {
+              continue;
+            }
+
+            switch (objectKey) {
+            case '@id':
+              if (objectValue[0] === '@' && objectValue !== '@type' && objectValue !== '@id') {
+                throw new Error(`Illegal keyword alias in term value, found: '${key}': '${JSON.stringify(value)}'`);
+              }
+              break;
+            case '@type':
+              if (objectValue !== '@id' && objectValue !== '@vocab'
+                && (objectValue[0] === '_' || !ContextParser.isValidIri(objectValue))) {
+                throw new Error(`A context @type must be an absolute IRI, found: '${key}': '${objectValue}'`);
+              }
+              break;
+            case '@reverse':
+              if (typeof objectValue === 'string' && value['@id'] && value['@id'] !== objectValue) {
+                throw new Error(`Found non-matching @id and @reverse term values in '${key}':\
+'${objectValue}' and '${value['@id']}'`);
+              }
+              break;
+            case '@container':
+              if (objectValue === '@list' && value['@reverse']) {
+                throw new Error(`Term value can not be @container: @list and @reverse at the same time on '${key}'`);
+              }
+              if (ContextParser.CONTAINERS.indexOf(objectValue) < 0) {
+                throw new Error(`Invalid term @container for '${key}' ('${objectValue}'), \
+must be one of ${ContextParser.CONTAINERS.join(', ')}`);
+              }
+              break;
+            case '@language':
+              if (objectValue !== null && typeof objectValue !== 'string') {
+                throw new Error(`Found an invalid term @language string in: '${key}': '${JSON.stringify(value)}'`);
+              }
+              break;
+            }
+          }
+          break;
+        default:
+          throw new Error(`Found an invalid term value: '${key}': '${value}'`);
         }
       }
     }
@@ -286,7 +373,7 @@ Tried mapping ${key} to ${context[key]}`);
 
       newContext = { ...newContext, ...parentContext, ...context };
       ContextParser.idifyReverseTerms(newContext);
-      ContextParser.expandPrefixedTerms(newContext);
+      ContextParser.expandPrefixedTerms(newContext, this.expandContentTypeToBase);
       if (this.validate) {
         ContextParser.validate(newContext);
       }
@@ -308,4 +395,8 @@ Tried mapping ${key} to ${context[key]}`);
 export interface IContextFlattenerOptions {
   documentLoader?: IDocumentLoader;
   skipValidation?: boolean;
+  /**
+   * If @type inside the context may be expanded via @base is @vocab is set to null.
+   */
+  expandContentTypeToBase?: boolean;
 }

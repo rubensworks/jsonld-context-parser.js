@@ -174,15 +174,15 @@ describe('ContextParser', () => {
     });
   });
 
-  describe('#expandPrefixedTerms', () => {
+  describe('#expandPrefixedTerms with expandContentTypeToBase true', () => {
     it('should not modify an empty context', async () => {
-      expect(ContextParser.expandPrefixedTerms({})).toEqual({});
+      expect(ContextParser.expandPrefixedTerms({}, true)).toEqual({});
     });
 
     it('should not modify a context without prefixes', async () => {
       expect(ContextParser.expandPrefixedTerms({
         abc: 'def',
-      })).toEqual({
+      }, true)).toEqual({
         abc: 'def',
       });
     });
@@ -191,7 +191,7 @@ describe('ContextParser', () => {
       expect(ContextParser.expandPrefixedTerms({
         Example: 'ex:Example',
         ex: 'http://example.org/',
-      })).toEqual({
+      }, true)).toEqual({
         Example: 'http://example.org/Example',
         ex: 'http://example.org/',
       });
@@ -202,7 +202,7 @@ describe('ContextParser', () => {
         Example: 'exabc:Example',
         ex: 'http://example.org/',
         exabc: 'ex:abc/',
-      })).toEqual({
+      }, true)).toEqual({
         Example: 'http://example.org/abc/Example',
         ex: 'http://example.org/',
         exabc: 'http://example.org/abc/',
@@ -213,7 +213,7 @@ describe('ContextParser', () => {
       expect(ContextParser.expandPrefixedTerms({
         Example: { '@id': 'ex:Example' },
         ex: 'http://example.org/',
-      })).toEqual({
+      }, true)).toEqual({
         Example: { '@id': 'http://example.org/Example' },
         ex: 'http://example.org/',
       });
@@ -224,7 +224,7 @@ describe('ContextParser', () => {
         Example: { '@id': 'exabc:Example' },
         ex: 'http://example.org/',
         exabc: 'ex:abc/',
-      })).toEqual({
+      }, true)).toEqual({
         Example: { '@id': 'http://example.org/abc/Example' },
         ex: 'http://example.org/',
         exabc: 'http://example.org/abc/',
@@ -235,7 +235,7 @@ describe('ContextParser', () => {
       expect(ContextParser.expandPrefixedTerms({
         Example: { '@type': 'ex:Example' },
         ex: 'http://example.org/',
-      })).toEqual({
+      }, true)).toEqual({
         Example: { '@type': 'http://example.org/Example' },
         ex: 'http://example.org/',
       });
@@ -246,7 +246,7 @@ describe('ContextParser', () => {
         Example: { '@type': 'exabc:Example' },
         ex: 'http://example.org/',
         exabc: 'ex:abc/',
-      })).toEqual({
+      }, true)).toEqual({
         Example: { '@type': 'http://example.org/abc/Example' },
         ex: 'http://example.org/',
         exabc: 'http://example.org/abc/',
@@ -257,7 +257,7 @@ describe('ContextParser', () => {
       expect(ContextParser.expandPrefixedTerms({
         Example: { '@id': 'ex:Example', '@type': 'ex:ExampleType' },
         ex: 'http://example.org/',
-      })).toEqual({
+      }, true)).toEqual({
         Example: { '@id': 'http://example.org/Example', '@type': 'http://example.org/ExampleType' },
         ex: 'http://example.org/',
       });
@@ -267,7 +267,7 @@ describe('ContextParser', () => {
       expect(ContextParser.expandPrefixedTerms({
         Example: { '@id': 'ex:Example', '@bla': 'ex:Example' },
         ex: 'http://example.org/',
-      })).toEqual({
+      }, true)).toEqual({
         Example: { '@id': 'http://example.org/Example', '@bla': 'ex:Example' },
         ex: 'http://example.org/',
       });
@@ -277,7 +277,7 @@ describe('ContextParser', () => {
       expect(ContextParser.expandPrefixedTerms({
         Example: { '@bla': 'ex:Example' },
         ex: 'http://example.org/',
-      })).toEqual({
+      }, true)).toEqual({
         Example: { '@bla': 'ex:Example' },
         ex: 'http://example.org/',
       });
@@ -287,7 +287,7 @@ describe('ContextParser', () => {
       expect(ContextParser.expandPrefixedTerms({
         ex: 'http://ex.org/',
         p: { '@id': 'http://ex.org/pred1', '@type': 'ex:mytype' },
-      })).toEqual({
+      }, true)).toEqual({
         ex: 'http://ex.org/',
         p: { '@id': 'http://ex.org/pred1', '@type': 'http://ex.org/mytype' },
       });
@@ -297,7 +297,7 @@ describe('ContextParser', () => {
       expect(ContextParser.expandPrefixedTerms({
         ex: 'http://ex.org/',
         p: { '@id': 'ex:pred1', '@type': 'http://ex.org/mytype' },
-      })).toEqual({
+      }, true)).toEqual({
         ex: 'http://ex.org/',
         p: { '@id': 'http://ex.org/pred1', '@type': 'http://ex.org/mytype' },
       });
@@ -309,7 +309,7 @@ describe('ContextParser', () => {
         '@language': 'en',
         '@vocab': 'http://vocab.org/',
         'p': { '@id': 'pred1', '@language': 'nl' },
-      })).toEqual({
+      }, true)).toEqual({
         '@base': 'http://base.org/',
         '@language': 'en',
         '@vocab': 'http://vocab.org/',
@@ -322,7 +322,7 @@ describe('ContextParser', () => {
         '@base': 'http://base.org/',
         '@vocab': 'http://vocab.org/',
         'p': 'p',
-      })).toEqual({
+      }, true)).toEqual({
         '@base': 'http://base.org/',
         '@vocab': 'http://vocab.org/',
         'p': 'http://vocab.org/p',
@@ -334,7 +334,7 @@ describe('ContextParser', () => {
         '@base': 'http://base.org/',
         '@vocab': 'http://vocab.org/',
         'p': { '@id': 'p', '@type': 'type' },
-      })).toEqual({
+      }, true)).toEqual({
         '@base': 'http://base.org/',
         '@vocab': 'http://vocab.org/',
         'p': { '@id': 'http://vocab.org/p', '@type': 'http://vocab.org/type' },
@@ -346,7 +346,7 @@ describe('ContextParser', () => {
         '@base': 'http://base.org/',
         '@vocab': null,
         'p': { '@id': 'p', '@type': 'type' },
-      })).toEqual({
+      }, true)).toEqual({
         '@base': 'http://base.org/',
         '@vocab': null,
         'p': { '@id': 'p', '@type': 'http://base.org/type' },
@@ -357,7 +357,7 @@ describe('ContextParser', () => {
       expect(ContextParser.expandPrefixedTerms({
         '@base': 'http://base.org/',
         'p': { '@id': 'p', '@type': 'type' },
-      })).toEqual({
+      }, true)).toEqual({
         '@base': 'http://base.org/',
         'p': { '@id': 'p', '@type': 'http://base.org/type' },
       });
@@ -367,7 +367,7 @@ describe('ContextParser', () => {
       expect(ContextParser.expandPrefixedTerms({
         '@vocab': 'http://vocab.org/',
         'p': { '@id': 'p', '@type': '@vocab' },
-      })).toEqual({
+      }, true)).toEqual({
         '@vocab': 'http://vocab.org/',
         'p': { '@id': 'http://vocab.org/p', '@type': '@vocab' },
       });
@@ -376,8 +376,32 @@ describe('ContextParser', () => {
     it('should error on aliasing of keywords', async () => {
       expect(() => ContextParser.expandPrefixedTerms({
         '@id': 'http//ex.org/id',
-      })).toThrow(new Error(`Keywords can not be aliased to something else.
+      }, true)).toThrow(new Error(`Keywords can not be aliased to something else.
 Tried mapping @id to http//ex.org/id`));
+    });
+  });
+
+  describe('#expandPrefixedTerms with expandContentTypeToBase false', () => {
+    it('should not let @type fallback to base when when vocab is disabled', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@base': 'http://base.org/',
+        '@vocab': null,
+        'p': { '@id': 'p', '@type': 'type' },
+      }, false)).toEqual({
+        '@base': 'http://base.org/',
+        '@vocab': null,
+        'p': { '@id': 'p', '@type': 'type' },
+      });
+    });
+
+    it('should not let @type fallback to base when when vocab is not present', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@base': 'http://base.org/',
+        'p': { '@id': 'p', '@type': 'type' },
+      }, false)).toEqual({
+        '@base': 'http://base.org/',
+        'p': { '@id': 'p', '@type': 'type' },
+      });
     });
   });
 
@@ -391,7 +415,7 @@ Tried mapping @id to http//ex.org/id`));
         Example: { '@reverse': 'ex:Example' },
         ex: 'http://example.org/',
       })).toEqual({
-        Example: { '@reverse': 'ex:Example', '@id': 'ex:Example' },
+        Example: { '@reverse': true, '@id': 'ex:Example' },
         ex: 'http://example.org/',
       });
     });
@@ -404,6 +428,13 @@ Tried mapping @id to http//ex.org/id`));
         Example: { '@reverse': 'ex:Example', '@id': 'ex:AnotherExample' },
         ex: 'http://example.org/',
       });
+    });
+
+    it('should error on an invalid @reverse @reverse', async () => {
+      expect(() => ContextParser.idifyReverseTerms({
+        Example: { '@reverse': 10 },
+        ex: 'http://example.org/',
+      })).toThrow(new Error('Invalid @reverse value: \'10\''));
     });
   });
 
@@ -429,8 +460,142 @@ Tried mapping @id to http//ex.org/id`));
     });
 
     it('should not error on an invalid @unknown', async () => {
-      expect(() => ContextParser.validate(<any> { '@unknown': true }))
+      expect(() => ContextParser.validate(<any> { '@unknown': 'true' }))
         .not.toThrow();
+    });
+
+    it('should error on term without @id and @type : @id', async () => {
+      expect(() => ContextParser.validate(<any> { term: {} }))
+        .toThrow(new Error('Missing @id in context entry: \'term\': \'{}\''));
+    });
+
+    it('should error on term without @id, but with @type : @id', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@type': '@id' } }))
+        .toThrow(new Error('Missing @id in context entry: \'term\': \'{"@type":"@id"}\''));
+    });
+
+    it('should not error on term without @id, but with @type : @id and @base', async () => {
+      expect(() => ContextParser.validate(<any> { 'term': { '@type': '@id' }, '@base': 'abc' }))
+        .not.toThrow();
+    });
+
+    it('should not error on term without @id and @type : @id and @base', async () => {
+      expect(() => ContextParser.validate(<any> { 'term': {}, '@base': 'abc' }))
+        .toThrow(new Error('Missing @id in context entry: \'term\': \'{}\''));
+    });
+
+    it('should error on term without @id, but with @type : @id and @vocab', async () => {
+      expect(() => ContextParser.validate(<any> { 'term': { '@type': '@id' }, '@vocab': 'abc' }))
+        .toThrow(new Error('Missing @id in context entry: \'term\': \'{"@type":"@id"}\''));
+    });
+
+    it('should not error on term without @id and @type : @id and @vocab', async () => {
+      expect(() => ContextParser.validate(<any> { 'term': {}, '@vocab': 'abc' }))
+        .not.toThrow();
+    });
+
+    it('should error on term with @id: @container', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@container' } }))
+        .toThrow(new Error('Illegal keyword alias in term value, found: \'term\': \'{"@id":"@container"}\''));
+    });
+
+    it('should not error on term with @id: @type', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@type' } }))
+        .not.toThrow();
+    });
+
+    it('should not error on term with @id: @id', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id' } }))
+        .not.toThrow();
+    });
+
+    it('should not error on term with @type: @id', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@id' } }))
+        .not.toThrow();
+    });
+
+    it('should not error on term with @type: @vocab', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@vocab' } }))
+        .not.toThrow();
+    });
+
+    it('should error on term with @type: _:bnode', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '_:bnode' } }))
+        .toThrow(new Error('A context @type must be an absolute IRI, found: \'term\': \'_:bnode\''));
+    });
+
+    it('should error on term with @type: invalid-iri', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': 'invalid-iri' } }))
+        .toThrow(new Error('A context @type must be an absolute IRI, found: \'term\': \'invalid-iri\''));
+    });
+
+    it('should not error on term with @reverse: true', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@reverse': true } }))
+        .not.toThrow();
+    });
+
+    it('should error on term with different @reverse and @id', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@reverse': 'abc' } }))
+        .toThrow(
+          new Error('Found non-matching @id and @reverse term values in \'term\':\'abc\' and \'http://ex.org/\''));
+    });
+
+    it('should not error on a term with @container: @list', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@list' } }))
+        .not.toThrow();
+    });
+
+    it('should not error on a term with @container: @set', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@set' } }))
+        .not.toThrow();
+    });
+
+    it('should not error on a term with @container: @index', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@index' } }))
+        .not.toThrow();
+    });
+
+    it('should not error on a term with @container: @language', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@language' } }))
+        .not.toThrow();
+    });
+
+    it('should error on a term with @container: @unknown', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@unknown' } }))
+        .toThrow(new Error('Invalid term @container for \'term\' (\'@unknown\'), ' +
+          'must be one of @list, @set, @index, @language'));
+    });
+
+    it('should error on a term with @container: @list and @reverse', async () => {
+      expect(() => ContextParser.validate(<any>
+        { term: { '@id': 'http://ex.org/', '@container': '@list', '@reverse': true } }))
+        .toThrow(new Error('Term value can not be @container: @list and @reverse at the same time on \'term\''));
+    });
+
+    it('should not error on a term with @language: en', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 'en' } }))
+        .not.toThrow();
+    });
+
+    it('should error on a term with @language: 10', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 10 } }))
+        .toThrow(new Error('Found an invalid term @language string in: \'term\': ' +
+          '\'{"@id":"http://ex.org/","@language":10}\''));
+    });
+
+    it('should not error on a term set to null', async () => {
+      expect(() => ContextParser.validate(<any> { term: null }))
+        .not.toThrow();
+    });
+
+    it('should not error on a term @id set to null', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': null } }))
+        .not.toThrow();
+    });
+
+    it('should error on a term set to a number', async () => {
+      expect(() => ContextParser.validate(<any> { term: 10 }))
+        .toThrow(new Error('Found an invalid term value: \'term\': \'10\''));
     });
   });
 
