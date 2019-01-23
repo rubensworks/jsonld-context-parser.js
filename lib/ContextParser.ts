@@ -221,7 +221,7 @@ Tried mapping ${key} to ${context[key]}`);
                      baseIri?: string,
                      parentContext?: IJsonLdContextNormalized,
                      external?: boolean): Promise<IJsonLdContextNormalized> {
-    if (!context) {
+    if (context === null || context === undefined) {
       // Context that are explicitly set to null are empty.
       return baseIri ? { '@base': baseIri } : {};
     } else if (typeof context === 'string') {
@@ -238,7 +238,7 @@ Tried mapping ${key} to ${context[key]}`);
 
       return contexts.reduce((accContextPromise, contextEntry) => accContextPromise
         .then((accContext) => this.parse(contextEntry, baseIri, accContext, external)), Promise.resolve(parentContext));
-    } else {
+    } else if (typeof context === 'object') {
       // We have an actual context object.
       let newContext: any = {};
 
@@ -256,6 +256,8 @@ Tried mapping ${key} to ${context[key]}`);
       ContextParser.idifyReverseTerms(newContext);
       ContextParser.expandPrefixedTerms(newContext);
       return newContext;
+    } else {
+      throw new Error(`Tried parsing a context that is not a string, array or object, but got ${context}`);
     }
   }
 

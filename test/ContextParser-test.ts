@@ -720,5 +720,22 @@ Tried mapping @id to http//ex.org/id`));
         // tslint:enable:max-line-length
       });
     });
+
+    describe('for parsing invalid values', () => {
+      it('should error when parsing true', () => {
+        return expect(parser.parse(true)).rejects
+          .toEqual(new Error('Tried parsing a context that is not a string, array or object, but got true'));
+      });
+
+      it('should error when parsing false', () => {
+        return expect(parser.parse(false)).rejects
+          .toEqual(new Error('Tried parsing a context that is not a string, array or object, but got false'));
+      });
+
+      it('should error when parsing a number', () => {
+        return expect(parser.parse(1)).rejects
+          .toEqual(new Error('Tried parsing a context that is not a string, array or object, but got 1'));
+      });
+    });
   });
 });
