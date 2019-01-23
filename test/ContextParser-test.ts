@@ -417,6 +417,11 @@ Tried mapping @id to http//ex.org/id`));
       expect(() => ContextParser.validate(<any> { '@base': true }))
         .toThrow(new Error('Found an invalid @base IRI: true'));
     });
+
+    it('should error on an invalid @language', async () => {
+      expect(() => ContextParser.validate(<any> { '@language': true }))
+        .toThrow(new Error('Found an invalid @language string: true'));
+    });
   });
 
   describe('when instantiated without options', () => {

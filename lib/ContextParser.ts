@@ -220,6 +220,9 @@ Tried mapping ${key} to ${context[key]}`);
     if ('@base' in context && typeof context['@base'] !== 'string') {
       throw new Error(`Found an invalid @base IRI: ${context['@base']}`);
     }
+    if ('@language' in context && typeof context['@language'] !== 'string') {
+      throw new Error(`Found an invalid @language string: ${context['@language']}`);
+    }
   }
 
   /**
