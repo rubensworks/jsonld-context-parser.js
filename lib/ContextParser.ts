@@ -216,14 +216,28 @@ Tried mapping ${key} to ${context[key]}`);
    * @param {IJsonLdContextNormalized} context A context.
    */
   public static validate(context: IJsonLdContextNormalized) {
-    if ('@vocab' in context && typeof context['@vocab'] !== 'string') {
-      throw new Error(`Found an invalid @vocab IRI: ${context['@vocab']}`);
-    }
-    if ('@base' in context && typeof context['@base'] !== 'string') {
-      throw new Error(`Found an invalid @base IRI: ${context['@base']}`);
-    }
-    if ('@language' in context && typeof context['@language'] !== 'string') {
-      throw new Error(`Found an invalid @language string: ${context['@language']}`);
+    for (const key of Object.keys(context)) {
+      const value = context[key];
+      if (key[0] === '@') {
+        // First check if the key is a keyword
+        switch (key.substr(1)) {
+        case 'vocab':
+          if (value !== null && typeof value !== 'string') {
+            throw new Error(`Found an invalid @vocab IRI: ${value}`);
+          }
+          break;
+        case 'base':
+          if (value !== null && typeof value !== 'string') {
+            throw new Error(`Found an invalid @base IRI: ${context[key]}`);
+          }
+          break;
+        case 'language':
+          if (value !== null && typeof value !== 'string') {
+            throw new Error(`Found an invalid @language string: ${value}`);
+          }
+          break;
+        }
+      }
     }
   }
 

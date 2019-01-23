@@ -422,6 +422,16 @@ Tried mapping @id to http//ex.org/id`));
       expect(() => ContextParser.validate(<any> { '@language': true }))
         .toThrow(new Error('Found an invalid @language string: true'));
     });
+
+    it('should not error on a null @language', async () => {
+      expect(() => ContextParser.validate(<any> { '@language': null }))
+        .not.toThrow();
+    });
+
+    it('should not error on an invalid @unknown', async () => {
+      expect(() => ContextParser.validate(<any> { '@unknown': true }))
+        .not.toThrow();
+    });
   });
 
   describe('when instantiated without options', () => {
