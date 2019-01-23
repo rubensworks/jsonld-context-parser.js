@@ -16,7 +16,7 @@ export interface IJsonLdContextNormalized {
 export type IPrefixValue = string
   | {
     '@id'?: Uri | Bnode;
-    '@reverse'?: Uri;             // 1.0; https://json-ld.org/spec/latest/json-ld/#reverse-properties
+    '@reverse'?: Uri | boolean;   // 1.0; https://json-ld.org/spec/latest/json-ld/#reverse-properties
     '@type'?: Types;              // 1.0; https://json-ld.org/spec/latest/json-ld/#typed-values
                                   //      https://json-ld.org/spec/latest/json-ld/#type-coercion
                                   //      https://json-ld.org/spec/latest/json-ld/#embedding
