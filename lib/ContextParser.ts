@@ -180,7 +180,7 @@ export class ContextParser implements IDocumentLoader {
             throw new Error(`Invalid @reverse value: '${value['@reverse']}'`);
           }
           value['@id'] = <string> value['@reverse'];
-          value['@reverse'] = true;
+          value['@reverse'] = <any> true;
         }
       }
     }
