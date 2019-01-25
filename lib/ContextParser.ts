@@ -46,7 +46,7 @@ export class ContextParser implements IDocumentLoader {
   private readonly validate: boolean;
   private readonly expandContentTypeToBase: boolean;
 
-  constructor(options?: IContextFlattenerOptions) {
+  constructor(options?: IContextParserOptions) {
     options = options || {};
     this.documentLoader = options.documentLoader || new FetchDocumentLoader();
     this.documentCache = {};
@@ -392,8 +392,17 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
 
 }
 
-export interface IContextFlattenerOptions {
+export interface IContextParserOptions {
+  /**
+   * An optional loader that should be used for fetching external JSON-LD contexts.
+   */
   documentLoader?: IDocumentLoader;
+  /**
+   * By default, JSON-LD contexts will be validated.
+   * This can be disabled by setting this option to true.
+   * This will achieve slightly better performance for large contexts,
+   * and may be useful if contexts are known to be valid.
+   */
   skipValidation?: boolean;
   /**
    * If @type inside the context may be expanded via @base is @vocab is set to null.
