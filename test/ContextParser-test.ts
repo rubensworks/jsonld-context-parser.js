@@ -670,17 +670,18 @@ Tried mapping @id to http//ex.org/id`));
       });
 
       it('should parse and ignore the @base IRI, but not when a custom base IRI is given', () => {
-        return expect(parser.parse('http://example.org/base.jsonld', 'abc')).resolves.toEqual({
+        return expect(parser.parse('http://example.org/base.jsonld', { baseIri: 'abc' })).resolves.toEqual({
           '@base': 'abc',
           'nickname': 'http://xmlns.com/foaf/0.1/nick',
         });
       });
 
       it('should parse and ignore the @base IRI, but not from the parent context', () => {
-        return expect(parser.parse('http://example.org/base.jsonld', null, { '@base': 'abc' })).resolves.toEqual({
-          '@base': 'abc',
-          'nickname': 'http://xmlns.com/foaf/0.1/nick',
-        });
+        return expect(parser.parse('http://example.org/base.jsonld', { parentContext: { '@base': 'abc' } }))
+          .resolves.toEqual({
+            '@base': 'abc',
+            'nickname': 'http://xmlns.com/foaf/0.1/nick',
+          });
       });
 
       it('should cache documents', async () => {
@@ -712,11 +713,11 @@ Tried mapping @id to http//ex.org/id`));
       });
 
       it('should parse to an empty context, even when a parent context is given', () => {
-        return expect(parser.parse(null, null, { a: 'b' })).resolves.toEqual({});
+        return expect(parser.parse(null, { parentContext: { a: 'b' } })).resolves.toEqual({});
       });
 
       it('should parse to an empty context, but set @base if needed', () => {
-        return expect(parser.parse(null, 'http://base.org/')).resolves
+        return expect(parser.parse(null, { baseIri: 'http://base.org/' })).resolves
           .toEqual({ '@base': 'http://base.org/' });
       });
     });
@@ -724,7 +725,7 @@ Tried mapping @id to http//ex.org/id`));
     describe('for parsing arrays', () => {
       it('should parse an empty array to the parent context', () => {
         const parentContext = { a: 'b' };
-        return expect(parser.parse([], null, parentContext)).resolves.toBe(parentContext);
+        return expect(parser.parse([], { parentContext })).resolves.toBe(parentContext);
       });
 
       it('should parse an array with one string', () => {
@@ -773,7 +774,7 @@ Tried mapping @id to http//ex.org/id`));
       });
 
       it('should parse with a base IRI', () => {
-        return expect(parser.parse('http://example.org/simple.jsonld', 'http://myexample.org/'))
+        return expect(parser.parse('http://example.org/simple.jsonld', { baseIri: 'http://myexample.org/' }))
           .resolves.toEqual({
             '@base': 'http://myexample.org/',
             'name': "http://xmlns.com/foaf/0.1/name",

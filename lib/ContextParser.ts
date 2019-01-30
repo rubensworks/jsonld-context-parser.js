@@ -331,20 +331,16 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
   /**
    * Parse a JSON-LD context in any form.
    * @param {JsonLdContext} context A context, URL to a context, or an array of contexts/URLs.
-   * @param {string} baseIri An optional fallback base IRI to set.
-   * @param {IJsonLdContextNormalized} parentContext The parent context.
-   * @param {boolean} external If the parsing context is an external context.
+   * @param {IParseOptions} options Optional parsing options.
    * @return {Promise<IJsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
-                     baseIri?: string,
-                     parentContext?: IJsonLdContextNormalized,
-                     external?: boolean): Promise<IJsonLdContextNormalized> {
+                     { baseIri, parentContext, external }: IParseOptions = {}): Promise<IJsonLdContextNormalized> {
     if (context === null || context === undefined) {
       // Context that are explicitly set to null are empty.
       return baseIri ? { '@base': baseIri } : {};
     } else if (typeof context === 'string') {
-      return this.parse(await this.load(context), baseIri, parentContext, true);
+      return this.parse(await this.load(context), { baseIri, parentContext, external: true });
     } else if (Array.isArray(context)) {
       // As a performance consideration, first load all external contexts in parallel.
       const contexts = await Promise.all(context.map((subContext) => {
@@ -356,7 +352,8 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       }));
 
       return contexts.reduce((accContextPromise, contextEntry) => accContextPromise
-        .then((accContext) => this.parse(contextEntry, baseIri, accContext, external)), Promise.resolve(parentContext));
+        .then((accContext) => this.parse(contextEntry, { baseIri, parentContext: accContext, external })),
+        Promise.resolve(parentContext));
     } else if (typeof context === 'object') {
       // We have an actual context object.
       let newContext: any = {};
@@ -408,4 +405,19 @@ export interface IContextParserOptions {
    * If @type inside the context may be expanded via @base is @vocab is set to null.
    */
   expandContentTypeToBase?: boolean;
+}
+
+export interface IParseOptions {
+  /**
+   * An optional fallback base IRI to set.
+   */
+  baseIri?: string;
+  /**
+   * The parent context.
+   */
+  parentContext?: IJsonLdContextNormalized;
+  /**
+   * If the parsing context is an external context.
+   */
+  external?: boolean;
 }

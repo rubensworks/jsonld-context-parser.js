@@ -37,7 +37,7 @@ default:
   break;
 }
 
-new ContextParser().parse(input, null, null, external)
+new ContextParser().parse(input, { external })
   .then((context) => {
     process.stdout.write(JSON.stringify(context, null, '  '));
     process.stdout.write('\n');
