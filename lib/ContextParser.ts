@@ -381,8 +381,9 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
   }
 
   public async load(url: string): Promise<IJsonLdContextNormalized> {
-    if (this.documentCache[url]) {
-      return {... this.documentCache[url]};
+    const cached = this.documentCache[url];
+    if (cached) {
+      return Array.isArray(cached) ? cached.slice() : {... cached};
     }
     return this.documentCache[url] = (await this.documentLoader.load(url))['@context'];
   }

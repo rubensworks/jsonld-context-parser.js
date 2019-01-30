@@ -760,6 +760,21 @@ Tried mapping @id to http//ex.org/id`));
         });
       });
 
+      it('should parse an array with an object and a string resolving to an array when cached', () => {
+        parser.documentCache['http://example.org/simplearray.jsonld'] = [{
+          nickname: 'http://xmlns.com/foaf/0.1/nick',
+        }];
+        return expect(parser.parse([
+          {
+            npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
+          },
+          'http://example.org/simplearray.jsonld',
+        ])).resolves.toEqual({
+          nickname: "http://xmlns.com/foaf/0.1/nick",
+          npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
+        });
+      });
+
       it('should parse and expand prefixes', () => {
         return expect(parser.parse([
           'http://example.org/simple.jsonld',
