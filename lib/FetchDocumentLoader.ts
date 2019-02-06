@@ -8,7 +8,7 @@ import {IJsonLdContextNormalized} from "./JsonLdContext";
 export class FetchDocumentLoader implements IDocumentLoader {
 
   public async load(url: string): Promise<IJsonLdContextNormalized> {
-    const response: Response = await fetch(url);
+    const response: Response = await fetch(url, { headers: { accept: 'application/ld+json' } });
     if (response.ok) {
       return (await response.json());
     } else {
