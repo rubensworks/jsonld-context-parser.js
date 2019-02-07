@@ -653,6 +653,18 @@ Tried mapping @id to http//ex.org/id`));
         return expect(parser.parse({ '@base': true })).rejects
           .toEqual(new Error('Found an invalid @base IRI: true'));
       });
+
+      it('should parse an object with direct context values', () => {
+        return expect(parser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves.toEqual({
+          name: "http://xmlns.com/foaf/0.1/name",
+        });
+      });
+
+      it('should parse an object with indirect context values', () => {
+        return expect(parser.parse({ "@context": { name: "http://xmlns.com/foaf/0.1/name" } })).resolves.toEqual({
+          name: "http://xmlns.com/foaf/0.1/name",
+        });
+      });
     });
 
     describe('for parsing URLs', () => {

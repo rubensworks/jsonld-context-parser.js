@@ -355,6 +355,10 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
         .then((accContext) => this.parse(contextEntry, { baseIri, parentContext: accContext, external })),
         Promise.resolve(parentContext));
     } else if (typeof context === 'object') {
+      if (context['@context']) {
+        return await this.parse(context['@context'], { baseIri, parentContext, external });
+      }
+
       // We have an actual context object.
       let newContext: any = {};
 
