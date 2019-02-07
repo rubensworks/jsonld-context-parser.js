@@ -13,7 +13,42 @@ This parser has the following functionality:
 * Create a default `@base` entry if a base IRI is provided.
 * Create `@id` entries for all `@reverse` occurences.
 * Expand prefixes and `@vocab` in string values, `@id`, `@type` and `@reverse`.
+* Context validation according to the [JSON-LD](https://json-ld.org/) specification while parsing (_can be disabled_).
 * Term expansion with the `ContextParser.expandTerm` helper function.
+
+Example input (with base IRI set to `http://example.org/base`):
+```jsonld
+[
+  {
+    "@vocab": "http://vocab.org/",
+    "npmd": "https://linkedsoftwaredependencies.org/bundles/npm/",
+    "p": { "@id": "pred1", "@language": "nl" }
+  },
+  "http://example.org/simple.jsonld",
+]
+```
+
+With X containing:
+```jsonld
+{
+  "xsd": "http://www.w3.org/2001/XMLSchema#",
+  "name": "http://xmlns.com/foaf/0.1/name"
+}
+```
+
+Example output:
+```jsonld
+{
+  "@base": "http://example.org/base",
+  "@vocab": "http://vocab.org/",
+
+  "npmd": "https://linkedsoftwaredependencies.org/bundles/npm/",
+  "p": { "@id": "http://vocab.org/pred1", "@language": "nl" },
+
+  "xsd": "http://www.w3.org/2001/XMLSchema#",
+  "name": "http://xmlns.com/foaf/0.1/name"
+},
+```
 
 ## Install
 
@@ -67,17 +102,38 @@ const myContext = await myParser.parse([
 
 #### Expand a term
 
-Based on a context, terms can be expanded.
+Based on a context, terms can be expanded in vocab or base-mode.
+
+#### Base expansion
+
+Base expansion is done based on the `@base` context entry.
+This should typically be used for expanding terms in the subject or object position.
 
 ```
-// Expands if `name` is present in the context
-ContextParser.expandTerm('name', context);
+// Expands `person` based on the @base IRI. Will throw an error if the final IRI is invalid.
+ContextParser.expandTerm('person', context);
 
 // Expands if `foaf` is present in the context
 ContextParser.expandTerm('foaf:name', context);
 
 // Returns the URI as-is
 ContextParser.expandTerm('http://xmlns.com/foaf/0.1/name', context);
+```
+
+#### Vocab expansion
+
+Vocab expansion is done based on the `@vocab` context entry.
+This should typically be used for expanding terms in the predicate position.
+
+```
+// Expands `name` based on the @vocab IRI.
+ContextParser.expandTerm('name', context, true);
+
+// Expands if `foaf` is present in the context
+ContextParser.expandTerm('foaf:name', context, true);
+
+// Returns the URI as-is
+ContextParser.expandTerm('http://xmlns.com/foaf/0.1/name', context, true);
 ```
 
 ### Command-line
