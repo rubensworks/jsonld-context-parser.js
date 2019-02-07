@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v1.1.1"></a>
+## [v1.1.1](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.1.0...v1.1.1) - 2019-02-07
+
+### Changed
+* [Allow context objects with @context to be parsed](https://github.com/rubensworks/jsonld-context-parser.js/commit/02f70ab76d203899be02931df194cb2aefb32ed7)
+
 <a name="v1.1.0"></a>
 ## [v1.1.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.0.1...v1.1.0) - 2019-02-07
 
