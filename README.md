@@ -28,7 +28,7 @@ Example input (with base IRI set to `http://example.org/base`):
 ]
 ```
 
-With X containing:
+With `http://example.org/simple.jsonld` containing:
 ```jsonld
 {
   "xsd": "http://www.w3.org/2001/XMLSchema#",
