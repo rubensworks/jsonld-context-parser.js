@@ -675,6 +675,19 @@ Tried mapping @id to http//ex.org/id`));
         });
       });
 
+      it('should parse a valid relative context URL', () => {
+        return expect(parser.parse('simple.jsonld', { baseIri: 'http://example.org/mydoc.html' })).resolves.toEqual({
+          '@base': 'http://example.org/mydoc.html',
+          'name': "http://xmlns.com/foaf/0.1/name",
+          'xsd': "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+
+      it('should fail to parse a relative context URL without baseIRI', () => {
+        return expect(parser.parse('simple.jsonld')).rejects
+          .toThrow(new Error('Invalid context IRI: simple.jsonld'));
+      });
+
       it('should parse and ignore the @base IRI', () => {
         return expect(parser.parse('http://example.org/base.jsonld')).resolves.toEqual({
           nickname: 'http://xmlns.com/foaf/0.1/nick',
