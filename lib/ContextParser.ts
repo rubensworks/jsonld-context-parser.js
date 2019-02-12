@@ -340,6 +340,13 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       // Context that are explicitly set to null are empty.
       return baseIri ? { '@base': baseIri } : {};
     } else if (typeof context === 'string') {
+      // Resolve relative context URIs
+      if (!ContextParser.isValidIri(context)) {
+        context = resolve(context, baseIri);
+        if (!ContextParser.isValidIri(context)) {
+          throw new Error(`Invalid context IRI: ${context}`);
+        }
+      }
       return this.parse(await this.load(context), { baseIri, parentContext, external: true });
     } else if (Array.isArray(context)) {
       // As a performance consideration, first load all external contexts in parallel.
