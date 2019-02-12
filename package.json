@@ -38,7 +38,7 @@
   "devDependencies": {
     "@types/isomorphic-fetch": "^0.0.34",
     "@types/jest": "^23.3.0",
-    "@types/node": "^10.11.3",
+    "@types/node": "^11.9.0",
     "coveralls": "^3.0.0",
     "jest": "^23.4.1",
     "manual-git-changelog": "^1.0.0",
