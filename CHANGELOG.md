@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v1.1.3"></a>
+## [v1.1.3](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.1.1...v1.1.3) - 2019-02-13
+
+### Changed
+* [Make IRI regex stricter](https://github.com/rubensworks/jsonld-context-parser.js/commit/253986cab9488bcfabdeb53f43353a1170123335)
+* [Allow relative context IRIs to be parsed](https://github.com/rubensworks/jsonld-context-parser.js/commit/5754b4b388f7b25f4832c3812d63ff3385ab42ad)
+
 <a name="v1.1.2"></a>
 ## [v1.1.2](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.1.1...v1.1.2) - 2019-02-12
 
