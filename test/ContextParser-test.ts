@@ -174,6 +174,36 @@ describe('ContextParser', () => {
     });
   });
 
+  describe('#isValidIri', () => {
+    it('should be false for null', async () => {
+      expect(ContextParser.isValidIri(null)).toBeFalsy();
+    });
+
+    it('should be false for an empty string', async () => {
+      expect(ContextParser.isValidIri('')).toBeFalsy();
+    });
+
+    it('should be false for an abc', async () => {
+      expect(ContextParser.isValidIri('abc')).toBeFalsy();
+    });
+
+    it('should be true for an abc:def', async () => {
+      expect(ContextParser.isValidIri('abc:def')).toBeTruthy();
+    });
+
+    it('should be true for an http://google.com', async () => {
+      expect(ContextParser.isValidIri('http://google.com')).toBeTruthy();
+    });
+
+    it('should be false for an http://google.com<', async () => {
+      expect(ContextParser.isValidIri('http://google.com<')).toBeFalsy();
+    });
+
+    it('should be false for an http://google .com', async () => {
+      expect(ContextParser.isValidIri('http://google .com')).toBeFalsy();
+    });
+  });
+
   describe('#expandPrefixedTerms with expandContentTypeToBase true', () => {
     it('should not modify an empty context', async () => {
       expect(ContextParser.expandPrefixedTerms({}, true)).toEqual({});
