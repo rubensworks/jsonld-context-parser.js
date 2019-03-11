@@ -10,7 +10,7 @@ import {IJsonLdContextNormalized, IPrefixValue, JsonLdContext} from "./JsonLdCon
 export class ContextParser implements IDocumentLoader {
 
   // Regex for valid IRIs
-  public static readonly IRI_REGEX: RegExp = /^([A-Za-z][A-Za-z0-9+-.]*|_):[^ "<>{}|\\^~\[\]`]*$/;
+  public static readonly IRI_REGEX: RegExp = /^([A-Za-z][A-Za-z0-9+-.]*|_):[^ "<>{}|\\\[\]`]*$/;
 
   // Keys in the contexts that will not be expanded based on the base IRI
   private static readonly EXPAND_KEYS_BLACKLIST: string[] = [
