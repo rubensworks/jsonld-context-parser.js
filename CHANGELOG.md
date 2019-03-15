@@ -1,6 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v1.1.4"></a>
+## [v1.1.4](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.1.3...v1.1.4) - 2019-03-15
+
+### Changed
+* [Make CLI return exit code 1 if an error was encountered](https://github.com/rubensworks/jsonld-context-parser.js/commit/75e4961cba271beb74cf2f77bfd43b4dd589a2b7)
+* [Allow tilde in IRIs](https://github.com/rubensworks/jsonld-context-parser.js/commit/9637ebf26de7690f32aab4fc468c22cf5395e417)
+
+### TODO: categorize commits, choose titles from: Added, Changed, Deprecated, Removed, Fixed, Security.
+* [Fix CLI errors not being shown correctly, Closes #18](https://github.com/rubensworks/jsonld-context-parser.js/commit/f8dea3592adf710e50c5ac0df334db327cca7433)
+
 <a name="v1.1.3"></a>
 ## [v1.1.3](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.1.1...v1.1.3) - 2019-02-13
 
