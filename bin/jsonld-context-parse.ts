@@ -43,5 +43,5 @@ new ContextParser().parse(input, { external })
     process.stdout.write('\n');
   })
   .catch((err) => {
-    process.stderr.write(err);
+    process.stderr.write(err.message);
   });
