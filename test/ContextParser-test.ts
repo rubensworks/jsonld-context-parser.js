@@ -697,8 +697,23 @@ Tried mapping @id to http//ex.org/id`));
         .toThrow(new Error('Found an invalid @language string: true'));
     });
 
+    it('should error on an invalid @version', async () => {
+      expect(() => ContextParser.validate(<any> { '@version': true }))
+        .toThrow(new Error('Found an invalid @version number: true'));
+    });
+
     it('should not error on a null @language', async () => {
       expect(() => ContextParser.validate(<any> { '@language': null }))
+        .not.toThrow();
+    });
+
+    it('should not error on a null @version', async () => {
+      expect(() => ContextParser.validate(<any> { '@version': null }))
+        .not.toThrow();
+    });
+
+    it('should not error on a number @version', async () => {
+      expect(() => ContextParser.validate(<any> { '@version': 1.1 }))
         .not.toThrow();
     });
 

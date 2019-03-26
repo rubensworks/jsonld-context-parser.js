@@ -18,6 +18,7 @@ export class ContextParser implements IDocumentLoader {
     '@base',
     '@vocab',
     '@language',
+    '@version',
   ];
   // Keys in the contexts that may not be aliased
   private static readonly ALIAS_KEYS_BLACKLIST: string[] = [
@@ -33,6 +34,7 @@ export class ContextParser implements IDocumentLoader {
     '@set',
     '@type',
     '@value',
+    '@version',
   ];
   // All valid @container values
   private static readonly CONTAINERS: string[] = [
@@ -369,17 +371,22 @@ Tried mapping ${key} to ${context[key]}`);
           if (value !== null && valueType !== 'string') {
             throw new Error(`Found an invalid @vocab IRI: ${value}`);
           }
-          break;
+          continue;
         case 'base':
           if (value !== null && valueType !== 'string') {
             throw new Error(`Found an invalid @base IRI: ${context[key]}`);
           }
-          break;
+          continue;
         case 'language':
           if (value !== null && valueType !== 'string') {
             throw new Error(`Found an invalid @language string: ${value}`);
           }
-          break;
+          continue;
+        case 'version':
+          if (value !== null && valueType !== 'number') {
+            throw new Error(`Found an invalid @version number: ${value}`);
+          }
+          continue;
         }
       }
 
