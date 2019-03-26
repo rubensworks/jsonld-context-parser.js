@@ -165,12 +165,13 @@ export class ContextParser implements IDocumentLoader {
       if (value) {
         return value + term.substr(prefix.length + 1);
       }
-    } else if (expandVocab && (vocab || vocab === '') && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
+    } else if (expandVocab && (vocab || (base && vocab === ''))
+      && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
       if (vocabRelative) {
         throw new ErrorCoded(`Relative vocab expansion for term '${term}' with vocab '${
           vocab}' is not allowed.`, ERROR_CODES.INVALID_VOCAB_MAPPING);
       }
-      return vocab + term;
+      return (vocab || base) + term;
     } else if (!expandVocab && base && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
       return resolve(term, base);
     }

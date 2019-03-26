@@ -134,6 +134,15 @@ describe('ContextParser', () => {
         }, true)).toThrow(new Error(
           'Relative vocab expansion for term \'bla\' with vocab \'\' is not allowed.'));
       });
+
+      it('to return when @vocab is empty string and @base does not exist', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': ''}, true)).toBe('def');
+      });
+
+      it('to return when @vocab is empty string and @base exists', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true))
+          .toBe('http://ex.org/def');
+      });
     });
 
     describe('in base-mode', () => {
@@ -197,6 +206,15 @@ describe('ContextParser', () => {
       it('to return when @base exists and applies, and a relative hash with a semicolon', async () => {
         expect(ContextParser.expandTerm('#abc:def', {'@base': 'http://ex.org/'}, false))
           .toBe('http://ex.org/#abc:def');
+      });
+
+      it('to return when @vocab is empty string and @base does not exist', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': ''}, false)).toBe('def');
+      });
+
+      it('to return when @vocab is empty string and @base exists', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, false))
+          .toBe('http://ex.org/def');
       });
 
       it('to return when a term and prefix applies', async () => {
