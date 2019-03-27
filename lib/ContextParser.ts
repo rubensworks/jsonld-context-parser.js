@@ -140,7 +140,7 @@ export class ContextParser implements IDocumentLoader {
    */
   public static expandTerm(term: string, context: IJsonLdContextNormalized, expandVocab?: boolean,
                            options: IExpandOptions = {
-                             emptyVocabToBase: true,
+                             allowVocabRelativeToBase: true,
                            }): string {
     ContextParser.assertNormalized(context);
 
@@ -169,13 +169,18 @@ export class ContextParser implements IDocumentLoader {
       if (value) {
         return value + term.substr(prefix.length + 1);
       }
-    } else if (expandVocab && (vocab || (options.emptyVocabToBase && (base && vocab === '')))
+    } else if (expandVocab && ((vocab || vocab === '') || (options.allowVocabRelativeToBase && (base && vocabRelative)))
       && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
       if (vocabRelative) {
-        throw new ErrorCoded(`Relative vocab expansion for term '${term}' with vocab '${
-          vocab}' is not allowed.`, ERROR_CODES.INVALID_VOCAB_MAPPING);
+        if (options.allowVocabRelativeToBase) {
+          return resolve(vocab, base) + term;
+        } else {
+          throw new ErrorCoded(`Relative vocab expansion for term '${term}' with vocab '${
+            vocab}' is not allowed.`, ERROR_CODES.INVALID_VOCAB_MAPPING);
+        }
+      } else {
+        return vocab + term;
       }
-      return (vocab || base) + term;
     } else if (!expandVocab && base && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
       return resolve(term, base);
     }
@@ -587,7 +592,7 @@ export interface IParseOptions {
 
 export interface IExpandOptions {
   /**
-   * If empty @vocab's should fallback to @base during vocab-expansion.
+   * If @vocab values are allowed contain IRIs relative to @base.
    */
-  emptyVocabToBase?: boolean;
+  allowVocabRelativeToBase?: boolean;
 }

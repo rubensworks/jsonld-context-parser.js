@@ -121,17 +121,17 @@ describe('ContextParser', () => {
         }, true)).toBe('DEF/123');
       });
 
-      it('to throw for unsupported relative @vocab', async () => {
+      it('to throw for not allowed relative @vocab', async () => {
         expect(() => ContextParser.expandTerm('bla', {
           '@vocab': 'relative/',
-        }, true)).toThrow(new Error(
+        }, true, { allowVocabRelativeToBase: false })).toThrow(new Error(
           'Relative vocab expansion for term \'bla\' with vocab \'relative/\' is not allowed.'));
       });
 
       it('to throw for unsupported relative empty @vocab', async () => {
         expect(() => ContextParser.expandTerm('bla', {
           '@vocab': '',
-        }, true)).toThrow(new Error(
+        }, true, { allowVocabRelativeToBase: false })).toThrow(new Error(
           'Relative vocab expansion for term \'bla\' with vocab \'\' is not allowed.'));
       });
 
@@ -144,14 +144,47 @@ describe('ContextParser', () => {
           .toBe('http://ex.org/def');
       });
 
-      it('to return when @vocab is empty string and @base exists if emptyVocabToBase is true', async () => {
+      it('to return when @vocab is empty string and @base exists if allowVocabRelativeToBase is true', async () => {
         expect(ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true,
-          { emptyVocabToBase: true })).toBe('http://ex.org/def');
+          { allowVocabRelativeToBase: true })).toBe('http://ex.org/def');
       });
 
-      it('to return when @vocab is empty string and @base exists unless emptyVocabToBase is false', async () => {
-        expect(ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true,
-          { emptyVocabToBase: false })).toBe('def');
+      it('to throw when @vocab is empty string and @base exists if allowVocabRelativeToBase is false', async () => {
+        expect(() => ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true,
+          { allowVocabRelativeToBase: false })).toThrow(new Error(
+            'Relative vocab expansion for term \'def\' with vocab \'\' is not allowed.'));
+      });
+
+      it('to return when @vocab is "#" and @base exists if allowVocabRelativeToBase is true', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': '#', '@base': 'http://ex.org/'}, true,
+          { allowVocabRelativeToBase: true })).toBe('http://ex.org/#def');
+      });
+
+      it('to throw when @vocab is "#" string and @base exists if allowVocabRelativeToBase is false', async () => {
+        expect(() => ContextParser.expandTerm('def', {'@vocab': '#', '@base': 'http://ex.org/'}, true,
+          { allowVocabRelativeToBase: false })).toThrow(new Error(
+            'Relative vocab expansion for term \'def\' with vocab \'#\' is not allowed.'));
+      });
+
+      it('to return when @vocab is "../#" and @base exists if allowVocabRelativeToBase is true', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': '../#', '@base': 'http://ex.org/abc/'}, true,
+          { allowVocabRelativeToBase: true })).toBe('http://ex.org/#def');
+      });
+
+      it('to throw when @vocab is "../#" string and @base exists if allowVocabRelativeToBase is false', async () => {
+        expect(() => ContextParser.expandTerm('def', {'@vocab': '../#', '@base': 'http://ex.org/abc/'}, true,
+          { allowVocabRelativeToBase: false })).toThrow(new Error(
+            'Relative vocab expansion for term \'def\' with vocab \'../#\' is not allowed.'));
+      });
+
+      it('to return when @vocab is absolute and @base exists if allowVocabRelativeToBase is true', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': 'http://abc.org/', '@base': 'http://ex.org/abc/'}, true,
+          { allowVocabRelativeToBase: true })).toBe('http://abc.org/def');
+      });
+
+      it('to return when @vocab is absolute string and @base exists if allowVocabRelativeToBase is false', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': 'http://abc.org/', '@base': 'http://ex.org/abc/'}, true,
+          { allowVocabRelativeToBase: false })).toBe('http://abc.org/def');
       });
     });
 
