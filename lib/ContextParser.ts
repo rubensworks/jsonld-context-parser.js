@@ -135,9 +135,13 @@ export class ContextParser implements IDocumentLoader {
    * @param {IJsonLdContextNormalized} context A context.
    * @param {boolean} expandVocab If the term is a predicate or type and should be expanded based on @vocab,
    *                              otherwise it is considered a regular term that is expanded based on @base.
+   * @param {IExpandOptions} options Options that define the way how expansion must be done.
    * @return {string} The expanded term, the term as-is, or null if it was explicitly disabled in the context.
    */
-  public static expandTerm(term: string, context: IJsonLdContextNormalized, expandVocab?: boolean): string {
+  public static expandTerm(term: string, context: IJsonLdContextNormalized, expandVocab?: boolean,
+                           options: IExpandOptions = {
+                             emptyVocabToBase: true,
+                           }): string {
     ContextParser.assertNormalized(context);
 
     const contextValue = context[term];
@@ -165,7 +169,7 @@ export class ContextParser implements IDocumentLoader {
       if (value) {
         return value + term.substr(prefix.length + 1);
       }
-    } else if (expandVocab && (vocab || (base && vocab === ''))
+    } else if (expandVocab && (vocab || (options.emptyVocabToBase && (base && vocab === '')))
       && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
       if (vocabRelative) {
         throw new ErrorCoded(`Relative vocab expansion for term '${term}' with vocab '${
@@ -579,4 +583,11 @@ export interface IParseOptions {
    * If the parsing context is an external context.
    */
   external?: boolean;
+}
+
+export interface IExpandOptions {
+  /**
+   * If empty @vocab's should fallback to @base during vocab-expansion.
+   */
+  emptyVocabToBase?: boolean;
 }

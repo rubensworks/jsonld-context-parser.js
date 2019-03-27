@@ -143,6 +143,16 @@ describe('ContextParser', () => {
         expect(ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true))
           .toBe('http://ex.org/def');
       });
+
+      it('to return when @vocab is empty string and @base exists if emptyVocabToBase is true', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true,
+          { emptyVocabToBase: true })).toBe('http://ex.org/def');
+      });
+
+      it('to return when @vocab is empty string and @base exists unless emptyVocabToBase is false', async () => {
+        expect(ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true,
+          { emptyVocabToBase: false })).toBe('def');
+      });
     });
 
     describe('in base-mode', () => {
