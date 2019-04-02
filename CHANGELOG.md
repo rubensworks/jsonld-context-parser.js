@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v1.2.0"></a>
+## [v1.2.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.1.4...v1.2.0) - 2019-04-02
+
+### Added
+* [Add compactIri helper function](https://github.com/rubensworks/jsonld-context-parser.js/commit/b350541e8052679ef72d62c3798d4a379c771b97)
+
 <a name="v1.1.4"></a>
 ## [v1.1.4](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.1.3...v1.1.4) - 2019-03-15
 
