@@ -149,6 +149,48 @@ export class ContextParser implements IDocumentLoader {
   }
 
   /**
+   * Compact the given term using @base, @vocab, an aliased term, or a prefixed term.
+   * @param {string} iri An IRI to compact.
+   * @param {IJsonLdContextNormalized} context The context to compact with.
+   * @param {boolean} vocab If the term is a predicate or type and should be compacted based on @vocab,
+   *                        otherwise it is considered a regular term that is compacted based on @base.
+   * @return {string} The compacted term or the IRI as-is.
+   */
+  public static compactIri(iri: string, context: IJsonLdContextNormalized, vocab?: boolean): string {
+    // Try @vocab compacting
+    if (vocab && context['@vocab'] && iri.startsWith(context['@vocab'])) {
+      return iri.substr(context['@vocab'].length);
+    }
+
+    // Try @base compacting
+    if (!vocab && context['@base'] && iri.startsWith(context['@base'])) {
+      return iri.substr(context['@base'].length);
+    }
+
+    // Loop over all terms in the context
+    for (const key in context) {
+      const value = context[key];
+      if (value && !key.startsWith('@')) {
+        const contextIri = this.getContextValueId(value);
+        if (iri.startsWith(contextIri)) {
+          const suffix = iri.substr(contextIri.length);
+          if (!suffix) {
+            if (vocab) {
+              // Compact aliased term
+              return key;
+            }
+          } else {
+            // Compact prefixed term
+            return key + ':' + suffix;
+          }
+        }
+      }
+    }
+
+    return iri;
+  }
+
+  /**
    * Check if the given context value can be a prefix value.
    * @param value A context value.
    * @return {boolean} If it can be a prefix value.

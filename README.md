@@ -15,6 +15,7 @@ This parser has the following functionality:
 * Expand prefixes and `@vocab` in string values, `@id`, `@type` and `@reverse`.
 * Context validation according to the [JSON-LD](https://json-ld.org/) specification while parsing (_can be disabled_).
 * Term expansion with the `ContextParser.expandTerm` helper function.
+* IRI compacting with the `ContextParser.compactIri` helper function.
 
 Example input (with base IRI set to `http://example.org/base`):
 ```jsonld
@@ -134,6 +135,45 @@ ContextParser.expandTerm('foaf:name', context, true);
 
 // Returns the URI as-is
 ContextParser.expandTerm('http://xmlns.com/foaf/0.1/name', context, true);
+```
+
+#### Compact an IRI
+
+Based on a context, IRIs can be compacted in vocab or base-mode.
+
+#### Base compacting
+
+Base compacting is done based on the `@base` context entry.
+This should typically be used for compacting terms in the subject or object position.
+
+```
+// Compacts to `something` if @base is `http://base.org/`.
+ContextParser.compactIri('http://base.org/something', context);
+
+// Compacts to `prefix:name` if `"prefix": "http://prefix.org/"` is in the context
+ContextParser.compactIri('http://prefix.org/name', context);
+
+// Returns the URI as-is if it is not present in the context in any way
+ContextParser.compactIri('http://xmlns.com/foaf/0.1/name', context);
+```
+
+#### Vocab compacting
+
+Vocab compacting is done based on the `@vocab` context entry.
+This should typically be used for compacting terms in the predicate position.
+
+```
+// Compacts to `something` if @vocab is `http://vocab.org/`.
+ContextParser.compactIri('http://vocab.org/something', context, true);
+
+// Compacts to `prefix:name` if `"prefix": "http://prefix.org/"` is in the context
+ContextParser.compactIri('http://prefix.org/name', context, true);
+
+// Compacts to `term` if `"term": "http://term.org/"` is in the context
+ContextParser.compactIri('http://term.org/', context, true);
+
+// Returns the URI as-is if it is not present in the context in any way
+ContextParser.compactIri('http://xmlns.com/foaf/0.1/name', context, true);
 ```
 
 ### Command-line

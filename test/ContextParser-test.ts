@@ -152,6 +152,68 @@ describe('ContextParser', () => {
     });
   });
 
+  describe('#compactIri', () => {
+    describe('in vocab-mode', () => {
+      it('when no prefix applies', async () => {
+        expect(ContextParser.compactIri('http://ex.org/abc', {}, true)).toBe('http://ex.org/abc');
+      });
+
+      it('when @vocab applies', async () => {
+        expect(ContextParser.compactIri('http://ex.org/abc', {
+          '@vocab': 'http://ex.org/',
+        }, true)).toBe('abc');
+      });
+
+      it('when @base applies', async () => {
+        expect(ContextParser.compactIri('http://ex.org/abc', {
+          '@base': 'http://ex.org/',
+        }, true)).toBe('http://ex.org/abc');
+      });
+
+      it('when a term alias applies', async () => {
+        expect(ContextParser.compactIri('http://ex.org/abc', {
+          myterm: 'http://ex.org/abc',
+        }, true)).toBe('myterm');
+      });
+
+      it('when a term prefix applies', async () => {
+        expect(ContextParser.compactIri('http://ex.org/abc', {
+          ex: 'http://ex.org/',
+        }, true)).toBe('ex:abc');
+      });
+    });
+
+    describe('in base-mode', () => {
+      it('when no prefix applies', async () => {
+        expect(ContextParser.compactIri('http://ex.org/abc', {}, false)).toBe('http://ex.org/abc');
+      });
+
+      it('when @vocab applies', async () => {
+        expect(ContextParser.compactIri('http://ex.org/abc', {
+          '@vocab': 'http://ex.org/',
+        }, false)).toBe('http://ex.org/abc');
+      });
+
+      it('when @base applies', async () => {
+        expect(ContextParser.compactIri('http://ex.org/abc', {
+          '@base': 'http://ex.org/',
+        }, false)).toBe('abc');
+      });
+
+      it('when a term alias applies', async () => {
+        expect(ContextParser.compactIri('http://ex.org/abc', {
+          myterm: 'http://ex.org/abc',
+        }, false)).toBe('http://ex.org/abc');
+      });
+
+      it('when a term prefix applies', async () => {
+        expect(ContextParser.compactIri('http://ex.org/abc', {
+          ex: 'http://ex.org/',
+        }, false)).toBe('ex:abc');
+      });
+    });
+  });
+
   describe('#isPrefixValue', () => {
     it('should be false for null', async () => {
       expect(ContextParser.isPrefixValue(null)).toBeFalsy();
