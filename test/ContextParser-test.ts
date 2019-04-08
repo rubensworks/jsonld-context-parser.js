@@ -122,16 +122,24 @@ describe('ContextParser', () => {
       });
 
       it('to throw for not allowed relative @vocab', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: false,
+        };
         expect(() => ContextParser.expandTerm('bla', {
           '@vocab': 'relative/',
-        }, true, { allowVocabRelativeToBase: false })).toThrow(new Error(
+        }, true, opts)).toThrow(new Error(
           'Relative vocab expansion for term \'bla\' with vocab \'relative/\' is not allowed.'));
       });
 
       it('to throw for unsupported relative empty @vocab', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: false,
+        };
         expect(() => ContextParser.expandTerm('bla', {
           '@vocab': '',
-        }, true, { allowVocabRelativeToBase: false })).toThrow(new Error(
+        }, true, opts)).toThrow(new Error(
           'Relative vocab expansion for term \'bla\' with vocab \'\' is not allowed.'));
       });
 
@@ -145,46 +153,154 @@ describe('ContextParser', () => {
       });
 
       it('to return when @vocab is empty string and @base exists if allowVocabRelativeToBase is true', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: true,
+        };
         expect(ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true,
-          { allowVocabRelativeToBase: true })).toBe('http://ex.org/def');
+          opts)).toBe('http://ex.org/def');
       });
 
       it('to throw when @vocab is empty string and @base exists if allowVocabRelativeToBase is false', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: false,
+        };
         expect(() => ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true,
-          { allowVocabRelativeToBase: false })).toThrow(new Error(
+          opts)).toThrow(new Error(
             'Relative vocab expansion for term \'def\' with vocab \'\' is not allowed.'));
       });
 
       it('to return when @vocab is "#" and @base exists if allowVocabRelativeToBase is true', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: true,
+        };
         expect(ContextParser.expandTerm('def', {'@vocab': '#', '@base': 'http://ex.org/'}, true,
-          { allowVocabRelativeToBase: true })).toBe('http://ex.org/#def');
+          opts)).toBe('http://ex.org/#def');
       });
 
       it('to throw when @vocab is "#" string and @base exists if allowVocabRelativeToBase is false', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: false,
+        };
         expect(() => ContextParser.expandTerm('def', {'@vocab': '#', '@base': 'http://ex.org/'}, true,
-          { allowVocabRelativeToBase: false })).toThrow(new Error(
+          opts)).toThrow(new Error(
             'Relative vocab expansion for term \'def\' with vocab \'#\' is not allowed.'));
       });
 
       it('to return when @vocab is "../#" and @base exists if allowVocabRelativeToBase is true', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: true,
+        };
         expect(ContextParser.expandTerm('def', {'@vocab': '../#', '@base': 'http://ex.org/abc/'}, true,
-          { allowVocabRelativeToBase: true })).toBe('http://ex.org/#def');
+          opts)).toBe('http://ex.org/#def');
       });
 
       it('to throw when @vocab is "../#" string and @base exists if allowVocabRelativeToBase is false', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: false,
+        };
         expect(() => ContextParser.expandTerm('def', {'@vocab': '../#', '@base': 'http://ex.org/abc/'}, true,
-          { allowVocabRelativeToBase: false })).toThrow(new Error(
+          opts)).toThrow(new Error(
             'Relative vocab expansion for term \'def\' with vocab \'../#\' is not allowed.'));
       });
 
       it('to return when @vocab is absolute and @base exists if allowVocabRelativeToBase is true', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: true,
+        };
         expect(ContextParser.expandTerm('def', {'@vocab': 'http://abc.org/', '@base': 'http://ex.org/abc/'}, true,
-          { allowVocabRelativeToBase: true })).toBe('http://abc.org/def');
+          opts)).toBe('http://abc.org/def');
       });
 
       it('to return when @vocab is absolute string and @base exists if allowVocabRelativeToBase is false', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: false,
+        };
         expect(ContextParser.expandTerm('def', {'@vocab': 'http://abc.org/', '@base': 'http://ex.org/abc/'}, true,
-          { allowVocabRelativeToBase: false })).toBe('http://abc.org/def');
+          opts)).toBe('http://abc.org/def');
+      });
+
+      it('to error when allowNonGenDelimsIfPrefix is true with non-gen-delim without @prefix', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: true,
+        };
+        expect(() => ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact-' }, true,
+          opts)).toThrow(new Error('Compact IRIs must end with a gen-delim character unless @prefix is set to true, ' +
+          'found: \'abc\': \'"http://ex.org/compact-"\''));
+      });
+
+      it('to return when allowNonGenDelimsIfPrefix is true with non-gen-delim with @prefix', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: true,
+        };
+        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } }, true,
+          opts)).toBe('http://ex.org/compact-def');
+      });
+
+      it('to error when allowNonGenDelimsIfPrefix is false with non-gen-delim without @prefix', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: false,
+          allowVocabRelativeToBase: true,
+        };
+        expect(() => ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-' } }, true,
+          opts)).toThrow(new Error('Compact IRIs must end with a gen-delim character unless @prefix is set to true, ' +
+          'found: \'abc\': \'{"@id":"http://ex.org/compact-"}\''));
+      });
+
+      it('to error when allowNonGenDelimsIfPrefix is false with non-gen-delim with @prefix', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: false,
+          allowVocabRelativeToBase: true,
+        };
+        expect(() => ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } },
+          true, opts)).toThrow(
+          new Error('Compact IRIs must end with a gen-delim character unless @prefix is set to true, ' +
+            'found: \'abc\': \'{"@id":"http://ex.org/compact-","@prefix":true}\''));
+      });
+
+      it('to return when allowNonGenDelimsIfPrefix is true with gen-delim without @prefix', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: true,
+        };
+        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/' } }, true,
+          opts)).toBe('http://ex.org/def');
+      });
+
+      it('to return when allowNonGenDelimsIfPrefix is true with gen-delim with @prefix', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: true,
+        };
+        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/', '@prefix': true } }, true,
+          opts)).toBe('http://ex.org/def');
+      });
+
+      it('to return when allowNonGenDelimsIfPrefix is false with gen-delim without @prefix', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: false,
+          allowVocabRelativeToBase: true,
+        };
+        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/' } }, true,
+          opts)).toBe('http://ex.org/def');
+      });
+
+      it('to return when allowNonGenDelimsIfPrefix is false with gen-delim with @prefix', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: false,
+          allowVocabRelativeToBase: true,
+        };
+        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/', '@prefix': true } }, true,
+          opts)).toBe('http://ex.org/def');
       });
     });
 
@@ -900,6 +1016,17 @@ Tried mapping @id to http//ex.org/id`));
       expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 10 } }))
         .toThrow(new Error('Found an invalid term @language string in: \'term\': ' +
           '\'{"@id":"http://ex.org/","@language":10}\''));
+    });
+
+    it('should error on a term with @prefix: true', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@prefix': true } }))
+        .not.toThrow();
+    });
+
+    it('should error on a term with @prefix: 10', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@prefix': 10 } }))
+        .toThrow(new Error('Found an invalid term @prefix boolean in: \'term\': ' +
+          '\'{"@id":"http://ex.org/","@prefix":10}\''));
     });
 
     it('should not error on a term set to null', async () => {

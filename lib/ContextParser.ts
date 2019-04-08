@@ -12,6 +12,8 @@ export class ContextParser implements IDocumentLoader {
 
   // Regex for valid IRIs
   public static readonly IRI_REGEX: RegExp = /^([A-Za-z][A-Za-z0-9+-.]*|_):[^ "<>{}|\\\[\]`]*$/;
+  // Regex to see if an IRI ends with a gen-delim character (see RFC 3986)
+  public static readonly ENDS_WITH_GEN_DELIM: RegExp = /[:/?#\[\]@]$/;
 
   // Keys in the contexts that will not be expanded based on the base IRI
   private static readonly EXPAND_KEYS_BLACKLIST: string[] = [
@@ -140,6 +142,7 @@ export class ContextParser implements IDocumentLoader {
    */
   public static expandTerm(term: string, context: IJsonLdContextNormalized, expandVocab?: boolean,
                            options: IExpandOptions = {
+                             allowNonGenDelimsIfPrefix: true,
                              allowVocabRelativeToBase: true,
                            }): string {
     ContextParser.assertNormalized(context);
@@ -165,8 +168,19 @@ export class ContextParser implements IDocumentLoader {
     const vocabRelative: boolean = (vocab || vocab === '') && vocab.indexOf(':') < 0;
     const base: string = context['@base'];
     if (prefix) {
-      const value = this.getContextValueId(context[prefix]);
+      const contextPrefixValue = context[prefix];
+      const value = this.getContextValueId(contextPrefixValue);
+
       if (value) {
+        // Validate that prefix ends with gen-delim character, unless @prefix is true
+        if (term[0] !== '@' && (!options.allowNonGenDelimsIfPrefix || !contextPrefixValue['@prefix'])) {
+          if (!ContextParser.isPrefixIriEndingWithGenDelim(value)) {
+            throw new Error(
+              `Compact IRIs must end with a gen-delim character unless @prefix is set to true, found: '${
+                prefix}': '${JSON.stringify(contextPrefixValue)}'`);
+          }
+        }
+
         return value + term.substr(prefix.length + 1);
       }
     } else if (expandVocab && ((vocab || vocab === '') || (options.allowVocabRelativeToBase && (base && vocabRelative)))
@@ -273,6 +287,15 @@ export class ContextParser implements IDocumentLoader {
   }
 
   /**
+   * Check if the given prefix ends with a gen-delim character.
+   * @param {string} prefixIri A prefix IRI.
+   * @return {boolean} If the given prefix IRI is valid.
+   */
+  public static isPrefixIriEndingWithGenDelim(prefixIri: string): boolean {
+    return ContextParser.ENDS_WITH_GEN_DELIM.test(prefixIri);
+  }
+
+  /**
    * Add an @id term for all @reverse terms.
    * @param {IJsonLdContextNormalized} context A context.
    * @return {IJsonLdContextNormalized} The mutated input context.
@@ -369,6 +392,7 @@ Tried mapping ${key} to ${context[key]}`);
   /**
    * Validate the entries of the given context.
    * @param {IJsonLdContextNormalized} context A context.
+   * @param {IValidateOptions} options The validation options.
    */
   public static validate(context: IJsonLdContextNormalized) {
     for (const key of Object.keys(context)) {
@@ -381,23 +405,24 @@ Tried mapping ${key} to ${context[key]}`);
           if (value !== null && valueType !== 'string') {
             throw new Error(`Found an invalid @vocab IRI: ${value}`);
           }
-          continue;
+          break;
         case 'base':
           if (value !== null && valueType !== 'string') {
             throw new Error(`Found an invalid @base IRI: ${context[key]}`);
           }
-          continue;
+          break;
         case 'language':
           if (value !== null && valueType !== 'string') {
             throw new Error(`Found an invalid @language string: ${value}`);
           }
-          continue;
+          break;
         case 'version':
           if (value !== null && valueType !== 'number') {
             throw new Error(`Found an invalid @version number: ${value}`);
           }
-          continue;
+          break;
         }
+        continue;
       }
 
       // Otherwise, consider the key a term
@@ -423,6 +448,7 @@ Tried mapping ${key} to ${context[key]}`);
               if (objectValue[0] === '@' && objectValue !== '@type' && objectValue !== '@id') {
                 throw new Error(`Illegal keyword alias in term value, found: '${key}': '${JSON.stringify(value)}'`);
               }
+
               break;
             case '@type':
               if (objectValue !== '@id' && objectValue !== '@vocab'
@@ -448,6 +474,11 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
             case '@language':
               if (objectValue !== null && typeof objectValue !== 'string') {
                 throw new Error(`Found an invalid term @language string in: '${key}': '${JSON.stringify(value)}'`);
+              }
+              break;
+            case '@prefix':
+              if (objectValue !== null && typeof objectValue !== 'boolean') {
+                throw new Error(`Found an invalid term @prefix boolean in: '${key}': '${JSON.stringify(value)}'`);
               }
               break;
             }
@@ -592,7 +623,12 @@ export interface IParseOptions {
 
 export interface IExpandOptions {
   /**
+   * If compact IRI prefixes can end with any kind of character iff the term's @prefix=true,
+   * instead of only the default gen-delim characters (:,/,?,#,[,],@)
+   */
+  allowNonGenDelimsIfPrefix: boolean;
+  /**
    * If @vocab values are allowed contain IRIs relative to @base.
    */
-  allowVocabRelativeToBase?: boolean;
+  allowVocabRelativeToBase: boolean;
 }
