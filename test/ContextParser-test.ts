@@ -285,6 +285,15 @@ describe('ContextParser', () => {
           opts)).toBe('http://ex.org/def');
       });
 
+      it('to return when allowNonGenDelimsIfPrefix is true for a blank node', async () => {
+        const opts = {
+          allowNonGenDelimsIfPrefix: true,
+          allowVocabRelativeToBase: true,
+        };
+        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': '_:b' } }, true,
+          opts)).toBe('_:bdef');
+      });
+
       it('to return when allowNonGenDelimsIfPrefix is false with gen-delim without @prefix', async () => {
         const opts = {
           allowNonGenDelimsIfPrefix: false,
