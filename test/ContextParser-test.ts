@@ -227,14 +227,13 @@ describe('ContextParser', () => {
           opts)).toBe('http://abc.org/def');
       });
 
-      it('to error when allowNonGenDelimsIfPrefix is true with non-gen-delim without @prefix', async () => {
+      it('to return null when allowNonGenDelimsIfPrefix is true with non-gen-delim without @prefix', async () => {
         const opts = {
           allowNonGenDelimsIfPrefix: true,
           allowVocabRelativeToBase: true,
         };
-        expect(() => ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact-' }, true,
-          opts)).toThrow(new Error('Compact IRIs must end with a gen-delim character unless @prefix is set to true, ' +
-          'found: \'abc\': \'"http://ex.org/compact-"\''));
+        expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact-' }, true,
+          opts)).toBe(null);
       });
 
       it('to return when allowNonGenDelimsIfPrefix is true with non-gen-delim with @prefix', async () => {
@@ -246,25 +245,22 @@ describe('ContextParser', () => {
           opts)).toBe('http://ex.org/compact-def');
       });
 
-      it('to error when allowNonGenDelimsIfPrefix is false with non-gen-delim without @prefix', async () => {
+      it('to return null when allowNonGenDelimsIfPrefix is false with non-gen-delim without @prefix', async () => {
         const opts = {
           allowNonGenDelimsIfPrefix: false,
           allowVocabRelativeToBase: true,
         };
-        expect(() => ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-' } }, true,
-          opts)).toThrow(new Error('Compact IRIs must end with a gen-delim character unless @prefix is set to true, ' +
-          'found: \'abc\': \'{"@id":"http://ex.org/compact-"}\''));
+        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-' } }, true,
+          opts)).toBe(null);
       });
 
-      it('to error when allowNonGenDelimsIfPrefix is false with non-gen-delim with @prefix', async () => {
+      it('to return null when allowNonGenDelimsIfPrefix is false with non-gen-delim with @prefix', async () => {
         const opts = {
           allowNonGenDelimsIfPrefix: false,
           allowVocabRelativeToBase: true,
         };
-        expect(() => ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } },
-          true, opts)).toThrow(
-          new Error('Compact IRIs must end with a gen-delim character unless @prefix is set to true, ' +
-            'found: \'abc\': \'{"@id":"http://ex.org/compact-","@prefix":true}\''));
+        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } },
+          true, opts)).toBe(null);
       });
 
       it('to return when allowNonGenDelimsIfPrefix is true with gen-delim without @prefix', async () => {

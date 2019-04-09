@@ -176,9 +176,8 @@ export class ContextParser implements IDocumentLoader {
         if (value[0] !== '_' && term[0] !== '@'
           && (!options.allowNonGenDelimsIfPrefix || !contextPrefixValue['@prefix'])) {
           if (!ContextParser.isPrefixIriEndingWithGenDelim(value)) {
-            throw new Error(
-              `Compact IRIs must end with a gen-delim character unless @prefix is set to true, found: '${
-                prefix}': '${JSON.stringify(contextPrefixValue)}'`);
+            // Treat the term as an absolute IRI
+            return null;
           }
         }
 
