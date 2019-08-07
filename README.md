@@ -68,7 +68,7 @@ This package also works out-of-the-box in browsers via tools such as [webpack](h
 #### Create a new parser
 
 ```javascript
-const ContextParser = require('jsonld-context-parser');
+const ContextParser = require('jsonld-context-parser').ContextParser;
 
 const myParser = new ContextParser();
 ```
