@@ -241,8 +241,9 @@ describe('ContextParser', () => {
           allowNonGenDelimsIfPrefix: true,
           allowVocabRelativeToBase: true,
         };
-        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } }, true,
-          opts)).toBe('http://ex.org/compact-def');
+        expect(ContextParser.expandTerm('abc:def',
+          { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } }, true, opts))
+          .toBe('http://ex.org/compact-def');
       });
 
       it('to return null when allowNonGenDelimsIfPrefix is false with non-gen-delim without @prefix', async () => {
@@ -1249,7 +1250,91 @@ Tried mapping @id to http//ex.org/id`));
       it('should fail to parse an invalid source', () => {
         return expect(parser.parse('http://example.org/invalid.jsonld')).rejects.toBeTruthy();
       });
+    });
 
+    describe('for parsing null', () => {
+      it('should parse to an empty context', () => {
+        return expect(parser.parse(null)).resolves.toEqual({});
+      });
+
+      it('should parse to an empty context, even when a parent context is given', () => {
+        return expect(parser.parse(null, { parentContext: { a: 'b' } })).resolves.toEqual({});
+      });
+
+      it('should parse to an empty context, but set @base if needed', () => {
+        return expect(parser.parse(null, { baseIri: 'http://base.org/' })).resolves
+          .toEqual({ '@base': 'http://base.org/' });
+      });
+    });
+
+    describe('for parsing arrays', () => {
+      it('should parse an empty array to the parent context', () => {
+        const parentContext = { a: 'b' };
+        return expect(parser.parse([], { parentContext })).resolves.toBe(parentContext);
+      });
+
+      it('should parse an array with one string', () => {
+        return expect(parser.parse([
+          'http://example.org/simple.jsonld',
+        ])).resolves.toEqual({
+          name: "http://xmlns.com/foaf/0.1/name",
+          xsd: "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+
+      it('should parse an array with two strings', () => {
+        return expect(parser.parse([
+          'http://example.org/simple.jsonld',
+          'http://example.org/simple2.jsonld',
+        ])).resolves.toEqual({
+          name: "http://xmlns.com/foaf/0.1/name",
+          nickname: "http://xmlns.com/foaf/0.1/nick",
+          xsd: "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+
+      it('should parse an array with an object and a string', () => {
+        return expect(parser.parse([
+          {
+            npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
+          },
+          'http://example.org/simple2.jsonld',
+        ])).resolves.toEqual({
+          nickname: "http://xmlns.com/foaf/0.1/nick",
+          npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
+        });
+      });
+
+      it('should parse an array with an object and a string resolving to an array when cached', () => {
+        parser.documentCache['http://example.org/simplearray.jsonld'] = [{
+          nickname: 'http://xmlns.com/foaf/0.1/nick',
+        }];
+        return expect(parser.parse([
+          {
+            npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
+          },
+          'http://example.org/simplearray.jsonld',
+        ])).resolves.toEqual({
+          nickname: "http://xmlns.com/foaf/0.1/nick",
+          npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
+        });
+      });
+
+      it('should parse and expand prefixes', () => {
+        return expect(parser.parse([
+          'http://example.org/simple.jsonld',
+          {
+            myint: { "@id": "xsd:integer" },
+          },
+        ])).resolves.toEqual({
+          myint: { "@id": "http://www.w3.org/2001/XMLSchema#integer" },
+          name: "http://xmlns.com/foaf/0.1/name",
+          xsd: "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+    });
+
+    describe('for base and vocab', () => {
       it('should parse with a base IRI', () => {
         return expect(parser.parse('http://example.org/simple.jsonld', { baseIri: 'http://myexample.org/' }))
           .resolves.toEqual({
@@ -1259,148 +1344,238 @@ Tried mapping @id to http//ex.org/id`));
           });
       });
 
-      it('should parse a complex context', () => {
-        // tslint:disable:object-literal-sort-keys
-        // tslint:disable:max-line-length
-        return expect(parser.parse('http://example.org/complex.jsonld')).resolves.toEqual({
-          "@vocab": "unknown://",
-          "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
-          "xsd": "http://www.w3.org/2001/XMLSchema#",
-          "oo": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#",
-          "Module": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#Module",
-          },
-          "Class": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#Class",
-          },
-          "AbstractClass": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#AbstractClass",
-          },
-          "Instance": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#ComponentInstance",
-          },
-          "components": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#component",
-          },
-          "parameters": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#parameter",
-          },
-          "constructorArguments": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#constructorArguments",
-            "@container": "@list",
-          },
-          "unique": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#uniqueValue",
-          },
-          "required": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#required",
-          },
-          "default": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#defaultValue",
-          },
-          "defaultScoped": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#defaultScoped",
-          },
-          "defaultScope": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#defaultScope",
-            "@type": "@id",
-          },
-          "defaultScopedValue": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#defaultScopedValue",
-          },
-          "arguments": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#arguments",
-            "@container": "@list",
-          },
-          "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
-          "comment": {
-            "@id": "http://www.w3.org/2000/01/rdf-schema#comment",
-            "@type": "@id",
-          },
-          "extends": {
-            "@id": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
-            "@type": "@id",
-          },
-          "range": {
-            "@id": "http://www.w3.org/2000/01/rdf-schema#range",
-            "@type": "@id",
-          },
-          "owl": "http://www.w3.org/2002/07/owl#",
-          "import": {
-            "@id": "http://www.w3.org/2002/07/owl#imports",
-          },
-          "InheritanceValue": {
-            "@id": "http://www.w3.org/2002/07/owl#Restriction",
-          },
-          "inheritValues": {
-            "@id": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
-            "@type": "@id",
-          },
-          "onParameter": {
-            "@id": "http://www.w3.org/2002/07/owl#onProperty",
-            "@type": "@id",
-          },
-          "from": {
-            "@id": "http://www.w3.org/2002/07/owl#allValuesFrom",
-            "@type": "@id",
-          },
-          "doap": "http://usefulinc.com/ns/doap#",
-          "requireName": {
-            "@id": "http://usefulinc.com/ns/doap#name",
-          },
-          "requireElement": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#componentPath",
-          },
-          "om": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#",
-          "ObjectMapping": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#ObjectMapping",
-          },
-          "ArrayMapping": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#ArrayMapping",
-          },
-          "fields": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#field",
-            "@type": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#ObjectMapEntry",
-          },
-          "elements": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#elements",
-            "@type": "@id",
-            "@container": "@list",
-          },
-          "collectEntries": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#collectsEntriesFrom",
-            "@type": "@id",
-          },
-          "keyRaw": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldName",
-          },
-          "key": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldName",
-            "@type": "@id",
-          },
-          "value": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldValue",
-            "@type": "@id",
-          },
-          "valueRaw": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldValue",
-          },
-          "valueRawReference": {
-            "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldValueRaw",
-            "@type": "@id",
-          },
-          "npmd": "https://linkedsoftwaredependencies.org/bundles/npm/",
-          "cais": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/",
-          "ActorInitSparql": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/Actor/Init/Sparql",
-          "mediatorQueryOperation": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorQueryOperation",
-          "mediatorSparqlParse": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorSparqlParse",
-          "mediatorSparqlSerialize": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorSparqlSerialize",
-          "mediatorSparqlSerializeMediaTypeCombiner": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorSparqlSerializeMediaTypeCombiner",
-          "mediatorContextPreprocess": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorContextPreprocess",
-        });
-        // tslint:enable:object-literal-sort-keys
-        // tslint:enable:max-line-length
+      it('should parse with a base IRI and not override the inner @base', () => {
+        return expect(parser.parse({ '@base': 'http://myotherexample.org/' }, { baseIri: 'http://myexample.org/' }))
+          .resolves.toEqual({
+            '@base': 'http://myotherexample.org/',
+          });
       });
+
+      it('should parse relative @vocab with parent context @vocab in active 1.1', () => {
+        const parentContext = { '@vocab': 'http://example.org/' };
+        return expect(parser.parse({ '@vocab': 'vocab/' }, { parentContext, processingMode: 1.1 }))
+          .resolves.toEqual({
+            '@vocab': 'http://example.org/vocab/',
+          });
+      });
+
+      it('should parse relative (empty) @vocab with parent context @vocab in active 1.1', () => {
+        const parentContext = { '@vocab': 'http://example.org/' };
+        return expect(parser.parse({ '@vocab': '' }, { parentContext, processingMode: 1.1 }))
+          .resolves.toEqual({
+            '@vocab': 'http://example.org/',
+          });
+      });
+
+      it('should not see null @vocab as relative @vocab', () => {
+        const parentContext = { '@vocab': 'http://example.org/' };
+        return expect(parser.parse({ '@vocab': null }, { parentContext, processingMode: 1.1 }))
+          .resolves.toEqual({
+            '@vocab': null,
+          });
+      });
+
+      it('should parse relative @vocab without parent context @vocab in active 1.1', () => {
+        return expect(parser.parse({ '@vocab': 'vocab/' }, { parentContext: {}, processingMode: 1.1 }))
+          .resolves.toEqual({
+            '@vocab': 'vocab/',
+          });
+      });
+
+      it('should not parse relative @vocab with parent context @vocab in 1.0', () => {
+        const parentContext = { '@vocab': 'http://example.org/' };
+        return expect(parser.parse({ '@vocab': 'vocab/', '@version': 1.0 }, { parentContext }))
+          .resolves.toEqual({
+            '@version': 1.0,
+            '@vocab': 'vocab/',
+          });
+      });
+
+      it('should not parse relative (empty) @vocab with parent context @vocab in 1.0', () => {
+        const parentContext = { '@vocab': 'http://example.org/' };
+        return expect(parser.parse({ '@vocab': '', '@version': 1.0 }, { parentContext }))
+          .resolves.toEqual({
+            '@version': 1.0,
+            '@vocab': '',
+          });
+      });
+
+      it('should not parse relative @vocab without parent context @vocab in 1.0', () => {
+        return expect(parser.parse({ '@vocab': 'vocab/', '@version': 1.0 }, { parentContext: {} }))
+          .resolves.toEqual({
+            '@version': 1.0,
+            '@vocab': 'vocab/',
+          });
+      });
+
+      it('should parse relative @vocab with parent context @vocab in 1.1', () => {
+        const parentContext = { '@vocab': 'http://example.org/' };
+        return expect(parser.parse({ '@vocab': 'vocab/', '@version': 1.1 }, { parentContext }))
+          .resolves.toEqual({
+            '@version': 1.1,
+            '@vocab': 'http://example.org/vocab/',
+          });
+      });
+
+      it('should parse relative (empty) @vocab with parent context @vocab in 1.1', () => {
+        const parentContext = { '@vocab': 'http://example.org/' };
+        return expect(parser.parse({ '@vocab': '', '@version': 1.1 }, { parentContext }))
+          .resolves.toEqual({
+            '@version': 1.1,
+            '@vocab': 'http://example.org/',
+          });
+      });
+
+      it('should parse relative @vocab without parent context @vocab in 1.1', () => {
+        return expect(parser.parse({ '@vocab': 'vocab/', '@version': 1.1 }, { parentContext: {} }))
+          .resolves.toEqual({
+            '@version': 1.1,
+            '@vocab': 'vocab/',
+          });
+      });
+    });
+
+    it('should parse a complex context', () => {
+      // tslint:disable:object-literal-sort-keys
+      // tslint:disable:max-line-length
+      return expect(parser.parse('http://example.org/complex.jsonld')).resolves.toEqual({
+        "@vocab": "unknown://",
+        "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+        "xsd": "http://www.w3.org/2001/XMLSchema#",
+        "oo": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#",
+        "Module": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#Module",
+        },
+        "Class": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#Class",
+        },
+        "AbstractClass": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#AbstractClass",
+        },
+        "Instance": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#ComponentInstance",
+        },
+        "components": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#component",
+        },
+        "parameters": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#parameter",
+        },
+        "constructorArguments": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#constructorArguments",
+          "@container": "@list",
+        },
+        "unique": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#uniqueValue",
+        },
+        "required": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#required",
+        },
+        "default": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#defaultValue",
+        },
+        "defaultScoped": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#defaultScoped",
+        },
+        "defaultScope": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#defaultScope",
+          "@type": "@id",
+        },
+        "defaultScopedValue": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#defaultScopedValue",
+        },
+        "arguments": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#arguments",
+          "@container": "@list",
+        },
+        "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+        "comment": {
+          "@id": "http://www.w3.org/2000/01/rdf-schema#comment",
+          "@type": "@id",
+        },
+        "extends": {
+          "@id": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+          "@type": "@id",
+        },
+        "range": {
+          "@id": "http://www.w3.org/2000/01/rdf-schema#range",
+          "@type": "@id",
+        },
+        "owl": "http://www.w3.org/2002/07/owl#",
+        "import": {
+          "@id": "http://www.w3.org/2002/07/owl#imports",
+        },
+        "InheritanceValue": {
+          "@id": "http://www.w3.org/2002/07/owl#Restriction",
+        },
+        "inheritValues": {
+          "@id": "http://www.w3.org/2000/01/rdf-schema#subClassOf",
+          "@type": "@id",
+        },
+        "onParameter": {
+          "@id": "http://www.w3.org/2002/07/owl#onProperty",
+          "@type": "@id",
+        },
+        "from": {
+          "@id": "http://www.w3.org/2002/07/owl#allValuesFrom",
+          "@type": "@id",
+        },
+        "doap": "http://usefulinc.com/ns/doap#",
+        "requireName": {
+          "@id": "http://usefulinc.com/ns/doap#name",
+        },
+        "requireElement": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#componentPath",
+        },
+        "om": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#",
+        "ObjectMapping": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#ObjectMapping",
+        },
+        "ArrayMapping": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#ArrayMapping",
+        },
+        "fields": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#field",
+          "@type": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#ObjectMapEntry",
+        },
+        "elements": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#elements",
+          "@type": "@id",
+          "@container": "@list",
+        },
+        "collectEntries": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#collectsEntriesFrom",
+          "@type": "@id",
+        },
+        "keyRaw": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldName",
+        },
+        "key": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldName",
+          "@type": "@id",
+        },
+        "value": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldValue",
+          "@type": "@id",
+        },
+        "valueRaw": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldValue",
+        },
+        "valueRawReference": {
+          "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#fieldValueRaw",
+          "@type": "@id",
+        },
+        "npmd": "https://linkedsoftwaredependencies.org/bundles/npm/",
+        "cais": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/",
+        "ActorInitSparql": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/Actor/Init/Sparql",
+        "mediatorQueryOperation": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorQueryOperation",
+        "mediatorSparqlParse": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorSparqlParse",
+        "mediatorSparqlSerialize": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorSparqlSerialize",
+        "mediatorSparqlSerializeMediaTypeCombiner": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorSparqlSerializeMediaTypeCombiner",
+        "mediatorContextPreprocess": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorContextPreprocess",
+      });
+      // tslint:enable:object-literal-sort-keys
+      // tslint:enable:max-line-length
     });
 
     describe('for parsing null', () => {

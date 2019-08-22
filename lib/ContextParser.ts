@@ -141,10 +141,7 @@ export class ContextParser implements IDocumentLoader {
    * @return {string} The expanded term, the term as-is, or null if it was explicitly disabled in the context.
    */
   public static expandTerm(term: string, context: IJsonLdContextNormalized, expandVocab?: boolean,
-                           options: IExpandOptions = {
-                             allowNonGenDelimsIfPrefix: true,
-                             allowVocabRelativeToBase: true,
-                           }): string {
+                           options: IExpandOptions = defaultExpandOptions): string {
     ContextParser.assertNormalized(context);
 
     const contextValue = context[term];
@@ -514,13 +511,14 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
    * @return {Promise<IJsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
-                     { baseIri, parentContext, external }: IParseOptions = {}): Promise<IJsonLdContextNormalized> {
+                     { baseIri, parentContext, external, processingMode }: IParseOptions = {})
+    : Promise<IJsonLdContextNormalized> {
     if (context === null || context === undefined) {
       // Context that are explicitly set to null are empty.
       return baseIri ? { '@base': baseIri } : {};
     } else if (typeof context === 'string') {
       return this.parse(await this.load(ContextParser.normalizeContextIri(context, baseIri)),
-        { baseIri, parentContext, external: true });
+        { baseIri, parentContext, external: true, processingMode });
     } else if (Array.isArray(context)) {
       // As a performance consideration, first load all external contexts in parallel.
       const contexts = await Promise.all(context.map((subContext) => {
@@ -536,11 +534,12 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
             baseIri: accContext && accContext['@base'] || baseIri,
             external,
             parentContext: accContext,
+            processingMode,
           })),
         Promise.resolve(parentContext));
     } else if (typeof context === 'object') {
       if (context['@context']) {
-        return await this.parse(context['@context'], { baseIri, parentContext, external });
+        return await this.parse(context['@context'], { baseIri, parentContext, external, processingMode });
       }
 
       // Make a deep clone of the given context, to avoid modifying it.
@@ -566,6 +565,14 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       }
 
       newContext = { ...newContext, ...parentContext, ...context };
+
+      // In JSON-LD 1.1, @vocab can be relative to @vocab in the parent context.
+      if ((newContext['@version'] || processingMode) >= 1.1
+        && (context['@vocab'] || context['@vocab'] === '')
+        && context['@vocab'].indexOf(':') < 0 && '@vocab' in parentContext) {
+        newContext['@vocab'] = parentContext['@vocab'] + context['@vocab'];
+      }
+
       ContextParser.idifyReverseTerms(newContext);
       ContextParser.expandPrefixedTerms(newContext, this.expandContentTypeToBase);
       ContextParser.normalize(newContext);
@@ -619,6 +626,10 @@ export interface IParseOptions {
    * If the parsing context is an external context.
    */
   external?: boolean;
+  /**
+   * The default JSON-LD version that the context should be parsed with.
+   */
+  processingMode?: number;
 }
 
 export interface IExpandOptions {
@@ -632,3 +643,7 @@ export interface IExpandOptions {
    */
   allowVocabRelativeToBase: boolean;
 }
+export const defaultExpandOptions: IExpandOptions = {
+  allowNonGenDelimsIfPrefix: true,
+  allowVocabRelativeToBase: true,
+};
