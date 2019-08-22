@@ -20,16 +20,20 @@ const type = argv[0];
 
 let input: any;
 let external: boolean = false;
+let baseIri: string;
 switch (type) {
 case 'url':
   input = argv[1];
   external = true;
+  baseIri = argv[1];
   break;
 case 'file':
   input = JSON.parse(readFileSync(argv[1], 'utf8'));
+  baseIri = argv[1];
   break;
 case 'arg':
   input = JSON.parse(argv[1]);
+  baseIri = 'urn:local:';
   break;
 default:
   process.stderr.write(`Unknown context type. Choose from url, file or arg.`);
@@ -37,7 +41,7 @@ default:
   break;
 }
 
-new ContextParser().parse(input, { external })
+new ContextParser().parse(input, { external, baseIri })
   .then((context) => {
     process.stdout.write(JSON.stringify(context, null, '  '));
     process.stdout.write('\n');
