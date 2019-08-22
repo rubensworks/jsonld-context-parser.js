@@ -44,5 +44,6 @@ new ContextParser().parse(input, { external })
   })
   .catch((err) => {
     process.stderr.write(err.message);
+    process.stdout.write('\n');
     process.exit(1);
   });
