@@ -124,7 +124,7 @@ export class ContextParser implements IDocumentLoader {
     do {
       termIn = term;
       term = ContextParser.expandTermSingle(term, context, vocab);
-    } while (term !== termIn);
+    } while (term && term !== termIn);
     return term;
   }
 
@@ -197,7 +197,7 @@ export class ContextParser implements IDocumentLoader {
     do {
       iriIn = iri;
       iri = ContextParser.compactIriSingle(iri, context, vocab);
-    } while (iri !== iriIn);
+    } while (iri && iri !== iriIn);
     return iri;
   }
 
