@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v1.3.1"></a>
+## [v1.3.1](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.3.0...v1.3.1) - 2019-08-22
+
+### Fixed
+* [Fix expansion and compaction causing null terms](https://github.com/rubensworks/jsonld-context-parser.js/commit/0b6ac3ea9d9f519a4329e0528e41292b869f435c)
+
 <a name="v1.3.0"></a>
 ## [v1.3.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.2.0...v1.3.0) - 2019-08-22
 
