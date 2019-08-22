@@ -757,6 +757,17 @@ Tried mapping @id to http//ex.org/id`));
           name: "http://xmlns.com/foaf/0.1/name",
         });
       });
+
+      it('should parse without modifying the original context', async () => {
+        const contextIn = { "@context": { rev: { "@reverse": "http://example.com/" } } };
+        await expect(parser.parse(contextIn)).resolves.toEqual({
+          rev: {
+            "@id": "http://example.com/",
+            "@reverse": true,
+          },
+        });
+        expect(contextIn).toEqual({ "@context": { rev: { "@reverse": "http://example.com/" } } });
+      });
     });
 
     describe('for parsing URLs', () => {

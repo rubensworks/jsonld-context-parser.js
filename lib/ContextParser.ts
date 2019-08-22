@@ -408,6 +408,9 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
         return await this.parse(context['@context'], { baseIri, parentContext, external });
       }
 
+      // Make a deep clone of the given context, to avoid modifying it.
+      context = <IJsonLdContextNormalized> JSON.parse(JSON.stringify(context)); // No better way in JS at the moment...
+
       // We have an actual context object.
       let newContext: any = {};
 
