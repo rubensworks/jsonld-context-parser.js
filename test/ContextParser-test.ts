@@ -29,6 +29,11 @@ describe('ContextParser', () => {
 
   describe('#expandTerm', () => {
     describe('in vocab-mode', () => {
+      it('should throw on a non-normalized context', async () => {
+        expect(() => ContextParser.expandTerm('abc:123', <any> 'string', true))
+          .toThrow(new Error('The given context is not normalized. Make sure to call ContextParser.parse() first.'));
+      });
+
       it('to return when no prefix applies', async () => {
         expect(ContextParser.expandTerm('abc:123', {def: 'DEF/'}, true)).toBe('abc:123');
       });
@@ -154,6 +159,11 @@ describe('ContextParser', () => {
 
   describe('#compactIri', () => {
     describe('in vocab-mode', () => {
+      it('should throw on a non-normalized context', async () => {
+        expect(() => ContextParser.compactIri('http://ex.org/abc', <any> 'string', true))
+          .toThrow(new Error('The given context is not normalized. Make sure to call ContextParser.parse() first.'));
+      });
+
       it('when no prefix applies', async () => {
         expect(ContextParser.compactIri('http://ex.org/abc', {}, true)).toBe('http://ex.org/abc');
       });
@@ -211,6 +221,27 @@ describe('ContextParser', () => {
           ex: 'http://ex.org/',
         }, false)).toBe('ex:abc');
       });
+    });
+  });
+
+  describe('#assertNormalized', () => {
+    it('should throw on a string', async () => {
+      expect(() => ContextParser.assertNormalized('string'))
+        .toThrow(new Error('The given context is not normalized. Make sure to call ContextParser.parse() first.'));
+    });
+
+    it('should throw on an array', async () => {
+      expect(() => ContextParser.assertNormalized([]))
+        .toThrow(new Error('The given context is not normalized. Make sure to call ContextParser.parse() first.'));
+    });
+
+    it('should throw on a non-normalized context', async () => {
+      expect(() => ContextParser.assertNormalized({ "@context": {} }))
+        .toThrow(new Error('The given context is not normalized. Make sure to call ContextParser.parse() first.'));
+    });
+
+    it('should not throw on a normalized context', async () => {
+      expect(() => ContextParser.assertNormalized({})).not.toThrow();
     });
   });
 

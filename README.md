@@ -105,6 +105,8 @@ const myContext = await myParser.parse([
 
 Based on a context, terms can be expanded in vocab or base-mode.
 
+**Note that you should run the context through `ContextParser.parse()` before calling this function!**
+
 #### Base expansion
 
 Base expansion is done based on the `@base` context entry.
@@ -140,6 +142,8 @@ ContextParser.expandTerm('http://xmlns.com/foaf/0.1/name', context, true);
 #### Compact an IRI
 
 Based on a context, IRIs can be compacted in vocab or base-mode.
+
+**Note that you should run the context through `ContextParser.parse()` before calling this function!**
 
 #### Base compacting
 

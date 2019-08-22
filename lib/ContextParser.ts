@@ -118,6 +118,8 @@ export class ContextParser implements IDocumentLoader {
    * @return {string} The expanded term, the term as-is, or null if it was explicitly disabled in the context.
    */
   public static expandTerm(term: string, context: IJsonLdContextNormalized, vocab?: boolean): string {
+    ContextParser.assertNormalized(context);
+
     const contextValue = context[term];
 
     // Immediately return if the term was disabled in the context
@@ -157,6 +159,8 @@ export class ContextParser implements IDocumentLoader {
    * @return {string} The compacted term or the IRI as-is.
    */
   public static compactIri(iri: string, context: IJsonLdContextNormalized, vocab?: boolean): string {
+    ContextParser.assertNormalized(context);
+
     // Try @vocab compacting
     if (vocab && context['@vocab'] && iri.startsWith(context['@vocab'])) {
       return iri.substr(context['@vocab'].length);
@@ -188,6 +192,17 @@ export class ContextParser implements IDocumentLoader {
     }
 
     return iri;
+  }
+
+  /**
+   * An an assert to check if the given context has been normalized.
+   * An error will be thrown otherwise.
+   * @param {JsonLdContext} context A context.
+   */
+  public static assertNormalized(context: JsonLdContext) {
+    if (typeof context === 'string' || Array.isArray(context) || context['@context']) {
+      throw new Error('The given context is not normalized. Make sure to call ContextParser.parse() first.');
+    }
   }
 
   /**
