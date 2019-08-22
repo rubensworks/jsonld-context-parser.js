@@ -1,6 +1,17 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v1.3.0"></a>
+## [v1.3.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.2.0...v1.3.0) - 2019-08-22
+
+### Changed
+* [Expand and compact iteratively to the best form, Closes #21](https://github.com/rubensworks/jsonld-context-parser.js/commit/50e945d57cee2717a42179af2e40e7aa1ce33053)
+* [Append newline to CLI error message](https://github.com/rubensworks/jsonld-context-parser.js/commit/f2d2c91a91610003db2bb5fbb38b75d57cc1893d)
+
+### Fixed
+* [Properly handle baseIri in CLI tool, Closes #20](https://github.com/rubensworks/jsonld-context-parser.js/commit/540e72d23f3571a0d89ce3a351e43f16a2b5f6cd)
+* [Fix input context objects being modified](https://github.com/rubensworks/jsonld-context-parser.js/commit/de369b8f859308f427ef11e183c8bc92b43642e3)
+
 <a name="v1.2.0"></a>
 ## [v1.2.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.1.4...v1.2.0) - 2019-04-02
 
