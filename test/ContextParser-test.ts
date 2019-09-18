@@ -891,6 +891,13 @@ Tried mapping @id to http//ex.org/id`));
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
           });
       });
+
+      it('should parse with a base IRI and not override the inner @base', () => {
+        return expect(parser.parse({ '@base': 'http://myotherexample.org/' }, 'http://myexample.org/'))
+          .resolves.toEqual({
+            '@base': 'http://myotherexample.org/',
+          });
+      });
     });
 
     describe('for parsing URLs', () => {
@@ -956,100 +963,6 @@ Tried mapping @id to http//ex.org/id`));
       it('should fail to parse an invalid source', () => {
         return expect(parser.parse('http://example.org/invalid.jsonld')).rejects.toBeTruthy();
       });
-    });
-
-    describe('for parsing null', () => {
-      it('should parse to an empty context', () => {
-        return expect(parser.parse(null)).resolves.toEqual({});
-      });
-
-      it('should parse to an empty context, even when a parent context is given', () => {
-        return expect(parser.parse(null, { parentContext: { a: 'b' } })).resolves.toEqual({});
-      });
-
-      it('should parse to an empty context, but set @base if needed', () => {
-        return expect(parser.parse(null, { baseIri: 'http://base.org/' })).resolves
-          .toEqual({ '@base': 'http://base.org/' });
-      });
-    });
-
-    describe('for parsing arrays', () => {
-      it('should parse an empty array to the parent context', () => {
-        const parentContext = { a: 'b' };
-        return expect(parser.parse([], { parentContext })).resolves.toBe(parentContext);
-      });
-
-      it('should parse an array with one string', () => {
-        return expect(parser.parse([
-          'http://example.org/simple.jsonld',
-        ])).resolves.toEqual({
-          name: "http://xmlns.com/foaf/0.1/name",
-          xsd: "http://www.w3.org/2001/XMLSchema#",
-        });
-      });
-
-      it('should parse an array with two strings', () => {
-        return expect(parser.parse([
-          'http://example.org/simple.jsonld',
-          'http://example.org/simple2.jsonld',
-        ])).resolves.toEqual({
-          name: "http://xmlns.com/foaf/0.1/name",
-          nickname: "http://xmlns.com/foaf/0.1/nick",
-          xsd: "http://www.w3.org/2001/XMLSchema#",
-        });
-      });
-
-      it('should parse an array with relative string URLs', () => {
-        return expect(parser.parse([
-          'simple.jsonld',
-          'simple2.jsonld',
-        ], { baseIri: 'http://example.org/mybase.html' })).resolves.toEqual({
-          '@base': 'http://example.org/mybase.html',
-          'name': "http://xmlns.com/foaf/0.1/name",
-          'nickname': "http://xmlns.com/foaf/0.1/nick",
-          'xsd': "http://www.w3.org/2001/XMLSchema#",
-        });
-      });
-
-      it('should parse an array with an object and a string', () => {
-        return expect(parser.parse([
-          {
-            npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
-          },
-          'http://example.org/simple2.jsonld',
-        ])).resolves.toEqual({
-          nickname: "http://xmlns.com/foaf/0.1/nick",
-          npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
-        });
-      });
-
-      it('should parse an array with an object and a string resolving to an array when cached', () => {
-        parser.documentCache['http://example.org/simplearray.jsonld'] = [{
-          nickname: 'http://xmlns.com/foaf/0.1/nick',
-        }];
-        return expect(parser.parse([
-          {
-            npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
-          },
-          'http://example.org/simplearray.jsonld',
-        ])).resolves.toEqual({
-          nickname: "http://xmlns.com/foaf/0.1/nick",
-          npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
-        });
-      });
-
-      it('should parse and expand prefixes', () => {
-        return expect(parser.parse([
-          'http://example.org/simple.jsonld',
-          {
-            myint: { "@id": "xsd:integer" },
-          },
-        ])).resolves.toEqual({
-          myint: { "@id": "http://www.w3.org/2001/XMLSchema#integer" },
-          name: "http://xmlns.com/foaf/0.1/name",
-          xsd: "http://www.w3.org/2001/XMLSchema#",
-        });
-      });
 
       it('should parse with a base IRI', () => {
         return expect(parser.parse('http://example.org/simple.jsonld', { baseIri: 'http://myexample.org/' }))
@@ -1057,13 +970,6 @@ Tried mapping @id to http//ex.org/id`));
             '@base': 'http://myexample.org/',
             'name': "http://xmlns.com/foaf/0.1/name",
             'xsd': "http://www.w3.org/2001/XMLSchema#",
-          });
-      });
-
-      it('should parse with a base IRI and not override the inner @base', () => {
-        return expect(parser.parse({ '@base': 'http://myotherexample.org/' }, 'http://myexample.org/'))
-          .resolves.toEqual({
-            '@base': 'http://myotherexample.org/',
           });
       });
 
@@ -1208,6 +1114,100 @@ Tried mapping @id to http//ex.org/id`));
         });
         // tslint:enable:object-literal-sort-keys
         // tslint:enable:max-line-length
+      });
+    });
+
+    describe('for parsing null', () => {
+      it('should parse to an empty context', () => {
+        return expect(parser.parse(null)).resolves.toEqual({});
+      });
+
+      it('should parse to an empty context, even when a parent context is given', () => {
+        return expect(parser.parse(null, { parentContext: { a: 'b' } })).resolves.toEqual({});
+      });
+
+      it('should parse to an empty context, but set @base if needed', () => {
+        return expect(parser.parse(null, { baseIri: 'http://base.org/' })).resolves
+          .toEqual({ '@base': 'http://base.org/' });
+      });
+    });
+
+    describe('for parsing arrays', () => {
+      it('should parse an empty array to the parent context', () => {
+        const parentContext = { a: 'b' };
+        return expect(parser.parse([], { parentContext })).resolves.toBe(parentContext);
+      });
+
+      it('should parse an array with one string', () => {
+        return expect(parser.parse([
+          'http://example.org/simple.jsonld',
+        ])).resolves.toEqual({
+          name: "http://xmlns.com/foaf/0.1/name",
+          xsd: "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+
+      it('should parse an array with two strings', () => {
+        return expect(parser.parse([
+          'http://example.org/simple.jsonld',
+          'http://example.org/simple2.jsonld',
+        ])).resolves.toEqual({
+          name: "http://xmlns.com/foaf/0.1/name",
+          nickname: "http://xmlns.com/foaf/0.1/nick",
+          xsd: "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+
+      it('should parse an array with relative string URLs', () => {
+        return expect(parser.parse([
+          'simple.jsonld',
+          'simple2.jsonld',
+        ], { baseIri: 'http://example.org/mybase.html' })).resolves.toEqual({
+          '@base': 'http://example.org/mybase.html',
+          'name': "http://xmlns.com/foaf/0.1/name",
+          'nickname': "http://xmlns.com/foaf/0.1/nick",
+          'xsd': "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+
+      it('should parse an array with an object and a string', () => {
+        return expect(parser.parse([
+          {
+            npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
+          },
+          'http://example.org/simple2.jsonld',
+        ])).resolves.toEqual({
+          nickname: "http://xmlns.com/foaf/0.1/nick",
+          npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
+        });
+      });
+
+      it('should parse an array with an object and a string resolving to an array when cached', () => {
+        parser.documentCache['http://example.org/simplearray.jsonld'] = [{
+          nickname: 'http://xmlns.com/foaf/0.1/nick',
+        }];
+        return expect(parser.parse([
+          {
+            npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
+          },
+          'http://example.org/simplearray.jsonld',
+        ])).resolves.toEqual({
+          nickname: "http://xmlns.com/foaf/0.1/nick",
+          npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
+        });
+      });
+
+      it('should parse and expand prefixes', () => {
+        return expect(parser.parse([
+          'http://example.org/simple.jsonld',
+          {
+            myint: { "@id": "xsd:integer" },
+          },
+        ])).resolves.toEqual({
+          myint: { "@id": "http://www.w3.org/2001/XMLSchema#integer" },
+          name: "http://xmlns.com/foaf/0.1/name",
+          xsd: "http://www.w3.org/2001/XMLSchema#",
+        });
       });
     });
 
