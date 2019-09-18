@@ -440,6 +440,22 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
   }
 
   /**
+   * Resolve relative context IRIs, or return full IRIs as-is.
+   * @param {string} contextIri A context IRI.
+   * @param {string} baseIri A base IRI.
+   * @return {string} The normalized context IRI.
+   */
+  protected static normalizeContextIri(contextIri: string, baseIri: string) {
+    if (!ContextParser.isValidIri(contextIri)) {
+      contextIri = resolve(contextIri, baseIri);
+      if (!ContextParser.isValidIri(contextIri)) {
+        throw new Error(`Invalid context IRI: ${contextIri}`);
+      }
+    }
+    return contextIri;
+  }
+
+  /**
    * Parse a JSON-LD context in any form.
    * @param {JsonLdContext} context A context, URL to a context, or an array of contexts/URLs.
    * @param {IParseOptions} options Optional parsing options.
@@ -451,19 +467,13 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       // Context that are explicitly set to null are empty.
       return baseIri ? { '@base': baseIri } : {};
     } else if (typeof context === 'string') {
-      // Resolve relative context URIs
-      if (!ContextParser.isValidIri(context)) {
-        context = resolve(context, baseIri);
-        if (!ContextParser.isValidIri(context)) {
-          throw new Error(`Invalid context IRI: ${context}`);
-        }
-      }
-      return this.parse(await this.load(context), { baseIri, parentContext, external: true });
+      return this.parse(await this.load(ContextParser.normalizeContextIri(context, baseIri)),
+        { baseIri, parentContext, external: true });
     } else if (Array.isArray(context)) {
       // As a performance consideration, first load all external contexts in parallel.
       const contexts = await Promise.all(context.map((subContext) => {
         if (typeof subContext === 'string') {
-          return this.load(subContext);
+          return this.load(ContextParser.normalizeContextIri(subContext, baseIri));
         } else {
           return subContext;
         }

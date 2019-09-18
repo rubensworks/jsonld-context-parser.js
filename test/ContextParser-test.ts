@@ -967,6 +967,18 @@ Tried mapping @id to http//ex.org/id`));
         });
       });
 
+      it('should parse an array with relative string URLs', () => {
+        return expect(parser.parse([
+          'simple.jsonld',
+          'simple2.jsonld',
+        ], { baseIri: 'http://example.org/mybase.html' })).resolves.toEqual({
+          '@base': 'http://example.org/mybase.html',
+          'name': "http://xmlns.com/foaf/0.1/name",
+          'nickname': "http://xmlns.com/foaf/0.1/nick",
+          'xsd': "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+
       it('should parse an array with an object and a string', () => {
         return expect(parser.parse([
           {
