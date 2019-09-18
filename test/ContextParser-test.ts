@@ -35,6 +35,12 @@ describe('ContextParser', () => {
           def: 'DEF/',
         }, true)).toBe('DEF/123');
       });
+
+      it('not to run into an infinite loop for unsupported relative @vocab', async () => {
+        expect(ContextParser.expandTerm('bla', {
+          '@vocab': 'relative/',
+        }, true)).toBe('relative/bla');
+      });
     });
 
     describe('in base-mode', () => {

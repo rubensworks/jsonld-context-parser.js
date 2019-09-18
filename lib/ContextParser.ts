@@ -124,7 +124,7 @@ export class ContextParser implements IDocumentLoader {
     do {
       termIn = term;
       term = ContextParser.expandTermSingle(term, context, vocab);
-    } while (term && term !== termIn);
+    } while (term && term !== termIn && term.indexOf(':') >= 0);
     return term;
   }
 
