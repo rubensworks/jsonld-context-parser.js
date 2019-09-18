@@ -1,6 +1,18 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v1.3.2"></a>
+## [v1.3.2](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.3.1...v1.3.2) - 2019-09-18
+
+### Fixed
+* [Fix hash fragments being considerable as compact IRIs](https://github.com/rubensworks/jsonld-context-parser.js/commit/9712a9dc609278ba970d1a9064f6627616980c0e)
+* [Allow @base in arrays to be relative to each other](https://github.com/rubensworks/jsonld-context-parser.js/commit/72ada1f1df454e70039a90aa8ba20718e2724f3f)
+* [Fix @base being modified when it was set to null](https://github.com/rubensworks/jsonld-context-parser.js/commit/e6e2705b31d71b561800c11076ec45b93df9c978)
+* [Fix context @base sometimes being modified when absolute](https://github.com/rubensworks/jsonld-context-parser.js/commit/18ae49ae72af91bb2e9ed363598eeca5d6e382b4)
+* [Fix infinite term expansion loop on relative vocabs](https://github.com/rubensworks/jsonld-context-parser.js/commit/ca670366102855e7649689ff3471148ae754f30d)
+* [Fix relative context IRIs in array not being accepted](https://github.com/rubensworks/jsonld-context-parser.js/commit/19d82699dbccb3d807094cd49178dfe2f6c1a727)
+* [Allow @base to be relative to document baseIRI](https://github.com/rubensworks/jsonld-context-parser.js/commit/f65d12721fe42ed1dd6ae8c14e770402654bbc94)
+
 <a name="v1.3.1"></a>
 ## [v1.3.1](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.3.0...v1.3.1) - 2019-08-22
 
