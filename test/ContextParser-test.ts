@@ -846,6 +846,19 @@ Tried mapping @id to http//ex.org/id`));
         });
         expect(contextIn).toEqual({ "@context": { rev: { "@reverse": "http://example.com/" } } });
       });
+
+      it('should parse and use a relative @base IRI, when a document base IRI is given', () => {
+        return expect(parser.parse({
+          '@context': {
+            '@base': '/sub',
+            'nickname': 'http://xmlns.com/foaf/0.1/nick',
+          },
+        }, { baseIri: 'http://doc.org/' }))
+          .resolves.toEqual({
+            '@base': 'http://doc.org/sub',
+            'nickname': 'http://xmlns.com/foaf/0.1/nick',
+          });
+      });
     });
 
     describe('for parsing URLs', () => {

@@ -489,8 +489,14 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       }
 
       // Override the base IRI if provided.
-      if (baseIri && !('@base' in newContext)) {
-        newContext['@base'] = baseIri;
+      if (baseIri) {
+        if (!('@base' in context)) {
+          // The context base is the document base
+          context['@base'] = baseIri;
+        } else {
+          // The context base is relative to the document base
+          context['@base'] = resolve(context['@base'], baseIri);
+        }
       }
 
       newContext = { ...newContext, ...parentContext, ...context };
