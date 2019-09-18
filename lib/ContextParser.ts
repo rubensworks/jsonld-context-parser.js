@@ -480,7 +480,11 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       }));
 
       return contexts.reduce((accContextPromise, contextEntry) => accContextPromise
-        .then((accContext) => this.parse(contextEntry, { baseIri, parentContext: accContext, external })),
+          .then((accContext) => this.parse(contextEntry, {
+            baseIri: accContext && accContext['@base'] || baseIri,
+            external,
+            parentContext: accContext,
+          })),
         Promise.resolve(parentContext));
     } else if (typeof context === 'object') {
       if (context['@context']) {

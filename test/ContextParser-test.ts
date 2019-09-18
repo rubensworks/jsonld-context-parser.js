@@ -1209,6 +1209,19 @@ Tried mapping @id to http//ex.org/id`));
           xsd: "http://www.w3.org/2001/XMLSchema#",
         });
       });
+
+      it('should handle @base relative to each other', () => {
+        return expect(parser.parse([
+          {
+            '@base': 'one/',
+          },
+          {
+            '@base': 'two/',
+          },
+        ], { baseIri: 'http://doc.org/' })).resolves.toEqual({
+          '@base': 'http://doc.org/one/two/',
+        });
+      });
     });
 
     describe('for parsing invalid values', () => {
