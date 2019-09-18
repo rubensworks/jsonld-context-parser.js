@@ -1,6 +1,20 @@
 import {ContextParser, FetchDocumentLoader} from "../index";
 
 describe('ContextParser', () => {
+  describe('#isCompactIri', () => {
+    it('to be true for a simple compact IRI', async () => {
+      expect(ContextParser.isCompactIri('a:b')).toBeTruthy();
+    });
+
+    it('to be false for a term', async () => {
+      expect(ContextParser.isCompactIri('a')).toBeFalsy();
+    });
+
+    it('to be false for a hash that looks like a compact IRI', async () => {
+      expect(ContextParser.isCompactIri('#a:b')).toBeFalsy();
+    });
+  });
+
   describe('#getPrefix', () => {
     it('to return a null when no colon exists', async () => {
       expect(ContextParser.getPrefix('abc', { '//': 'abc' })).toBe(null);
@@ -24,6 +38,10 @@ describe('ContextParser', () => {
 
     it('to return a null for a non-existing term', async () => {
       expect(ContextParser.getPrefix('abc:def', { abc: 'ABC' })).toBe('abc');
+    });
+
+    it('to return a null for terms starting with a hash', async () => {
+      expect(ContextParser.getPrefix('#abc:def', { abc: 'ABC' })).toBe(null);
     });
   });
 
@@ -186,6 +204,11 @@ describe('ContextParser', () => {
 
       it('to return when @base exists and applies, but is disabled via @id', async () => {
         expect(ContextParser.expandTermSingle('def', {'@base': 'bbb/', 'def': { '@id': null }}, false)).toBe(null);
+      });
+
+      it('to return when @base exists and applies, and a relative hash with a semicolon', async () => {
+        expect(ContextParser.expandTermSingle('#abc:def', {'@base': 'http://ex.org/'}, false))
+          .toBe('http://ex.org/#abc:def');
       });
     });
   });

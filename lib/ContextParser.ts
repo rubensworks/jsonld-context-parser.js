@@ -55,6 +55,16 @@ export class ContextParser implements IDocumentLoader {
   }
 
   /**
+   * Check if the given term is a valid compact IRI.
+   * Otherwise, it may be an IRI.
+   * @param {string} term A term.
+   * @return {boolean} If it is a compact IRI.
+   */
+  public static isCompactIri(term: string) {
+    return term.indexOf(':') >= 0 && !(term && term[0] === '#');
+  }
+
+  /**
    * Get the prefix from the given term.
    * @see https://json-ld.org/spec/latest/json-ld/#compact-iris
    * @param {string} term A term that is an URL or a prefixed URL.
@@ -62,6 +72,11 @@ export class ContextParser implements IDocumentLoader {
    * @return {string} The prefix or null.
    */
   public static getPrefix(term: string, context: IJsonLdContextNormalized): string {
+    // Do not consider relative IRIs starting with a hash as compact IRIs
+    if (term && term[0] === '#') {
+      return null;
+    }
+
     const separatorPos: number = term.indexOf(':');
     if (separatorPos >= 0) {
       // Suffix can not begin with two slashes
@@ -74,7 +89,7 @@ export class ContextParser implements IDocumentLoader {
       const prefix: string = term.substr(0, separatorPos);
 
       // Prefix can not be an underscore (this is a blank node)
-      if (prefix === '_') {
+      if (prefix === '_' ) {
         return null;
       }
 
@@ -124,7 +139,7 @@ export class ContextParser implements IDocumentLoader {
     do {
       termIn = term;
       term = ContextParser.expandTermSingle(term, context, vocab);
-    } while (term && term !== termIn && term.indexOf(':') >= 0);
+    } while (term && term !== termIn && ContextParser.isCompactIri(term));
     return term;
   }
 
@@ -173,9 +188,9 @@ export class ContextParser implements IDocumentLoader {
       if (value) {
         return value + term.substr(prefix.length + 1);
       }
-    } else if (vocab && context['@vocab'] && term.charAt(0) !== '@' && term.indexOf(':') < 0) {
+    } else if (vocab && context['@vocab'] && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
       return context['@vocab'] + term;
-    } else if (!vocab && context['@base'] && term.charAt(0) !== '@' && term.indexOf(':') < 0) {
+    } else if (!vocab && context['@base'] && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
       return resolve(term, context['@base']);
     }
     return term;
@@ -386,7 +401,7 @@ Tried mapping ${key} to ${context[key]}`);
           // Always valid
           break;
         case 'object':
-          if (key.indexOf(':') < 0 && !('@id' in value)
+          if (!ContextParser.isCompactIri(key) && !('@id' in value)
             && (value['@type'] === '@id' ? !context['@base'] : !context['@vocab'])) {
             throw new Error(`Missing @id in context entry: '${key}': '${JSON.stringify(value)}'`);
           }
