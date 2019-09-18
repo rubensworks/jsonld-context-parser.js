@@ -503,7 +503,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
         if (!('@base' in context)) {
           // The context base is the document base
           context['@base'] = baseIri;
-        } else {
+        } else if (!ContextParser.isValidIri(context['@base'])) {
           // The context base is relative to the document base
           context['@base'] = resolve(context['@base'], baseIri);
         }

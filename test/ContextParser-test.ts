@@ -865,6 +865,19 @@ Tried mapping @id to http//ex.org/id`));
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
           });
       });
+
+      it('should parse and not modify an absolute @base IRI, when a document base IRI is also given', () => {
+        return expect(parser.parse({
+          '@context': {
+            '@base': 'http://a/bb/ccc/./d;p?q',
+            'nickname': 'http://xmlns.com/foaf/0.1/nick',
+          },
+        }, { baseIri: 'http://doc.org/' }))
+          .resolves.toEqual({
+            '@base': 'http://a/bb/ccc/./d;p?q',
+            'nickname': 'http://xmlns.com/foaf/0.1/nick',
+          });
+      });
     });
 
     describe('for parsing URLs', () => {
