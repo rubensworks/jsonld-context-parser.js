@@ -107,7 +107,7 @@ Based on a context, terms can be expanded in vocab or base-mode.
 
 **Note that you should run the context through `ContextParser.parse()` before calling this function!**
 
-#### Base expansion
+##### Base expansion
 
 Base expansion is done based on the `@base` context entry.
 This should typically be used for expanding terms in the subject or object position.
@@ -123,7 +123,7 @@ ContextParser.expandTerm('foaf:name', context);
 ContextParser.expandTerm('http://xmlns.com/foaf/0.1/name', context);
 ```
 
-#### Vocab expansion
+##### Vocab expansion
 
 Vocab expansion is done based on the `@vocab` context entry.
 This should typically be used for expanding terms in the predicate position.
@@ -145,7 +145,7 @@ Based on a context, IRIs can be compacted in vocab or base-mode.
 
 **Note that you should run the context through `ContextParser.parse()` before calling this function!**
 
-#### Base compacting
+##### Base compacting
 
 Base compacting is done based on the `@base` context entry.
 This should typically be used for compacting terms in the subject or object position.
@@ -161,7 +161,7 @@ ContextParser.compactIri('http://prefix.org/name', context);
 ContextParser.compactIri('http://xmlns.com/foaf/0.1/name', context);
 ```
 
-#### Vocab compacting
+##### Vocab compacting
 
 Vocab compacting is done based on the `@vocab` context entry.
 This should typically be used for compacting terms in the predicate position.
