@@ -79,6 +79,6 @@
   },
   "dependencies": {
     "isomorphic-fetch": "^2.2.1",
-    "relative-to-absolute-iri": "^1.0.2"
+    "relative-to-absolute-iri": "^1.0.5"
   }
 }
