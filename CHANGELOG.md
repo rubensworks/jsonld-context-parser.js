@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v1.3.4"></a>
+## [v1.3.4](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.3.3...v1.3.4) - 2019-10-05
+
+### Fixed
+* [Fix compactIri not always picking most compact form](https://github.com/rubensworks/jsonld-context-parser.js/commit/ede6536d259b1dcd44bf77bb70a085ba84d52ff6)
+
 <a name="v1.3.3"></a>
 ## [v1.3.3](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.3.2...v1.3.3) - 2019-10-05
 
