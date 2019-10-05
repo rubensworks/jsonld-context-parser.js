@@ -366,6 +366,27 @@ Tried mapping ${key} to ${context[key]}`);
   }
 
   /**
+   * Normalize the @language entries in the given context to lowercase.
+   * @param {IJsonLdContextNormalized} context A context.
+   * @return {IJsonLdContextNormalized} The mutated input context.
+   */
+  public static normalize(context: IJsonLdContextNormalized): IJsonLdContextNormalized {
+    for (const key of Object.keys(context)) {
+      if (key === '@language' && typeof context[key] === 'string') {
+        context[key] = context[key].toLowerCase();
+      } else {
+        const value = context[key];
+        if (value && typeof value === 'object') {
+          if (typeof value['@language'] === 'string') {
+            value['@language'] = value['@language'].toLowerCase();
+          }
+        }
+      }
+    }
+    return context;
+  }
+
+  /**
    * Validate the entries of the given context.
    * @param {IJsonLdContextNormalized} context A context.
    */
@@ -531,6 +552,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       newContext = { ...newContext, ...parentContext, ...context };
       ContextParser.idifyReverseTerms(newContext);
       ContextParser.expandPrefixedTerms(newContext, this.expandContentTypeToBase);
+      ContextParser.normalize(newContext);
       if (this.validate) {
         ContextParser.validate(newContext);
       }

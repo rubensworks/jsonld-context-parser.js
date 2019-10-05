@@ -580,6 +580,38 @@ Tried mapping @id to http//ex.org/id`));
     });
   });
 
+  describe('#normalize', () => {
+    it('should lowercase @language', async () => {
+      expect(ContextParser.normalize({
+        '@language': 'EN',
+        'p': { '@id': 'pred1', '@language': 'NL' },
+      })).toEqual({
+        '@language': 'en',
+        'p': { '@id': 'pred1', '@language': 'nl' },
+      });
+    });
+
+    it('should not fail on null @language', async () => {
+      expect(ContextParser.normalize({
+        '@language': null,
+        'p': { '@id': 'pred1', '@language': null },
+      })).toEqual({
+        '@language': null,
+        'p': { '@id': 'pred1', '@language': null },
+      });
+    });
+
+    it('should not fail on invalid @language', async () => {
+      expect(ContextParser.normalize({
+        '@language': <any> {},
+        'p': { '@id': 'pred1', '@language': {} },
+      })).toEqual({
+        '@language': {},
+        'p': { '@id': 'pred1', '@language': {} },
+      });
+    });
+  });
+
   describe('#expandPrefixedTerms with expandContentTypeToBase false', () => {
     it('should not let @type fallback to base when when vocab is disabled', async () => {
       expect(ContextParser.expandPrefixedTerms({
@@ -874,6 +906,17 @@ Tried mapping @id to http//ex.org/id`));
           },
         });
         expect(contextIn).toEqual({ "@context": { rev: { "@reverse": "http://example.com/" } } });
+      });
+
+      it('should parse and normalize language tags', async () => {
+        const contextIn = {
+          '@language': 'EN',
+          'p': { '@id': 'pred1', '@language': 'NL' },
+        };
+        await expect(parser.parse(contextIn)).resolves.toEqual({
+          '@language': 'en',
+          'p': { '@id': 'pred1', '@language': 'nl' },
+        });
       });
 
       it('should parse and use a relative @base IRI, when a document base IRI is given', () => {
