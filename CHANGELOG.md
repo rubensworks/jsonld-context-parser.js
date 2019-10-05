@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v1.3.3"></a>
+## [v1.3.3](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.3.2...v1.3.3) - 2019-10-05
+
+### Fixed
+* [Ensure lowercased language tags](https://github.com/rubensworks/jsonld-context-parser.js/commit/dadc8bd9bbd89fcdbdc2364aa418fa47aff88b04)
+
 <a name="v1.3.2"></a>
 ## [v1.3.2](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.3.1...v1.3.2) - 2019-09-18
 
