@@ -139,8 +139,6 @@ ContextParser.expandTerm('foaf:name', context, true);
 ContextParser.expandTerm('http://xmlns.com/foaf/0.1/name', context, true);
 ```
 
-_(Use `ContextParser.expandTermSingle` if you only want to apply one expansion iteration)_
-
 #### Compact an IRI
 
 Based on a context, IRIs can be compacted in vocab or base-mode.
@@ -181,8 +179,6 @@ ContextParser.compactIri('http://term.org/', context, true);
 // Returns the URI as-is if it is not present in the context in any way
 ContextParser.compactIri('http://xmlns.com/foaf/0.1/name', context, true);
 ```
-
-_(Use `ContextParser.compactIriSingle` if you only want to apply one compaction iteration)_
 
 ### Command-line
 

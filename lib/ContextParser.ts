@@ -118,7 +118,7 @@ export class ContextParser implements IDocumentLoader {
    * Expand the term or prefix of the given term if it has one,
    * otherwise return the term as-is.
    *
-   * This will apply as much compaction iterations as possible to compact the IRI as much as possible.
+   * This will try to expand the IRI as much as possible.
    *
    * Iff in vocab-mode, then other references to other terms in the context can be used,
    * such as to `myTerm`:
@@ -135,35 +135,6 @@ export class ContextParser implements IDocumentLoader {
    * @return {string} The expanded term, the term as-is, or null if it was explicitly disabled in the context.
    */
   public static expandTerm(term: string, context: IJsonLdContextNormalized, vocab?: boolean): string {
-    let termIn;
-    do {
-      termIn = term;
-      term = ContextParser.expandTermSingle(term, context, vocab);
-    } while (term && term !== termIn && ContextParser.isCompactIri(term));
-    return term;
-  }
-
-  /**
-   * Expand the term or prefix of the given term if it has one,
-   * otherwise return the term as-is.
-   *
-   * This will only perform a single compaction iteration over the context.
-   *
-   * Iff in vocab-mode, then other references to other terms in the context can be used,
-   * such as to `myTerm`:
-   * ```
-   * {
-   *   "myTerm": "http://example.org/myLongTerm"
-   * }
-   * ```
-   *
-   * @param {string} term A term that is an URL or a prefixed URL.
-   * @param {IJsonLdContextNormalized} context A context.
-   * @param {boolean} vocab If the term is a predicate or type and should be expanded based on @vocab,
-   *                        otherwise it is considered a regular term that is expanded based on @base.
-   * @return {string} The expanded term, the term as-is, or null if it was explicitly disabled in the context.
-   */
-  public static expandTermSingle(term: string, context: IJsonLdContextNormalized, vocab?: boolean): string {
     ContextParser.assertNormalized(context);
 
     const contextValue = context[term];
@@ -199,7 +170,7 @@ export class ContextParser implements IDocumentLoader {
   /**
    * Compact the given term using @base, @vocab, an aliased term, or a prefixed term.
    *
-   * This will apply as much compaction iterations as possible to compact the IRI as much as possible.
+   * This will try to compact the IRI as much as possible.
    *
    * @param {string} iri An IRI to compact.
    * @param {IJsonLdContextNormalized} context The context to compact with.
@@ -208,26 +179,6 @@ export class ContextParser implements IDocumentLoader {
    * @return {string} The compacted term or the IRI as-is.
    */
   public static compactIri(iri: string, context: IJsonLdContextNormalized, vocab?: boolean): string {
-    let iriIn;
-    do {
-      iriIn = iri;
-      iri = ContextParser.compactIriSingle(iri, context, vocab);
-    } while (iri && iri !== iriIn);
-    return iri;
-  }
-
-  /**
-   * Compact the given term using @base, @vocab, an aliased term, or a prefixed term.
-   *
-   * This will only perform a single compaction iteration over the context.
-   *
-   * @param {string} iri An IRI to compact.
-   * @param {IJsonLdContextNormalized} context The context to compact with.
-   * @param {boolean} vocab If the term is a predicate or type and should be compacted based on @vocab,
-   *                        otherwise it is considered a regular term that is compacted based on @base.
-   * @return {string} The compacted term or the IRI as-is.
-   */
-  public static compactIriSingle(iri: string, context: IJsonLdContextNormalized, vocab?: boolean): string {
     ContextParser.assertNormalized(context);
 
     // Try @vocab compacting
@@ -241,6 +192,9 @@ export class ContextParser implements IDocumentLoader {
     }
 
     // Loop over all terms in the context
+    // This will try to prefix as short as possible.
+    // Once a fully compacted alias is found, return immediately, as we can not go any shorter.
+    const shortestPrefixing: { prefix: string, suffix: string } = { prefix: '', suffix: iri };
     for (const key in context) {
       const value = context[key];
       if (value && !key.startsWith('@')) {
@@ -249,15 +203,21 @@ export class ContextParser implements IDocumentLoader {
           const suffix = iri.substr(contextIri.length);
           if (!suffix) {
             if (vocab) {
-              // Compact aliased term
+              // Immediately return on compacted alias
               return key;
             }
-          } else {
-            // Compact prefixed term
-            return key + ':' + suffix;
+          } else if (suffix.length < shortestPrefixing.suffix.length) {
+            // Overwrite the shortest prefix
+            shortestPrefixing.prefix = key;
+            shortestPrefixing.suffix = suffix;
           }
         }
       }
+    }
+
+    // Return the shortest prefix
+    if (shortestPrefixing.prefix) {
+      return shortestPrefixing.prefix + ':' + shortestPrefixing.suffix;
     }
 
     return iri;
