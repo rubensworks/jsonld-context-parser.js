@@ -1,5 +1,6 @@
 import 'isomorphic-fetch';
 import {resolve} from "relative-to-absolute-iri";
+import {ERROR_CODES, ErrorCoded} from "./ErrorCoded";
 import {FetchDocumentLoader} from "./FetchDocumentLoader";
 import {IDocumentLoader} from "./IDocumentLoader";
 import {IJsonLdContextNormalized, IPrefixValue, JsonLdContext} from "./JsonLdContext";
@@ -130,11 +131,11 @@ export class ContextParser implements IDocumentLoader {
    *
    * @param {string} term A term that is an URL or a prefixed URL.
    * @param {IJsonLdContextNormalized} context A context.
-   * @param {boolean} vocab If the term is a predicate or type and should be expanded based on @vocab,
-   *                        otherwise it is considered a regular term that is expanded based on @base.
+   * @param {boolean} expandVocab If the term is a predicate or type and should be expanded based on @vocab,
+   *                              otherwise it is considered a regular term that is expanded based on @base.
    * @return {string} The expanded term, the term as-is, or null if it was explicitly disabled in the context.
    */
-  public static expandTerm(term: string, context: IJsonLdContextNormalized, vocab?: boolean): string {
+  public static expandTerm(term: string, context: IJsonLdContextNormalized, expandVocab?: boolean): string {
     ContextParser.assertNormalized(context);
 
     const contextValue = context[term];
@@ -145,7 +146,7 @@ export class ContextParser implements IDocumentLoader {
     }
 
     // Check the @id
-    if (contextValue && vocab) {
+    if (contextValue && expandVocab) {
       const value = this.getContextValueId(contextValue);
       if (value && value !== term) {
         return value;
@@ -154,15 +155,22 @@ export class ContextParser implements IDocumentLoader {
 
     // Check if the term is prefixed
     const prefix: string = ContextParser.getPrefix(term, context);
+    const vocab: string = context['@vocab'];
+    const vocabRelative: boolean = (vocab || vocab === '') && vocab.indexOf(':') < 0;
+    const base: string = context['@base'];
     if (prefix) {
       const value = this.getContextValueId(context[prefix]);
       if (value) {
         return value + term.substr(prefix.length + 1);
       }
-    } else if (vocab && context['@vocab'] && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
-      return context['@vocab'] + term;
-    } else if (!vocab && context['@base'] && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
-      return resolve(term, context['@base']);
+    } else if (expandVocab && (vocab || vocab === '') && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
+      if (vocabRelative) {
+        throw new ErrorCoded(`Relative vocab expansion for term '${term}' with vocab '${
+          vocab}' is not allowed.`, ERROR_CODES.INVALID_VOCAB_MAPPING);
+      }
+      return vocab + term;
+    } else if (!expandVocab && base && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
+      return resolve(term, base);
     }
     return term;
   }

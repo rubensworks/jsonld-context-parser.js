@@ -121,10 +121,18 @@ describe('ContextParser', () => {
         }, true)).toBe('DEF/123');
       });
 
-      it('not to run into an infinite loop for unsupported relative @vocab', async () => {
-        expect(ContextParser.expandTerm('bla', {
+      it('to throw for unsupported relative @vocab', async () => {
+        expect(() => ContextParser.expandTerm('bla', {
           '@vocab': 'relative/',
-        }, true)).toBe('relative/bla');
+        }, true)).toThrow(new Error(
+          'Relative vocab expansion for term \'bla\' with vocab \'relative/\' is not allowed.'));
+      });
+
+      it('to throw for unsupported relative empty @vocab', async () => {
+        expect(() => ContextParser.expandTerm('bla', {
+          '@vocab': '',
+        }, true)).toThrow(new Error(
+          'Relative vocab expansion for term \'bla\' with vocab \'\' is not allowed.'));
       });
     });
 
