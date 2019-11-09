@@ -68,7 +68,7 @@ export const ERROR_CODES: {[name: string]: string} = {
   LOADING_DOCUMENT_FAILED: 'loading document failed',
   LOADING_REMOTE_CONTEXT_FAILED: 'loading remote context failed',
   MULTIPLE_CONTEXT_LINK_HEADERS: 'multiple context link headers',
-  PROCESSING_MODE_CONFLICTS: 'processing mode conflict',
+  PROCESSING_MODE_CONFLICT: 'processing mode conflict',
   PROTECTED_TERM_REDIFINITION: 'protected term redefinition',
   CONTEXT_OVERFLOW: 'context overflow',
 };
