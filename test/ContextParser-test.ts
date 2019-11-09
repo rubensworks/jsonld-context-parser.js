@@ -776,13 +776,23 @@ Tried mapping @id to http//ex.org/id`));
   });
 
   describe('#normalize', () => {
-    it('should lowercase @language', async () => {
+    it('should lowercase @language in 1.0', async () => {
       expect(ContextParser.normalize({
         '@language': 'EN',
         'p': { '@id': 'pred1', '@language': 'NL' },
-      })).toEqual({
+      }, 1.0)).toEqual({
         '@language': 'en',
         'p': { '@id': 'pred1', '@language': 'nl' },
+      });
+    });
+
+    it('should not lowercase @language in 1.1', async () => {
+      expect(ContextParser.normalize({
+        '@language': 'EN',
+        'p': { '@id': 'pred1', '@language': 'NL' },
+      }, 1.1)).toEqual({
+        '@language': 'EN',
+        'p': { '@id': 'pred1', '@language': 'NL' },
       });
     });
 
@@ -790,7 +800,7 @@ Tried mapping @id to http//ex.org/id`));
       expect(ContextParser.normalize({
         '@language': null,
         'p': { '@id': 'pred1', '@language': null },
-      })).toEqual({
+      }, 1.0)).toEqual({
         '@language': null,
         'p': { '@id': 'pred1', '@language': null },
       });
@@ -800,7 +810,7 @@ Tried mapping @id to http//ex.org/id`));
       expect(ContextParser.normalize({
         '@language': <any> {},
         'p': { '@id': 'pred1', '@language': {} },
-      })).toEqual({
+      }, 1.0)).toEqual({
         '@language': {},
         'p': { '@id': 'pred1', '@language': {} },
       });
@@ -1129,14 +1139,25 @@ Tried mapping @id to http//ex.org/id`));
         expect(contextIn).toEqual({ "@context": { rev: { "@reverse": "http://example.com/" } } });
       });
 
-      it('should parse and normalize language tags', async () => {
+      it('should parse and normalize language tags in 1.0', async () => {
         const contextIn = {
           '@language': 'EN',
           'p': { '@id': 'pred1', '@language': 'NL' },
         };
-        await expect(parser.parse(contextIn)).resolves.toEqual({
+        await expect(parser.parse(contextIn, { processingMode: 1.0 })).resolves.toEqual({
           '@language': 'en',
           'p': { '@id': 'pred1', '@language': 'nl' },
+        });
+      });
+
+      it('should parse and not normalize language tags in 1.1', async () => {
+        const contextIn = {
+          '@language': 'EN',
+          'p': { '@id': 'pred1', '@language': 'NL' },
+        };
+        await expect(parser.parse(contextIn, { processingMode: 1.1 })).resolves.toEqual({
+          '@language': 'EN',
+          'p': { '@id': 'pred1', '@language': 'NL' },
         });
       });
 

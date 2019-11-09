@@ -368,17 +368,21 @@ Tried mapping ${key} to ${context[key]}`);
   /**
    * Normalize the @language entries in the given context to lowercase.
    * @param {IJsonLdContextNormalized} context A context.
+   * @param {number} processingMode The processing mode to normalize under.
    * @return {IJsonLdContextNormalized} The mutated input context.
    */
-  public static normalize(context: IJsonLdContextNormalized): IJsonLdContextNormalized {
-    for (const key of Object.keys(context)) {
-      if (key === '@language' && typeof context[key] === 'string') {
-        context[key] = context[key].toLowerCase();
-      } else {
-        const value = context[key];
-        if (value && typeof value === 'object') {
-          if (typeof value['@language'] === 'string') {
-            value['@language'] = value['@language'].toLowerCase();
+  public static normalize(context: IJsonLdContextNormalized, processingMode: number): IJsonLdContextNormalized {
+    // Lowercase language keys in 1.0
+    if (processingMode === 1.0) {
+      for (const key of Object.keys(context)) {
+        if (key === '@language' && typeof context[key] === 'string') {
+          context[key] = context[key].toLowerCase();
+        } else {
+          const value = context[key];
+          if (value && typeof value === 'object') {
+            if (typeof value['@language'] === 'string') {
+              value['@language'] = value['@language'].toLowerCase();
+            }
           }
         }
       }
@@ -575,7 +579,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
 
       ContextParser.idifyReverseTerms(newContext);
       ContextParser.expandPrefixedTerms(newContext, this.expandContentTypeToBase);
-      ContextParser.normalize(newContext);
+      ContextParser.normalize(newContext, processingMode);
       if (this.validate) {
         ContextParser.validate(newContext);
       }
