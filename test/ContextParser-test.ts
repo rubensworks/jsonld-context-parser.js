@@ -711,6 +711,20 @@ describe('ContextParser', () => {
       });
     });
 
+    it('should not expand @direction', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@base': 'http://base.org/',
+        '@direction': 'ltr',
+        '@vocab': 'http://vocab.org/',
+        'p': { '@id': 'pred1', '@direction': 'rtl' },
+      }, true)).toEqual({
+        '@base': 'http://base.org/',
+        '@direction': 'ltr',
+        '@vocab': 'http://vocab.org/',
+        'p': { '@id': 'http://vocab.org/pred1', '@direction': 'rtl' },
+      });
+    });
+
     it('should expand terms based on the vocab IRI', async () => {
       expect(ContextParser.expandPrefixedTerms({
         '@base': 'http://base.org/',
@@ -887,7 +901,12 @@ Tried mapping @id to http//ex.org/id`));
 
     it('should error on an invalid @language', async () => {
       expect(() => ContextParser.validate(<any> { '@language': true }))
-        .toThrow(new Error('Found an invalid @language string: true'));
+        .toThrow(new Error('The value of an \'@language\' must be a string, got \'true\''));
+    });
+
+    it('should error on an invalid @direction', async () => {
+      expect(() => ContextParser.validate(<any> { '@direction': true }))
+        .toThrow(new Error('The value of an \'@direction\' must be a string, got \'true\''));
     });
 
     it('should error on an invalid @version', async () => {
@@ -897,6 +916,11 @@ Tried mapping @id to http//ex.org/id`));
 
     it('should not error on a null @language', async () => {
       expect(() => ContextParser.validate(<any> { '@language': null }))
+        .not.toThrow();
+    });
+
+    it('should not error on a null @direction', async () => {
+      expect(() => ContextParser.validate(<any> { '@direction': null }))
         .not.toThrow();
     });
 
@@ -1028,10 +1052,24 @@ Tried mapping @id to http//ex.org/id`));
         .not.toThrow();
     });
 
+    it('should not error on a term with @direction: rtl', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@direction': 'rtl' } }))
+        .not.toThrow();
+    });
+
     it('should error on a term with @language: 10', async () => {
       expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 10 } }))
-        .toThrow(new Error('Found an invalid term @language string in: \'term\': ' +
-          '\'{"@id":"http://ex.org/","@language":10}\''));
+        .toThrow(new Error('The value of an \'@language\' must be a string, got \'10\''));
+    });
+
+    it('should error on a term with @language: en us', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 'en us' } }))
+        .toThrow(new Error('The value of an \'@language\' must be a valid language tag, got \'"en us"\''));
+    });
+
+    it('should error on a term with @direction: abc', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@direction': 'abc' } }))
+        .toThrow(new Error('The value of an \'@direction\' must be \'ltr\' or \'rtl\', got \'"abc"\''));
     });
 
     it('should error on a term with @prefix: true', async () => {
@@ -1058,6 +1096,84 @@ Tried mapping @id to http//ex.org/id`));
     it('should error on a term set to a number', async () => {
       expect(() => ContextParser.validate(<any> { term: 10 }))
         .toThrow(new Error('Found an invalid term value: \'term\': \'10\''));
+    });
+  });
+
+  describe('#validateLanguage', () => {
+    describe('with strictRange', () => {
+      it('should pass on valid languages', () => {
+        expect(ContextParser.validateLanguage('en-us', true)).toBeTruthy();
+        expect(ContextParser.validateLanguage('EN-us', true)).toBeTruthy();
+        expect(ContextParser.validateLanguage('nl-be', true)).toBeTruthy();
+      });
+
+      it('should error on invalid language datatypes', () => {
+        expect(() => ContextParser.validateLanguage(3, true)).toThrow();
+        expect(() => ContextParser.validateLanguage({}, true)).toThrow();
+      });
+
+      it('should error on invalid language strings', () => {
+        expect(() => ContextParser.validateLanguage('!', true)).toThrow();
+        expect(() => ContextParser.validateLanguage('', true)).toThrow();
+        expect(() => ContextParser.validateLanguage('en_us', true)).toThrow();
+      });
+    });
+
+    describe('without strictRange', () => {
+      it('should pass on valid languages', () => {
+        expect(ContextParser.validateLanguage('en-us', false)).toBeTruthy();
+        expect(ContextParser.validateLanguage('EN-us', false)).toBeTruthy();
+        expect(ContextParser.validateLanguage('nl-be', false)).toBeTruthy();
+      });
+
+      it('should error on invalid language datatypes', () => {
+        expect(() => ContextParser.validateLanguage(3, false)).toThrow();
+        expect(() => ContextParser.validateLanguage({}, false)).toThrow();
+      });
+
+      it('should return false on invalid language strings', () => {
+        expect(ContextParser.validateLanguage('!', false)).toBeFalsy();
+        expect(ContextParser.validateLanguage('', false)).toBeFalsy();
+        expect(ContextParser.validateLanguage('en_us', false)).toBeFalsy();
+      });
+    });
+  });
+
+  describe('#validateDirection', () => {
+    describe('with strictRange', () => {
+      it('should pass on valid directions', () => {
+        expect(ContextParser.validateDirection('rtl', true)).toBeTruthy();
+        expect(ContextParser.validateDirection('ltr', true)).toBeTruthy();
+      });
+
+      it('should error on invalid direction datatypes', () => {
+        expect(() => ContextParser.validateDirection(3, true)).toThrow();
+        expect(() => ContextParser.validateDirection({}, true)).toThrow();
+      });
+
+      it('should error on invalid direction strings', () => {
+        expect(() => ContextParser.validateDirection('!', true)).toThrow();
+        expect(() => ContextParser.validateDirection('', true)).toThrow();
+        expect(() => ContextParser.validateDirection('en_us', true)).toThrow();
+      });
+    });
+
+    describe('without strictRange', () => {
+      it('should pass on valid directions', () => {
+        expect(ContextParser.validateDirection('rtl', false)).toBeTruthy();
+        expect(ContextParser.validateDirection('ltr', false)).toBeTruthy();
+      });
+
+      it('should error on invalid direction datatypes', () => {
+        expect(() => ContextParser.validateDirection(3, false)).toThrow();
+        expect(() => ContextParser.validateDirection({}, false)).toThrow();
+      });
+
+      it('should return false on invalid direction strings', () => {
+        expect(ContextParser.validateDirection('!', false)).toBeFalsy();
+        expect(ContextParser.validateDirection('', false)).toBeFalsy();
+        expect(ContextParser.validateDirection('en_us', false)).toBeFalsy();
+      });
     });
   });
 

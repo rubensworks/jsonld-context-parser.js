@@ -71,4 +71,5 @@ export const ERROR_CODES: {[name: string]: string} = {
   PROCESSING_MODE_CONFLICT: 'processing mode conflict',
   PROTECTED_TERM_REDIFINITION: 'protected term redefinition',
   CONTEXT_OVERFLOW: 'context overflow',
+  INVALID_BASE_DIRECTION: 'invalid base direction',
 };

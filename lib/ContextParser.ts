@@ -14,6 +14,10 @@ export class ContextParser implements IDocumentLoader {
   public static readonly IRI_REGEX: RegExp = /^([A-Za-z][A-Za-z0-9+-.]*|_):[^ "<>{}|\\\[\]`]*$/;
   // Regex to see if an IRI ends with a gen-delim character (see RFC 3986)
   public static readonly ENDS_WITH_GEN_DELIM: RegExp = /[:/?#\[\]@]$/;
+  // Regex for language tags
+  public static readonly REGEX_LANGUAGE_TAG: RegExp = /^[a-zA-Z]+(-[a-zA-Z0-9]+)*$/;
+  // Regex for base directions
+  public static readonly REGEX_DIRECTION_TAG: RegExp = /^(ltr)|(rtl)$/;
 
   // Keys in the contexts that will not be expanded based on the base IRI
   private static readonly EXPAND_KEYS_BLACKLIST: string[] = [
@@ -21,6 +25,7 @@ export class ContextParser implements IDocumentLoader {
     '@vocab',
     '@language',
     '@version',
+    '@direction',
   ];
   // Keys in the contexts that may not be aliased
   private static readonly ALIAS_KEYS_BLACKLIST: string[] = [
@@ -413,13 +418,18 @@ Tried mapping ${key} to ${context[key]}`);
           }
           break;
         case 'language':
-          if (value !== null && valueType !== 'string') {
-            throw new Error(`Found an invalid @language string: ${value}`);
+          if (value !== null) {
+            ContextParser.validateLanguage(value, true);
           }
           break;
         case 'version':
           if (value !== null && valueType !== 'number') {
             throw new Error(`Found an invalid @version number: ${value}`);
+          }
+          break;
+        case 'direction':
+          if (value !== null) {
+            ContextParser.validateDirection(value, true);
           }
           break;
         }
@@ -473,8 +483,13 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
               }
               break;
             case '@language':
-              if (objectValue !== null && typeof objectValue !== 'string') {
-                throw new Error(`Found an invalid term @language string in: '${key}': '${JSON.stringify(value)}'`);
+              if (objectValue !== null) {
+                ContextParser.validateLanguage(objectValue, true);
+              }
+              break;
+            case '@direction':
+              if (objectValue !== null) {
+                ContextParser.validateDirection(objectValue, true);
               }
               break;
             case '@prefix':
@@ -490,6 +505,57 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
         }
       }
     }
+  }
+
+  /**
+   * Validate the given @language value.
+   * An error will be thrown if it is invalid.
+   * @param value An @language value.
+   * @param {boolean} strictRange If the string value should be strictly checked against a regex.
+   * @return {boolean} If validation passed.
+   *                   Can only be false if strictRange is false and the string value did not pass the regex.
+   */
+  public static validateLanguage(value: any, strictRange: boolean): boolean {
+    if (typeof value !== 'string') {
+      throw new Error(`The value of an '@language' must be a string, got '${JSON.stringify(value)}'`);
+    }
+
+    if (!ContextParser.REGEX_LANGUAGE_TAG.test(value)) {
+      if (strictRange) {
+        throw new Error(`The value of an '@language' must be a valid language tag, got '${
+          JSON.stringify(value)}'`);
+      } else {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Validate the given @direction value.
+   * An error will be thrown if it is invalid.
+   * @param value An @direction value.
+   * @param {boolean} strictRange If the string value should be strictly checked against a regex.
+   * @return {boolean} If validation passed.
+   *                   Can only be false if strictRange is false and the string value did not pass the regex.
+   */
+  public static validateDirection(value: any, strictRange: boolean) {
+    if (typeof value !== 'string') {
+      throw new ErrorCoded(`The value of an '@direction' must be a string, got '${JSON.stringify(value)}'`,
+        ERROR_CODES.INVALID_BASE_DIRECTION);
+    }
+
+    if (!ContextParser.REGEX_DIRECTION_TAG.test(value)) {
+      if (strictRange) {
+        throw new ErrorCoded(`The value of an '@direction' must be 'ltr' or 'rtl', got '${
+          JSON.stringify(value)}'`, ERROR_CODES.INVALID_BASE_DIRECTION);
+      } else {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /**
