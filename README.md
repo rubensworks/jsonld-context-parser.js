@@ -101,6 +101,24 @@ const myContext = await myParser.parse([
 ]);
 ```
 
+Optionally, the following parsing options can be passed:
+
+* `baseIri`: An initial default base IRI. _(Default: `''`)_
+* `parentContext`: An optional context to inherit from. _(Default: `null`)_
+* `external`: If the given context is being loaded from an external URL. _(Default: `false`)_
+* `processingMode`: The JSON-LD version that the context should be parsed with. _(Default: `1.1`)_
+* `normalizeLanguageTags`: Whether or not language tags should be normalized to lowercase. _(Default: `false` for JSON-LD 1.1 (and higher), `true` for JSON-LD 1.0)_
+
+```javascript
+const myContext = await myParser.parse({ ... }, {
+  baseIri: 'http://example.org/',
+  parentContext: {},
+  external: true,
+  processingMode: 1.0,
+  normalizeLanguageTags: true,
+});
+```
+
 #### Expand a term
 
 Based on a context, terms can be expanded in vocab or base-mode.
