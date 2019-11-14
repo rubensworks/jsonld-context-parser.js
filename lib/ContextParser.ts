@@ -376,9 +376,10 @@ Tried mapping ${key} to ${context[key]}`);
    * @param {number} processingMode The processing mode to normalize under.
    * @return {IJsonLdContextNormalized} The mutated input context.
    */
-  public static normalize(context: IJsonLdContextNormalized, processingMode: number): IJsonLdContextNormalized {
+  public static normalize(context: IJsonLdContextNormalized, { processingMode, normalizeLanguageTags }: IParseOptions)
+    : IJsonLdContextNormalized {
     // Lowercase language keys in 1.0
-    if (processingMode === 1.0) {
+    if (normalizeLanguageTags || processingMode === 1.0) {
       for (const key of Object.keys(context)) {
         if (key === '@language' && typeof context[key] === 'string') {
           context[key] = context[key].toLowerCase();
@@ -581,7 +582,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
    * @return {Promise<IJsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
-                     { baseIri, parentContext, external, processingMode }: IParseOptions = {})
+                     { baseIri, parentContext, external, processingMode, normalizeLanguageTags }: IParseOptions = {})
     : Promise<IJsonLdContextNormalized> {
     if (context === null || context === undefined) {
       // Context that are explicitly set to null are empty.
@@ -645,7 +646,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
 
       ContextParser.idifyReverseTerms(newContext);
       ContextParser.expandPrefixedTerms(newContext, this.expandContentTypeToBase);
-      ContextParser.normalize(newContext, processingMode);
+      ContextParser.normalize(newContext, { processingMode, normalizeLanguageTags });
       if (this.validate) {
         ContextParser.validate(newContext);
       }
@@ -700,6 +701,12 @@ export interface IParseOptions {
    * The default JSON-LD version that the context should be parsed with.
    */
   processingMode?: number;
+  /**
+   * If language tags should be normalized to lowercase.
+   * This is always true for JSON-LD 1.0,
+   * but false by default for all following versions.
+   */
+  normalizeLanguageTags?: boolean;
 }
 
 export interface IExpandOptions {

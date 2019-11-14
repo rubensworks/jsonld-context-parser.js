@@ -794,7 +794,17 @@ Tried mapping @id to http//ex.org/id`));
       expect(ContextParser.normalize({
         '@language': 'EN',
         'p': { '@id': 'pred1', '@language': 'NL' },
-      }, 1.0)).toEqual({
+      }, { processingMode: 1.0 })).toEqual({
+        '@language': 'en',
+        'p': { '@id': 'pred1', '@language': 'nl' },
+      });
+    });
+
+    it('should lowercase @language if normalizeLanguageTags is true', async () => {
+      expect(ContextParser.normalize({
+        '@language': 'EN',
+        'p': { '@id': 'pred1', '@language': 'NL' },
+      }, { normalizeLanguageTags: true })).toEqual({
         '@language': 'en',
         'p': { '@id': 'pred1', '@language': 'nl' },
       });
@@ -804,7 +814,7 @@ Tried mapping @id to http//ex.org/id`));
       expect(ContextParser.normalize({
         '@language': 'EN',
         'p': { '@id': 'pred1', '@language': 'NL' },
-      }, 1.1)).toEqual({
+      }, { processingMode: 1.1 })).toEqual({
         '@language': 'EN',
         'p': { '@id': 'pred1', '@language': 'NL' },
       });
@@ -814,7 +824,7 @@ Tried mapping @id to http//ex.org/id`));
       expect(ContextParser.normalize({
         '@language': null,
         'p': { '@id': 'pred1', '@language': null },
-      }, 1.0)).toEqual({
+      }, { processingMode: 1.0 })).toEqual({
         '@language': null,
         'p': { '@id': 'pred1', '@language': null },
       });
@@ -824,7 +834,7 @@ Tried mapping @id to http//ex.org/id`));
       expect(ContextParser.normalize({
         '@language': <any> {},
         'p': { '@id': 'pred1', '@language': {} },
-      }, 1.0)).toEqual({
+      }, { processingMode: 1.0 })).toEqual({
         '@language': {},
         'p': { '@id': 'pred1', '@language': {} },
       });
