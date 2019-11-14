@@ -1293,7 +1293,7 @@ Tried mapping @id to http//ex.org/id`));
             '@base': '/sub',
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
           },
-        }, { baseIri: 'http://doc.org/' }))
+        }, { baseIRI: 'http://doc.org/' }))
           .resolves.toEqual({
             '@base': 'http://doc.org/sub',
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
@@ -1306,7 +1306,7 @@ Tried mapping @id to http//ex.org/id`));
             '@base': 'http://a/bb/ccc/./d;p?q',
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
           },
-        }, { baseIri: 'http://doc.org/' }))
+        }, { baseIRI: 'http://doc.org/' }))
           .resolves.toEqual({
             '@base': 'http://a/bb/ccc/./d;p?q',
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
@@ -1319,7 +1319,7 @@ Tried mapping @id to http//ex.org/id`));
             '@base': null,
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
           },
-        }, { baseIri: 'http://doc.org/' }))
+        }, { baseIRI: 'http://doc.org/' }))
           .resolves.toEqual({
             '@base': null,
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
@@ -1343,7 +1343,7 @@ Tried mapping @id to http//ex.org/id`));
       });
 
       it('should parse a valid relative context URL', () => {
-        return expect(parser.parse('simple.jsonld', { baseIri: 'http://example.org/mydoc.html' })).resolves.toEqual({
+        return expect(parser.parse('simple.jsonld', { baseIRI: 'http://example.org/mydoc.html' })).resolves.toEqual({
           '@base': 'http://example.org/mydoc.html',
           'name': "http://xmlns.com/foaf/0.1/name",
           'xsd': "http://www.w3.org/2001/XMLSchema#",
@@ -1362,7 +1362,7 @@ Tried mapping @id to http//ex.org/id`));
       });
 
       it('should parse and ignore the @base IRI, but not when a custom base IRI is given', () => {
-        return expect(parser.parse('http://example.org/base.jsonld', { baseIri: 'abc' })).resolves.toEqual({
+        return expect(parser.parse('http://example.org/base.jsonld', { baseIRI: 'abc' })).resolves.toEqual({
           '@base': 'abc',
           'nickname': 'http://xmlns.com/foaf/0.1/nick',
         });
@@ -1409,7 +1409,7 @@ Tried mapping @id to http//ex.org/id`));
       });
 
       it('should parse to an empty context, but set @base if needed', () => {
-        return expect(parser.parse(null, { baseIri: 'http://base.org/' })).resolves
+        return expect(parser.parse(null, { baseIRI: 'http://base.org/' })).resolves
           .toEqual({ '@base': 'http://base.org/' });
       });
     });
@@ -1483,7 +1483,7 @@ Tried mapping @id to http//ex.org/id`));
 
     describe('for base and vocab', () => {
       it('should parse with a base IRI', () => {
-        return expect(parser.parse('http://example.org/simple.jsonld', { baseIri: 'http://myexample.org/' }))
+        return expect(parser.parse('http://example.org/simple.jsonld', { baseIRI: 'http://myexample.org/' }))
           .resolves.toEqual({
             '@base': 'http://myexample.org/',
             'name': "http://xmlns.com/foaf/0.1/name",
@@ -1492,7 +1492,7 @@ Tried mapping @id to http//ex.org/id`));
       });
 
       it('should parse with a base IRI and not override the inner @base', () => {
-        return expect(parser.parse({ '@base': 'http://myotherexample.org/' }, { baseIri: 'http://myexample.org/' }))
+        return expect(parser.parse({ '@base': 'http://myotherexample.org/' }, { baseIRI: 'http://myexample.org/' }))
           .resolves.toEqual({
             '@base': 'http://myotherexample.org/',
           });
@@ -1735,7 +1735,7 @@ Tried mapping @id to http//ex.org/id`));
       });
 
       it('should parse to an empty context, but set @base if needed', () => {
-        return expect(parser.parse(null, { baseIri: 'http://base.org/' })).resolves
+        return expect(parser.parse(null, { baseIRI: 'http://base.org/' })).resolves
           .toEqual({ '@base': 'http://base.org/' });
       });
     });
@@ -1770,7 +1770,7 @@ Tried mapping @id to http//ex.org/id`));
         return expect(parser.parse([
           'simple.jsonld',
           'simple2.jsonld',
-        ], { baseIri: 'http://example.org/mybase.html' })).resolves.toEqual({
+        ], { baseIRI: 'http://example.org/mybase.html' })).resolves.toEqual({
           '@base': 'http://example.org/mybase.html',
           'name': "http://xmlns.com/foaf/0.1/name",
           'nickname': "http://xmlns.com/foaf/0.1/nick",
@@ -1826,7 +1826,7 @@ Tried mapping @id to http//ex.org/id`));
           {
             '@base': 'two/',
           },
-        ], { baseIri: 'http://doc.org/' })).resolves.toEqual({
+        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
           '@base': 'http://doc.org/one/two/',
         });
       });

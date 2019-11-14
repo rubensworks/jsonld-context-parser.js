@@ -103,7 +103,7 @@ const myContext = await myParser.parse([
 
 Optionally, the following parsing options can be passed:
 
-* `baseIri`: An initial default base IRI. _(Default: `''`)_
+* `baseIRI`: An initial default base IRI. _(Default: `''`)_
 * `parentContext`: An optional context to inherit from. _(Default: `null`)_
 * `external`: If the given context is being loaded from an external URL. _(Default: `false`)_
 * `processingMode`: The JSON-LD version that the context should be parsed with. _(Default: `1.1`)_
@@ -111,7 +111,7 @@ Optionally, the following parsing options can be passed:
 
 ```javascript
 const myContext = await myParser.parse({ ... }, {
-  baseIri: 'http://example.org/',
+  baseIRI: 'http://example.org/',
   parentContext: {},
   external: true,
   processingMode: 1.0,

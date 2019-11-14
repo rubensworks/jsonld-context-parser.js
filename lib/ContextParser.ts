@@ -562,12 +562,12 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
   /**
    * Resolve relative context IRIs, or return full IRIs as-is.
    * @param {string} contextIri A context IRI.
-   * @param {string} baseIri A base IRI.
+   * @param {string} baseIRI A base IRI.
    * @return {string} The normalized context IRI.
    */
-  protected static normalizeContextIri(contextIri: string, baseIri: string) {
+  protected static normalizeContextIri(contextIri: string, baseIRI: string) {
     if (!ContextParser.isValidIri(contextIri)) {
-      contextIri = resolve(contextIri, baseIri);
+      contextIri = resolve(contextIri, baseIRI);
       if (!ContextParser.isValidIri(contextIri)) {
         throw new Error(`Invalid context IRI: ${contextIri}`);
       }
@@ -582,19 +582,19 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
    * @return {Promise<IJsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
-                     { baseIri, parentContext, external, processingMode, normalizeLanguageTags }: IParseOptions = {})
+                     { baseIRI, parentContext, external, processingMode, normalizeLanguageTags }: IParseOptions = {})
     : Promise<IJsonLdContextNormalized> {
     if (context === null || context === undefined) {
       // Context that are explicitly set to null are empty.
-      return baseIri ? { '@base': baseIri } : {};
+      return baseIRI ? { '@base': baseIRI } : {};
     } else if (typeof context === 'string') {
-      return this.parse(await this.load(ContextParser.normalizeContextIri(context, baseIri)),
-        { baseIri, parentContext, external: true, processingMode });
+      return this.parse(await this.load(ContextParser.normalizeContextIri(context, baseIRI)),
+        { baseIRI, parentContext, external: true, processingMode });
     } else if (Array.isArray(context)) {
       // As a performance consideration, first load all external contexts in parallel.
       const contexts = await Promise.all(context.map((subContext) => {
         if (typeof subContext === 'string') {
-          return this.load(ContextParser.normalizeContextIri(subContext, baseIri));
+          return this.load(ContextParser.normalizeContextIri(subContext, baseIRI));
         } else {
           return subContext;
         }
@@ -602,7 +602,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
 
       return contexts.reduce((accContextPromise, contextEntry) => accContextPromise
           .then((accContext) => this.parse(contextEntry, {
-            baseIri: accContext && accContext['@base'] || baseIri,
+            baseIRI: accContext && accContext['@base'] || baseIRI,
             external,
             parentContext: accContext,
             processingMode,
@@ -610,7 +610,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
         Promise.resolve(parentContext));
     } else if (typeof context === 'object') {
       if (context['@context']) {
-        return await this.parse(context['@context'], { baseIri, parentContext, external, processingMode });
+        return await this.parse(context['@context'], { baseIRI, parentContext, external, processingMode });
       }
 
       // Make a deep clone of the given context, to avoid modifying it.
@@ -625,13 +625,13 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       }
 
       // Override the base IRI if provided.
-      if (baseIri) {
+      if (baseIRI) {
         if (!('@base' in context)) {
           // The context base is the document base
-          context['@base'] = baseIri;
+          context['@base'] = baseIRI;
         } else if (context['@base'] !== null && !ContextParser.isValidIri(context['@base'])) {
           // The context base is relative to the document base
-          context['@base'] = resolve(context['@base'], baseIri);
+          context['@base'] = resolve(context['@base'], baseIRI);
         }
       }
 
@@ -688,7 +688,7 @@ export interface IParseOptions {
   /**
    * An optional fallback base IRI to set.
    */
-  baseIri?: string;
+  baseIRI?: string;
   /**
    * The parent context.
    */
