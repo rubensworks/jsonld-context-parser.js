@@ -73,7 +73,7 @@ describe('ContextParser', () => {
       });
 
       it('to return when a direct value applies', async () => {
-        expect(ContextParser.expandTerm('abc', {abc: 'DEF'}, true)).toBe('DEF');
+        expect(ContextParser.expandTerm('abc', {abc: 'http://DEF'}, true)).toBe('http://DEF');
       });
 
       it('to return when @vocab exists but not applies', async () => {
@@ -116,9 +116,9 @@ describe('ContextParser', () => {
 
       it('to return when a term and prefix applies', async () => {
         expect(ContextParser.expandTerm('bla', {
-          bla: 'DEF/123',
-          def: 'DEF/',
-        }, true)).toBe('DEF/123');
+          bla: 'http://DEF/123',
+          def: 'http://DEF/',
+        }, true)).toBe('http://DEF/123');
       });
 
       it('to throw for not allowed relative @vocab', async () => {
@@ -308,6 +308,16 @@ describe('ContextParser', () => {
         expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/', '@prefix': true } }, true,
           opts)).toBe('http://ex.org/def');
       });
+
+      it('to throw when context alias value is not a string', async () => {
+        expect(() => ContextParser.expandTerm('k', { k: { '@id': 3 } }, true))
+          .toThrow(new Error('Invalid IRI mapping found for context entry \'k\': \'{"@id":3}\''));
+      });
+
+      it('to throw when context alias value is not an IRI', async () => {
+        expect(() => ContextParser.expandTerm('k', { k: { '@id': 'not an IRI' } }, true))
+          .toThrow(new Error('Invalid IRI mapping found for context entry \'k\': \'{"@id":"not an IRI"}\''));
+      });
     });
 
     describe('in base-mode', () => {
@@ -394,6 +404,14 @@ describe('ContextParser', () => {
           a: 'DEF/A/',
           def: 'DEF/',
         }, false)).toBe('DEF/A/123');
+      });
+
+      it('to return identity when context alias value is not a string', async () => {
+        expect(ContextParser.expandTerm('k', { k: { '@id': 3 } }, false)).toBe('k');
+      });
+
+      it('to return identity when context alias value is not an IRI', async () => {
+        expect(ContextParser.expandTerm('k', { k: { '@id': 'not an IRI' } }, false)).toBe('k');
       });
     });
   });
@@ -786,6 +804,16 @@ describe('ContextParser', () => {
         '@id': 'http//ex.org/id',
       }, true)).toThrow(new Error(`Keywords can not be aliased to something else.
 Tried mapping @id to http//ex.org/id`));
+    });
+
+    it('should expand aliases', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        id: '@id',
+        url: 'id',
+      }, true)).toEqual({
+        id: '@id',
+        url: '@id',
+      });
     });
   });
 

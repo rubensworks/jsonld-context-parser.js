@@ -144,6 +144,7 @@ export class ContextParser implements IDocumentLoader {
    *                              otherwise it is considered a regular term that is expanded based on @base.
    * @param {IExpandOptions} options Options that define the way how expansion must be done.
    * @return {string} The expanded term, the term as-is, or null if it was explicitly disabled in the context.
+   * @throws If the term is aliased to an invalid value (not a string, IRI or keyword).
    */
   public static expandTerm(term: string, context: IJsonLdContextNormalized, expandVocab?: boolean,
                            options: IExpandOptions = defaultExpandOptions): string {
@@ -160,6 +161,10 @@ export class ContextParser implements IDocumentLoader {
     if (contextValue && expandVocab) {
       const value = this.getContextValueId(contextValue);
       if (value && value !== term) {
+        if (typeof value !== 'string' || (!ContextParser.isValidIri(value) && value[0] !== '@')) {
+          throw new ErrorCoded(`Invalid IRI mapping found for context entry '${term}': '${
+            JSON.stringify(contextValue)}'`, ERROR_CODES.INVALID_IRI_MAPPING);
+        }
         return value;
       }
     }
@@ -458,7 +463,8 @@ Tried mapping ${key} to ${context[key]}`);
             switch (objectKey) {
             case '@id':
               if (objectValue[0] === '@' && objectValue !== '@type' && objectValue !== '@id') {
-                throw new Error(`Illegal keyword alias in term value, found: '${key}': '${JSON.stringify(value)}'`);
+                throw new ErrorCoded(`Illegal keyword alias in term value, found: '${key}': '${JSON.stringify(value)}'`,
+                  ERROR_CODES.INVALID_IRI_MAPPING);
               }
 
               break;
