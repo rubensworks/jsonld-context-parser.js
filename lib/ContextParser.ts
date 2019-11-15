@@ -12,6 +12,8 @@ export class ContextParser implements IDocumentLoader {
 
   // Regex for valid IRIs
   public static readonly IRI_REGEX: RegExp = /^([A-Za-z][A-Za-z0-9+-.]*|_):[^ "<>{}|\\\[\]`]*$/;
+  // Regex for keyword form
+  public static readonly KEYWORD_REGEX: RegExp = /^@[a-z]+$/i;
   // Regex to see if an IRI ends with a gen-delim character (see RFC 3986)
   public static readonly ENDS_WITH_GEN_DELIM: RegExp = /[:/?#\[\]@]$/;
   // Regex for language tags
@@ -19,6 +21,33 @@ export class ContextParser implements IDocumentLoader {
   // Regex for base directions
   public static readonly REGEX_DIRECTION_TAG: RegExp = /^(ltr)|(rtl)$/;
 
+  // All known valid JSON-LD keywords
+  // @see https://www.w3.org/TR/json-ld11/#keywords
+  public static readonly VALID_KEYWORDS: {[keyword: string]: boolean} = {
+    '@base': true,
+    '@container': true,
+    '@context': true,
+    '@direction': true,
+    '@graph': true,
+    '@id': true,
+    '@import': true,
+    '@included': true,
+    '@index': true,
+    '@json': true,
+    '@language': true,
+    '@list': true,
+    '@nest': true,
+    '@none': true,
+    '@prefix': true,
+    '@propagate': true,
+    '@protected': true,
+    '@reverse': true,
+    '@set': true,
+    '@type': true,
+    '@value': true,
+    '@version': true,
+    '@vocab': true,
+  };
   // Keys in the contexts that will not be expanded based on the base IRI
   private static readonly EXPAND_KEYS_BLACKLIST: string[] = [
     '@base',
@@ -158,14 +187,15 @@ export class ContextParser implements IDocumentLoader {
     }
 
     // Check the @id
+    let validIriMapping = true;
     if (contextValue && expandVocab) {
       const value = this.getContextValueId(contextValue);
       if (value && value !== term) {
-        if (typeof value !== 'string' || (!ContextParser.isValidIri(value) && value[0] !== '@')) {
-          throw new ErrorCoded(`Invalid IRI mapping found for context entry '${term}': '${
-            JSON.stringify(contextValue)}'`, ERROR_CODES.INVALID_IRI_MAPPING);
+        if (typeof value !== 'string' || (!ContextParser.isValidIri(value) && !ContextParser.isValidKeyword(value))) {
+          validIriMapping = false;
+        } else {
+          return value;
         }
-        return value;
       }
     }
 
@@ -174,13 +204,14 @@ export class ContextParser implements IDocumentLoader {
     const vocab: string = context['@vocab'];
     const vocabRelative: boolean = (vocab || vocab === '') && vocab.indexOf(':') < 0;
     const base: string = context['@base'];
+    const potentialKeyword = ContextParser.isPotentialKeyword(term);
     if (prefix) {
       const contextPrefixValue = context[prefix];
       const value = this.getContextValueId(contextPrefixValue);
 
       if (value) {
         // Validate that prefix ends with gen-delim character, unless @prefix is true
-        if (value[0] !== '_' && term[0] !== '@'
+        if (value[0] !== '_' && !potentialKeyword
           && (!options.allowNonGenDelimsIfPrefix || !contextPrefixValue['@prefix'])) {
           if (!ContextParser.isPrefixIriEndingWithGenDelim(value)) {
             // Treat the term as an absolute IRI
@@ -191,7 +222,7 @@ export class ContextParser implements IDocumentLoader {
         return value + term.substr(prefix.length + 1);
       }
     } else if (expandVocab && ((vocab || vocab === '') || (options.allowVocabRelativeToBase && (base && vocabRelative)))
-      && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
+      && !potentialKeyword && !ContextParser.isCompactIri(term)) {
       if (vocabRelative) {
         if (options.allowVocabRelativeToBase) {
           return resolve(vocab, base) + term;
@@ -202,10 +233,17 @@ export class ContextParser implements IDocumentLoader {
       } else {
         return vocab + term;
       }
-    } else if (!expandVocab && base && term.charAt(0) !== '@' && !ContextParser.isCompactIri(term)) {
+    } else if (!expandVocab && base && !potentialKeyword && !ContextParser.isCompactIri(term)) {
       return resolve(term, base);
     }
-    return term;
+
+    // Return the term as-is, unless we discovered an invalid IRI mapping for this term in the context earlier.
+    if (validIriMapping) {
+      return term;
+    } else {
+      throw new ErrorCoded(`Invalid IRI mapping found for context entry '${term}': '${
+        JSON.stringify(contextValue)}'`, ERROR_CODES.INVALID_IRI_MAPPING);
+    }
   }
 
   /**
@@ -238,7 +276,7 @@ export class ContextParser implements IDocumentLoader {
     const shortestPrefixing: { prefix: string, suffix: string } = { prefix: '', suffix: iri };
     for (const key in context) {
       const value = context[key];
-      if (value && !key.startsWith('@')) {
+      if (value && !ContextParser.isPotentialKeyword(key)) {
         const contextIri = this.getContextValueId(value);
         if (iri.startsWith(contextIri)) {
           const suffix = iri.substr(contextIri.length);
@@ -294,6 +332,24 @@ export class ContextParser implements IDocumentLoader {
   }
 
   /**
+   * Check if the given keyword is a defined according to the JSON-LD specification.
+   * @param {string} keyword A potential keyword.
+   * @return {boolean} If the given keyword is valid.
+   */
+  public static isValidKeyword(keyword: any): boolean {
+    return ContextParser.VALID_KEYWORDS[keyword];
+  }
+
+  /**
+   * Check if the given keyword is of the keyword format "@"1*ALPHA.
+   * @param {string} keyword A potential keyword.
+   * @return {boolean} If the given keyword is of the keyword format.
+   */
+  public static isPotentialKeyword(keyword: any): boolean {
+    return typeof keyword === 'string' && ContextParser.KEYWORD_REGEX.test(keyword);
+  }
+
+  /**
    * Check if the given prefix ends with a gen-delim character.
    * @param {string} prefixIri A prefix IRI.
    * @return {boolean} If the given prefix IRI is valid.
@@ -337,7 +393,7 @@ export class ContextParser implements IDocumentLoader {
       // Only expand allowed keys
       if (ContextParser.EXPAND_KEYS_BLACKLIST.indexOf(key) < 0) {
         // Error if we try to alias a keyword to something else.
-        if (key[0] === '@' && ContextParser.ALIAS_KEYS_BLACKLIST.indexOf(key) >= 0) {
+        if (ContextParser.isPotentialKeyword(key) && ContextParser.ALIAS_KEYS_BLACKLIST.indexOf(key) >= 0) {
           throw new Error(`Keywords can not be aliased to something else.
 Tried mapping ${key} to ${context[key]}`);
         }
@@ -411,7 +467,7 @@ Tried mapping ${key} to ${context[key]}`);
       const value = context[key];
       const valueType = typeof value;
       // First check if the key is a keyword
-      if (key[0] === '@') {
+      if (ContextParser.isPotentialKeyword(key)) {
         switch (key.substr(1)) {
         case 'vocab':
           if (value !== null && valueType !== 'string') {
@@ -462,7 +518,7 @@ Tried mapping ${key} to ${context[key]}`);
 
             switch (objectKey) {
             case '@id':
-              if (objectValue[0] === '@' && objectValue !== '@type' && objectValue !== '@id') {
+              if (ContextParser.isValidKeyword(objectValue) && objectValue !== '@type' && objectValue !== '@id') {
                 throw new ErrorCoded(`Illegal keyword alias in term value, found: '${key}': '${JSON.stringify(value)}'`,
                   ERROR_CODES.INVALID_IRI_MAPPING);
               }

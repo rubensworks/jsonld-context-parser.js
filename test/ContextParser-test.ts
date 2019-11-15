@@ -318,6 +318,13 @@ describe('ContextParser', () => {
         expect(() => ContextParser.expandTerm('k', { k: { '@id': 'not an IRI' } }, true))
           .toThrow(new Error('Invalid IRI mapping found for context entry \'k\': \'{"@id":"not an IRI"}\''));
       });
+
+      it('to ignore invalid aliases and fallback to vocab', async () => {
+        expect(ContextParser.expandTerm('ignoreMe', {
+          "@vocab": "http://example.org/",
+          "ignoreMe": "@ignoreMe",
+        }, true)).toBe('http://example.org/ignoreMe');
+      });
     });
 
     describe('in base-mode', () => {
@@ -586,6 +593,42 @@ describe('ContextParser', () => {
     });
   });
 
+  describe('#isValidKeyword', () => {
+    it('should be true for valid keywords', async () => {
+      expect(ContextParser.isValidKeyword('@id')).toBeTruthy();
+      expect(ContextParser.isValidKeyword('@container')).toBeTruthy();
+      expect(ContextParser.isValidKeyword('@nest')).toBeTruthy();
+    });
+
+    it('should be false for invalid keywords', async () => {
+      expect(ContextParser.isValidKeyword(null)).toBeFalsy();
+      expect(ContextParser.isValidKeyword(3)).toBeFalsy();
+      expect(ContextParser.isValidKeyword('@')).toBeFalsy();
+      expect(ContextParser.isValidKeyword('@!')).toBeFalsy();
+      expect(ContextParser.isValidKeyword('@3')).toBeFalsy();
+      expect(ContextParser.isValidKeyword('@ignore')).toBeFalsy();
+      expect(ContextParser.isValidKeyword('@ignoreMe')).toBeFalsy();
+    });
+  });
+
+  describe('#isPotentialKeyword', () => {
+    it('should be true for potential keywords', async () => {
+      expect(ContextParser.isPotentialKeyword('@id')).toBeTruthy();
+      expect(ContextParser.isPotentialKeyword('@container')).toBeTruthy();
+      expect(ContextParser.isPotentialKeyword('@nest')).toBeTruthy();
+      expect(ContextParser.isPotentialKeyword('@ignore')).toBeTruthy();
+      expect(ContextParser.isPotentialKeyword('@ignoreMe')).toBeTruthy();
+    });
+
+    it('should be false for invalid keywords', async () => {
+      expect(ContextParser.isPotentialKeyword(null)).toBeFalsy();
+      expect(ContextParser.isPotentialKeyword(3)).toBeFalsy();
+      expect(ContextParser.isPotentialKeyword('@')).toBeFalsy();
+      expect(ContextParser.isPotentialKeyword('@!')).toBeFalsy();
+      expect(ContextParser.isPotentialKeyword('@3')).toBeFalsy();
+    });
+  });
+
   describe('#expandPrefixedTerms with expandContentTypeToBase true', () => {
     it('should not modify an empty context', async () => {
       expect(ContextParser.expandPrefixedTerms({}, true)).toEqual({});
@@ -813,6 +856,16 @@ Tried mapping @id to http//ex.org/id`));
       }, true)).toEqual({
         id: '@id',
         url: '@id',
+      });
+    });
+
+    it('should not expand unknown keywords', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@vocab': 'http://example.org/',
+        'ignoreMe': '@ignoreMe',
+      }, true)).toEqual({
+        '@vocab': 'http://example.org/',
+        'ignoreMe': '@ignoreMe',
       });
     });
   });
@@ -1359,6 +1412,16 @@ Tried mapping @id to http//ex.org/id`));
           .resolves.toEqual({
             '@base': 'http://myotherexample.org/',
           });
+      });
+
+      it('should parse contexts with unknown keywords', () => {
+        return expect(parser.parse({
+          '@vocab': 'http://example.org/',
+          'ignoreMe': '@ignoreMe',
+        })).resolves.toEqual({
+          '@vocab': 'http://example.org/',
+          'ignoreMe': '@ignoreMe',
+        });
       });
     });
 
