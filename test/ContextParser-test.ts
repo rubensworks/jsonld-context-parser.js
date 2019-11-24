@@ -325,6 +325,11 @@ describe('ContextParser', () => {
           "ignoreMe": "@ignoreMe",
         }, true)).toBe('http://example.org/ignoreMe');
       });
+
+      it('to ignore invalid keyword-like alias without vocab', async () => {
+        expect(ContextParser.expandTerm('ignoreMe', { ignoreMe: "@ignoreMe" }, true))
+          .toBe('ignoreMe');
+      });
     });
 
     describe('in base-mode', () => {

@@ -192,7 +192,10 @@ export class ContextParser implements IDocumentLoader {
       const value = this.getContextValueId(contextValue);
       if (value && value !== term) {
         if (typeof value !== 'string' || (!ContextParser.isValidIri(value) && !ContextParser.isValidKeyword(value))) {
-          validIriMapping = false;
+          // Don't mark this mapping as invalid if we have an unknown keyword, but of the correct form.
+          if (!ContextParser.isPotentialKeyword(value)) {
+            validIriMapping = false;
+          }
         } else {
           return value;
         }
