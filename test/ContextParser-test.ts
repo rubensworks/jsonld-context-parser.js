@@ -1,4 +1,4 @@
-import {ContextParser, FetchDocumentLoader} from "../index";
+import {ContextParser, ERROR_CODES, ErrorCoded, FetchDocumentLoader} from "../index";
 
 describe('ContextParser', () => {
   describe('#isCompactIri', () => {
@@ -985,212 +985,235 @@ Tried mapping @id to http//ex.org/id`));
   });
 
   describe('#validate', () => {
+    const parseDefaults = { processingMode: 1.1 };
+
     it('should error on an invalid @vocab', async () => {
-      expect(() => ContextParser.validate(<any> { '@vocab': true }))
+      expect(() => ContextParser.validate(<any> { '@vocab': true }, parseDefaults))
         .toThrow(new Error('Found an invalid @vocab IRI: true'));
     });
 
     it('should error on an invalid @base', async () => {
-      expect(() => ContextParser.validate(<any> { '@base': true }))
+      expect(() => ContextParser.validate(<any> { '@base': true }, parseDefaults))
         .toThrow(new Error('Found an invalid @base IRI: true'));
     });
 
     it('should error on an invalid @language', async () => {
-      expect(() => ContextParser.validate(<any> { '@language': true }))
+      expect(() => ContextParser.validate(<any> { '@language': true }, parseDefaults))
         .toThrow(new Error('The value of an \'@language\' must be a string, got \'true\''));
     });
 
     it('should error on an invalid @direction', async () => {
-      expect(() => ContextParser.validate(<any> { '@direction': true }))
+      expect(() => ContextParser.validate(<any> { '@direction': true }, parseDefaults))
         .toThrow(new Error('The value of an \'@direction\' must be a string, got \'true\''));
     });
 
     it('should error on an invalid @version', async () => {
-      expect(() => ContextParser.validate(<any> { '@version': true }))
+      expect(() => ContextParser.validate(<any> { '@version': true }, parseDefaults))
         .toThrow(new Error('Found an invalid @version number: true'));
     });
 
     it('should not error on a null @language', async () => {
-      expect(() => ContextParser.validate(<any> { '@language': null }))
+      expect(() => ContextParser.validate(<any> { '@language': null }, parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a null @direction', async () => {
-      expect(() => ContextParser.validate(<any> { '@direction': null }))
+      expect(() => ContextParser.validate(<any> { '@direction': null }, parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a null @version', async () => {
-      expect(() => ContextParser.validate(<any> { '@version': null }))
+      expect(() => ContextParser.validate(<any> { '@version': null }, parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a number @version', async () => {
-      expect(() => ContextParser.validate(<any> { '@version': 1.1 }))
+      expect(() => ContextParser.validate(<any> { '@version': 1.1 }, parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on an invalid @unknown', async () => {
-      expect(() => ContextParser.validate(<any> { '@unknown': 'true' }))
+      expect(() => ContextParser.validate(<any> { '@unknown': 'true' }, parseDefaults))
         .not.toThrow();
     });
 
     it('should error on term without @id and @type : @id', async () => {
-      expect(() => ContextParser.validate(<any> { term: {} }))
+      expect(() => ContextParser.validate(<any> { term: {} }, parseDefaults))
         .toThrow(new Error('Missing @id in context entry: \'term\': \'{}\''));
     });
 
     it('should error on term without @id, but with @type : @id', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@type': '@id' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@type': '@id' } }, parseDefaults))
         .toThrow(new Error('Missing @id in context entry: \'term\': \'{"@type":"@id"}\''));
     });
 
     it('should not error on term without @id, but with @type : @id and @base', async () => {
-      expect(() => ContextParser.validate(<any> { 'term': { '@type': '@id' }, '@base': 'abc' }))
+      expect(() => ContextParser.validate(<any> { 'term': { '@type': '@id' }, '@base': 'abc' }, parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on term without @id and @type : @id and @base', async () => {
-      expect(() => ContextParser.validate(<any> { 'term': {}, '@base': 'abc' }))
+      expect(() => ContextParser.validate(<any> { 'term': {}, '@base': 'abc' }, parseDefaults))
         .toThrow(new Error('Missing @id in context entry: \'term\': \'{}\''));
     });
 
     it('should error on term without @id, but with @type : @id and @vocab', async () => {
-      expect(() => ContextParser.validate(<any> { 'term': { '@type': '@id' }, '@vocab': 'abc' }))
+      expect(() => ContextParser.validate(<any> { 'term': { '@type': '@id' }, '@vocab': 'abc' }, parseDefaults))
         .toThrow(new Error('Missing @id in context entry: \'term\': \'{"@type":"@id"}\''));
     });
 
     it('should not error on term without @id and @type : @id and @vocab', async () => {
-      expect(() => ContextParser.validate(<any> { 'term': {}, '@vocab': 'abc' }))
+      expect(() => ContextParser.validate(<any> { 'term': {}, '@vocab': 'abc' }, parseDefaults))
         .not.toThrow();
     });
 
     it('should error on term with @id: @container', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@container' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@container' } }, parseDefaults))
         .toThrow(new Error('Illegal keyword alias in term value, found: \'term\': \'{"@id":"@container"}\''));
     });
 
     it('should not error on term with @id: @type', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@type' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@type' } }, parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on term with @id: @id', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id' } }, parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on term with @type: @id', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@id' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@id' } }, parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on term with @type: @vocab', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@vocab' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@vocab' } }, parseDefaults))
         .not.toThrow();
     });
 
+    it('should not error on term with @type: @json', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@json' } }, parseDefaults))
+        .not.toThrow();
+    });
+
+    it('should error on term with @type: @json in 1.0', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@json' } }, { processingMode: 1.0 }))
+        .toThrow(new ErrorCoded(`A context @type must be an absolute IRI, found: 'term': '@json'`,
+          ERROR_CODES.INVALID_TYPE_MAPPING));
+    });
+
     it('should error on term with @type: _:bnode', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '_:bnode' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '_:bnode' } }, parseDefaults))
         .toThrow(new Error('A context @type must be an absolute IRI, found: \'term\': \'_:bnode\''));
     });
 
     it('should error on term with @type: invalid-iri', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': 'invalid-iri' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': 'invalid-iri' } }, parseDefaults))
         .toThrow(new Error('A context @type must be an absolute IRI, found: \'term\': \'invalid-iri\''));
     });
 
     it('should not error on term with @reverse: true', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@reverse': true } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@reverse': true } }, parseDefaults))
         .not.toThrow();
     });
 
     it('should error on term with different @reverse and @id', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@reverse': 'abc' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@reverse': 'abc' } },
+        parseDefaults))
         .toThrow(
           new Error('Found non-matching @id and @reverse term values in \'term\':\'abc\' and \'http://ex.org/\''));
     });
 
     it('should not error on a term with @container: @list', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@list' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@list' } },
+        parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @container: @set', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@set' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@set' } },
+        parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @container: @index', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@index' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@index' } },
+        parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @container: @language', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@language' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@language' } },
+        parseDefaults))
         .not.toThrow();
     });
 
     it('should error on a term with @container: @unknown', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@unknown' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@unknown' } },
+        parseDefaults))
         .toThrow(new Error('Invalid term @container for \'term\' (\'@unknown\'), ' +
           'must be one of @list, @set, @index, @language'));
     });
 
     it('should error on a term with @container: @list and @reverse', async () => {
       expect(() => ContextParser.validate(<any>
-        { term: { '@id': 'http://ex.org/', '@container': '@list', '@reverse': true } }))
+        { term: { '@id': 'http://ex.org/', '@container': '@list', '@reverse': true } }, parseDefaults))
         .toThrow(new Error('Term value can not be @container: @list and @reverse at the same time on \'term\''));
     });
 
     it('should not error on a term with @language: en', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 'en' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 'en' } },
+        parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @direction: rtl', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@direction': 'rtl' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@direction': 'rtl' } },
+        parseDefaults))
         .not.toThrow();
     });
 
     it('should error on a term with @language: 10', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 10 } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 10 } }, parseDefaults))
         .toThrow(new Error('The value of an \'@language\' must be a string, got \'10\''));
     });
 
     it('should error on a term with @language: en us', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 'en us' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 'en us' } },
+        parseDefaults))
         .toThrow(new Error('The value of an \'@language\' must be a valid language tag, got \'"en us"\''));
     });
 
     it('should error on a term with @direction: abc', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@direction': 'abc' } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@direction': 'abc' } },
+        parseDefaults))
         .toThrow(new Error('The value of an \'@direction\' must be \'ltr\' or \'rtl\', got \'"abc"\''));
     });
 
     it('should error on a term with @prefix: true', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@prefix': true } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@prefix': true } }, parseDefaults))
         .not.toThrow();
     });
 
     it('should error on a term with @prefix: 10', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@prefix': 10 } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@prefix': 10 } }, parseDefaults))
         .toThrow(new Error('Found an invalid term @prefix boolean in: \'term\': ' +
           '\'{"@id":"http://ex.org/","@prefix":10}\''));
     });
 
     it('should not error on a term set to null', async () => {
-      expect(() => ContextParser.validate(<any> { term: null }))
+      expect(() => ContextParser.validate(<any> { term: null }, parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term @id set to null', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': null } }))
+      expect(() => ContextParser.validate(<any> { term: { '@id': null } }, parseDefaults))
         .not.toThrow();
     });
 
     it('should error on a term set to a number', async () => {
-      expect(() => ContextParser.validate(<any> { term: 10 }))
+      expect(() => ContextParser.validate(<any> { term: 10 }, parseDefaults))
         .toThrow(new Error('Found an invalid term value: \'term\': \'10\''));
     });
   });

@@ -465,7 +465,7 @@ Tried mapping ${key} to ${context[key]}`);
    * @param {IJsonLdContextNormalized} context A context.
    * @param {IValidateOptions} options The validation options.
    */
-  public static validate(context: IJsonLdContextNormalized) {
+  public static validate(context: IJsonLdContextNormalized, { processingMode }: IParseOptions) {
     for (const key of Object.keys(context)) {
       const value = context[key];
       const valueType = typeof value;
@@ -529,8 +529,10 @@ Tried mapping ${key} to ${context[key]}`);
               break;
             case '@type':
               if (objectValue !== '@id' && objectValue !== '@vocab'
+                && (processingMode === 1.0 || objectValue !== '@json')
                 && (objectValue[0] === '_' || !ContextParser.isValidIri(objectValue))) {
-                throw new Error(`A context @type must be an absolute IRI, found: '${key}': '${objectValue}'`);
+                throw new ErrorCoded(`A context @type must be an absolute IRI, found: '${key}': '${objectValue}'`,
+                  ERROR_CODES.INVALID_TYPE_MAPPING);
               }
               break;
             case '@reverse':
@@ -713,7 +715,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       ContextParser.expandPrefixedTerms(newContext, this.expandContentTypeToBase);
       ContextParser.normalize(newContext, { processingMode, normalizeLanguageTags });
       if (this.validate) {
-        ContextParser.validate(newContext);
+        ContextParser.validate(newContext, { processingMode });
       }
       return newContext;
     } else {
