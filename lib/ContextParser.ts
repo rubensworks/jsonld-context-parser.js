@@ -10,6 +10,8 @@ import {IJsonLdContextNormalized, IPrefixValue, JsonLdContext} from "./JsonLdCon
  */
 export class ContextParser implements IDocumentLoader {
 
+  public static readonly DEFAULT_PROCESSING_MODE: number = 1.1;
+
   // Regex for valid IRIs
   public static readonly IRI_REGEX: RegExp = /^([A-Za-z][A-Za-z0-9+-.]*|_):[^ "<>{}|\\\[\]`]*$/;
   // Regex for keyword form
@@ -649,7 +651,9 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
    * @return {Promise<IJsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
-                     { baseIRI, parentContext, external, processingMode, normalizeLanguageTags }: IParseOptions = {})
+                     { baseIRI, parentContext, external, processingMode, normalizeLanguageTags }: IParseOptions = {
+                       processingMode: ContextParser.DEFAULT_PROCESSING_MODE,
+                     })
     : Promise<IJsonLdContextNormalized> {
     if (context === null || context === undefined) {
       // Context that are explicitly set to null are empty.
