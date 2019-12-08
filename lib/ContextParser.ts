@@ -189,13 +189,14 @@ export class ContextParser implements IDocumentLoader {
     }
 
     // Check the @id
+    const reversed = contextValue && contextValue['@reverse'];
     let validIriMapping = true;
     if (contextValue && expandVocab) {
       const value = this.getContextValueId(contextValue);
       if (value && value !== term) {
         if (typeof value !== 'string' || (!ContextParser.isValidIri(value) && !ContextParser.isValidKeyword(value))) {
           // Don't mark this mapping as invalid if we have an unknown keyword, but of the correct form.
-          if (!ContextParser.isPotentialKeyword(value)) {
+          if ((reversed && !options.allowReverseRelativeToVocab) || !ContextParser.isPotentialKeyword(value)) {
             validIriMapping = false;
           }
         } else {
@@ -227,7 +228,8 @@ export class ContextParser implements IDocumentLoader {
         return value + term.substr(prefix.length + 1);
       }
     } else if (expandVocab && ((vocab || vocab === '') || (options.allowVocabRelativeToBase && (base && vocabRelative)))
-      && !potentialKeyword && !ContextParser.isCompactIri(term)) {
+      && !potentialKeyword && !ContextParser.isCompactIri(term)
+      && !(reversed && !options.allowReverseRelativeToVocab)) {
       if (vocabRelative) {
         if (options.allowVocabRelativeToBase) {
           return resolve(vocab, base) + term;
@@ -872,11 +874,16 @@ export interface IExpandOptions {
    */
   allowNonGenDelimsIfPrefix: boolean;
   /**
+   * If @reverse values are allowed to be relative to the @vocab.
+   */
+  allowReverseRelativeToVocab: boolean;
+  /**
    * If @vocab values are allowed contain IRIs relative to @base.
    */
   allowVocabRelativeToBase: boolean;
 }
 export const defaultExpandOptions: IExpandOptions = {
   allowNonGenDelimsIfPrefix: true,
+  allowReverseRelativeToVocab: false,
   allowVocabRelativeToBase: true,
 };
