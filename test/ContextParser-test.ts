@@ -145,8 +145,7 @@ describe('ContextParser', () => {
 
       it('to throw for not allowed relative @vocab', async () => {
         const opts = {
-          allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
+          ...defaultExpandOptions,
           allowVocabRelativeToBase: false,
         };
         expect(() => ContextParser.expandTerm('bla', {
@@ -157,8 +156,7 @@ describe('ContextParser', () => {
 
       it('to throw for unsupported relative empty @vocab', async () => {
         const opts = {
-          allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
+          ...defaultExpandOptions,
           allowVocabRelativeToBase: false,
         };
         expect(() => ContextParser.expandTerm('bla', {
@@ -178,8 +176,7 @@ describe('ContextParser', () => {
 
       it('to return when @vocab is empty string and @base exists if allowVocabRelativeToBase is true', async () => {
         const opts = {
-          allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
+          ...defaultExpandOptions,
           allowVocabRelativeToBase: true,
         };
         expect(ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true,
@@ -188,8 +185,7 @@ describe('ContextParser', () => {
 
       it('to throw when @vocab is empty string and @base exists if allowVocabRelativeToBase is false', async () => {
         const opts = {
-          allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
+          ...defaultExpandOptions,
           allowVocabRelativeToBase: false,
         };
         expect(() => ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true,
@@ -199,8 +195,7 @@ describe('ContextParser', () => {
 
       it('to return when @vocab is "#" and @base exists if allowVocabRelativeToBase is true', async () => {
         const opts = {
-          allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
+          ...defaultExpandOptions,
           allowVocabRelativeToBase: true,
         };
         expect(ContextParser.expandTerm('def', {'@vocab': '#', '@base': 'http://ex.org/'}, true,
@@ -209,8 +204,7 @@ describe('ContextParser', () => {
 
       it('to throw when @vocab is "#" string and @base exists if allowVocabRelativeToBase is false', async () => {
         const opts = {
-          allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
+          ...defaultExpandOptions,
           allowVocabRelativeToBase: false,
         };
         expect(() => ContextParser.expandTerm('def', {'@vocab': '#', '@base': 'http://ex.org/'}, true,
@@ -220,8 +214,7 @@ describe('ContextParser', () => {
 
       it('to return when @vocab is "../#" and @base exists if allowVocabRelativeToBase is true', async () => {
         const opts = {
-          allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
+          ...defaultExpandOptions,
           allowVocabRelativeToBase: true,
         };
         expect(ContextParser.expandTerm('def', {'@vocab': '../#', '@base': 'http://ex.org/abc/'}, true,
@@ -230,8 +223,7 @@ describe('ContextParser', () => {
 
       it('to throw when @vocab is "../#" string and @base exists if allowVocabRelativeToBase is false', async () => {
         const opts = {
-          allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
+          ...defaultExpandOptions,
           allowVocabRelativeToBase: false,
         };
         expect(() => ContextParser.expandTerm('def', {'@vocab': '../#', '@base': 'http://ex.org/abc/'}, true,
@@ -241,8 +233,7 @@ describe('ContextParser', () => {
 
       it('to return when @vocab is absolute and @base exists if allowVocabRelativeToBase is true', async () => {
         const opts = {
-          allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
+          ...defaultExpandOptions,
           allowVocabRelativeToBase: true,
         };
         expect(ContextParser.expandTerm('def', {'@vocab': 'http://abc.org/', '@base': 'http://ex.org/abc/'}, true,
@@ -251,8 +242,7 @@ describe('ContextParser', () => {
 
       it('to return when @vocab is absolute string and @base exists if allowVocabRelativeToBase is false', async () => {
         const opts = {
-          allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
+          ...defaultExpandOptions,
           allowVocabRelativeToBase: false,
         };
         expect(ContextParser.expandTerm('def', {'@vocab': 'http://abc.org/', '@base': 'http://ex.org/abc/'}, true,
@@ -261,9 +251,8 @@ describe('ContextParser', () => {
 
       it('to return null when allowNonGenDelimsIfPrefix is true with non-gen-delim without @prefix', async () => {
         const opts = {
+          ...defaultExpandOptions,
           allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
-          allowVocabRelativeToBase: true,
         };
         expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact-' }, true,
           opts)).toBe(null);
@@ -271,9 +260,8 @@ describe('ContextParser', () => {
 
       it('to return when allowNonGenDelimsIfPrefix is true with non-gen-delim with @prefix', async () => {
         const opts = {
+          ...defaultExpandOptions,
           allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
-          allowVocabRelativeToBase: true,
         };
         expect(ContextParser.expandTerm('abc:def',
           { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } }, true, opts))
@@ -282,9 +270,8 @@ describe('ContextParser', () => {
 
       it('to return null when allowNonGenDelimsIfPrefix is false with non-gen-delim without @prefix', async () => {
         const opts = {
+          ...defaultExpandOptions,
           allowNonGenDelimsIfPrefix: false,
-          allowReverseRelativeToVocab: false,
-          allowVocabRelativeToBase: true,
         };
         expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-' } }, true,
           opts)).toBe(null);
@@ -292,9 +279,8 @@ describe('ContextParser', () => {
 
       it('to return null when allowNonGenDelimsIfPrefix is false with non-gen-delim with @prefix', async () => {
         const opts = {
+          ...defaultExpandOptions,
           allowNonGenDelimsIfPrefix: false,
-          allowReverseRelativeToVocab: false,
-          allowVocabRelativeToBase: true,
         };
         expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } },
           true, opts)).toBe(null);
@@ -302,9 +288,8 @@ describe('ContextParser', () => {
 
       it('to return when allowNonGenDelimsIfPrefix is true with gen-delim without @prefix', async () => {
         const opts = {
+          ...defaultExpandOptions,
           allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
-          allowVocabRelativeToBase: true,
         };
         expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/' } }, true,
           opts)).toBe('http://ex.org/def');
@@ -312,9 +297,8 @@ describe('ContextParser', () => {
 
       it('to return when allowNonGenDelimsIfPrefix is true with gen-delim with @prefix', async () => {
         const opts = {
+          ...defaultExpandOptions,
           allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
-          allowVocabRelativeToBase: true,
         };
         expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/', '@prefix': true } }, true,
           opts)).toBe('http://ex.org/def');
@@ -322,9 +306,8 @@ describe('ContextParser', () => {
 
       it('to return when allowNonGenDelimsIfPrefix is true for a blank node', async () => {
         const opts = {
+          ...defaultExpandOptions,
           allowNonGenDelimsIfPrefix: true,
-          allowReverseRelativeToVocab: false,
-          allowVocabRelativeToBase: true,
         };
         expect(ContextParser.expandTerm('abc:def', { abc: { '@id': '_:b' } }, true,
           opts)).toBe('_:bdef');
@@ -332,9 +315,8 @@ describe('ContextParser', () => {
 
       it('to return when allowNonGenDelimsIfPrefix is false with gen-delim without @prefix', async () => {
         const opts = {
+          ...defaultExpandOptions,
           allowNonGenDelimsIfPrefix: false,
-          allowReverseRelativeToVocab: false,
-          allowVocabRelativeToBase: true,
         };
         expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/' } }, true,
           opts)).toBe('http://ex.org/def');
@@ -342,9 +324,8 @@ describe('ContextParser', () => {
 
       it('to return when allowNonGenDelimsIfPrefix is false with gen-delim with @prefix', async () => {
         const opts = {
+          ...defaultExpandOptions,
           allowNonGenDelimsIfPrefix: false,
-          allowReverseRelativeToVocab: false,
-          allowVocabRelativeToBase: true,
         };
         expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/', '@prefix': true } }, true,
           opts)).toBe('http://ex.org/def');
