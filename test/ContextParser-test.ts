@@ -15,6 +15,28 @@ describe('ContextParser', () => {
     });
   });
 
+  describe('#isTermProtected', () => {
+    it('to be false when a term is not present', async () => {
+      expect(ContextParser.isTermProtected({}, 'a')).toBeFalsy();
+    });
+
+    it('to be false on a string-based term', async () => {
+      expect(ContextParser.isTermProtected({ a: 'b' }, 'a')).toBeFalsy();
+    });
+
+    it('to be false on an object-based term', async () => {
+      expect(ContextParser.isTermProtected({ a: { '@id': 'b' } }, 'a')).toBeFalsy();
+    });
+
+    it('to be false on an object-based term with @protected: false', async () => {
+      expect(ContextParser.isTermProtected({ a: { '@id': 'b', '@protected': false } }, 'a')).toBeFalsy();
+    });
+
+    it('to be true on an object-based term with @protected: true', async () => {
+      expect(ContextParser.isTermProtected({ a: { '@id': 'b', '@protected': true } }, 'a')).toBeTruthy();
+    });
+  });
+
   describe('#getPrefix', () => {
     it('to return a null when no colon exists', async () => {
       expect(ContextParser.getPrefix('abc', { '//': 'abc' })).toBe(null);
@@ -851,7 +873,7 @@ describe('ContextParser', () => {
       expect(() => ContextParser.expandPrefixedTerms({
         '@id': 'http//ex.org/id',
       }, true)).toThrow(new Error(`Keywords can not be aliased to something else.
-Tried mapping @id to http//ex.org/id`));
+Tried mapping @id to "http//ex.org/id"`));
     });
 
     it('should expand aliases', async () => {
@@ -1698,6 +1720,280 @@ Tried mapping @id to http//ex.org/id`));
             '@version': 1.1,
             '@vocab': 'vocab/',
           });
+      });
+    });
+
+    describe('for protected terms', () => {
+      it('should parse a single protected term', () => {
+        return expect(parser.parse({
+          name: {
+            '@id': 'http://xmlns.com/foaf/0.1/name',
+            '@protected': true,
+          },
+        }, { processingMode: 1.1 })).resolves.toEqual({
+          name: {
+            '@id': 'http://xmlns.com/foaf/0.1/name',
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should parse a single keyword alias', () => {
+        return expect(parser.parse({
+          id: {
+            '@id': '@id',
+            '@protected': true,
+          },
+        }, { processingMode: 1.1 })).resolves.toEqual({
+          id: {
+            '@id': '@id',
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should parse context-level @protected', () => {
+        return expect(parser.parse({
+          '@protected': true,
+          'knows': 'http://xmlns.com/foaf/0.1/knows',
+          'name': 'http://xmlns.com/foaf/0.1/name',
+        }, { processingMode: 1.1 })).resolves.toEqual({
+          knows: {
+            '@id': 'http://xmlns.com/foaf/0.1/knows',
+            '@protected': true,
+          },
+          name: {
+            '@id': 'http://xmlns.com/foaf/0.1/name',
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should parse context-level @protected with local overrides', () => {
+        return expect(parser.parse({
+          '@protected': true,
+          'knows': {
+            '@id': 'http://xmlns.com/foaf/0.1/knows',
+            '@protected': false,
+          },
+          'name': {
+            '@id': 'http://xmlns.com/foaf/0.1/name',
+          },
+        }, { processingMode: 1.1 })).resolves.toEqual({
+          knows: {
+            '@id': 'http://xmlns.com/foaf/0.1/knows',
+            '@protected': false,
+          },
+          name: {
+            '@id': 'http://xmlns.com/foaf/0.1/name',
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should parse context-level @protected with a keyword alias', () => {
+        return expect(parser.parse({
+          '@protected': true,
+          'id': '@id',
+        }, { processingMode: 1.1 })).resolves.toEqual({
+          id: {
+            '@id': '@id',
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should error on a protected term with override', () => {
+        return expect(parser.parse([
+          {
+            name: {
+              '@id': 'http://xmlns.com/foaf/0.1/name',
+              '@protected': true,
+            },
+          },
+          {
+            name: 'http://schema.org/name',
+          },
+        ], { processingMode: 1.1 })).rejects.toThrow(new ErrorCoded(
+          'Attempted to override the protected keyword name from ' +
+          '"http://xmlns.com/foaf/0.1/name" to "http://schema.org/name"',
+          ERROR_CODES.PROTECTED_TERM_REDIFINITION));
+      });
+
+      it('should error on a protected keyword alias with override', () => {
+        return expect(parser.parse([
+          {
+            id: {
+              '@id': '@id',
+              '@protected': true,
+            },
+          },
+          {
+            id: 'http://schema.org/id',
+          },
+        ], { processingMode: 1.1 })).rejects.toThrow(new ErrorCoded(
+          'Attempted to override the protected keyword id from "@id" to "http://schema.org/id"',
+          ERROR_CODES.PROTECTED_TERM_REDIFINITION));
+      });
+
+      it('should parse a protected term with semantically identical (string-based) override', () => {
+        return expect(parser.parse([
+          {
+            name: {
+              '@id': 'http://xmlns.com/foaf/0.1/name',
+              '@protected': true,
+            },
+          },
+          {
+            name: 'http://xmlns.com/foaf/0.1/name',
+          },
+        ], { processingMode: 1.1 })).resolves.toEqual({
+          name: {
+            '@id': 'http://xmlns.com/foaf/0.1/name',
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should parse a protected term with identical (object-based) override (mod @protected)', () => {
+        return expect(parser.parse([
+          {
+            name: {
+              '@id': 'http://xmlns.com/foaf/0.1/name',
+              '@protected': true,
+            },
+          },
+          {
+            name: {
+              '@id': 'http://xmlns.com/foaf/0.1/name',
+            },
+          },
+        ], { processingMode: 1.1 })).resolves.toEqual({
+          name: {
+            '@id': 'http://xmlns.com/foaf/0.1/name',
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should parse a protected term with identical (object-based) override', () => {
+        return expect(parser.parse([
+          {
+            name: {
+              '@id': 'http://xmlns.com/foaf/0.1/name',
+              '@protected': true,
+            },
+          },
+          {
+            name: {
+              '@id': 'http://xmlns.com/foaf/0.1/name',
+              '@protected': true,
+            },
+          },
+        ], { processingMode: 1.1 })).resolves.toEqual({
+          name: {
+            '@id': 'http://xmlns.com/foaf/0.1/name',
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should parse a protected keyword alias with identical (object-based) override (mod @protected)', () => {
+        return expect(parser.parse([
+          {
+            id: {
+              '@id': '@id',
+              '@protected': true,
+            },
+          },
+          {
+            id: {
+              '@id': '@id',
+            },
+          },
+        ], { processingMode: 1.1 })).resolves.toEqual({
+          id: {
+            '@id': '@id',
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should parse a protected keyword alias with identical (object-based) override', () => {
+        return expect(parser.parse([
+          {
+            id: {
+              '@id': '@id',
+              '@protected': true,
+            },
+          },
+          {
+            id: {
+              '@id': '@id',
+              '@protected': true,
+            },
+          },
+        ], { processingMode: 1.1 })).resolves.toEqual({
+          id: {
+            '@id': '@id',
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should parse a term that becomes protected later on', () => {
+        return expect(parser.parse([
+          {
+            name: 'http://xmlns.com/foaf/0.1/name',
+          },
+          {
+            name: {
+              '@id': 'http://xmlns.com/foaf/0.1/name',
+              '@protected': true,
+            },
+          },
+        ], { processingMode: 1.1 })).resolves.toEqual({
+          name: {
+            '@id': 'http://xmlns.com/foaf/0.1/name',
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should parse a global protected keyword alias with identical (object-based) override (mod @protected)',
+        () => {
+          return expect(parser.parse([
+            {
+              '@protected': true,
+              'id': '@id',
+            },
+            {
+              id: '@id',
+            },
+          ], { processingMode: 1.1 })).resolves.toEqual({
+            id: {
+              '@id': '@id',
+              '@protected': true,
+            },
+          });
+        });
+
+      it('should parse a global protected keyword alias with identical (object-based) override', () => {
+        return expect(parser.parse([
+          {
+            '@protected': true,
+            'id': '@id',
+          },
+          {
+            '@protected': true,
+            'id': '@id',
+          },
+        ], { processingMode: 1.1 })).resolves.toEqual({
+          id: {
+            '@id': '@id',
+            '@protected': true,
+          },
+        });
       });
     });
 

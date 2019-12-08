@@ -400,7 +400,7 @@ export class ContextParser implements IDocumentLoader {
         // Error if we try to alias a keyword to something else.
         if (ContextParser.isPotentialKeyword(key) && ContextParser.ALIAS_KEYS_BLACKLIST.indexOf(key) >= 0) {
           throw new Error(`Keywords can not be aliased to something else.
-Tried mapping ${key} to ${context[key]}`);
+Tried mapping ${key} to ${JSON.stringify(context[key])}`);
         }
 
         // Loop because prefixes might be nested
@@ -460,6 +460,85 @@ Tried mapping ${key} to ${context[key]}`);
       }
     }
     return context;
+  }
+
+  /**
+   * Check if the given term is protected in the context.
+   * @param {IJsonLdContextNormalized} context A context.
+   * @param {string} key A context term.
+   * @return {boolean} If the given term has an @protected flag.
+   */
+  public static isTermProtected(context: IJsonLdContextNormalized, key: string): boolean {
+    const value = context[key];
+    return !(typeof value === 'string') && value && value['@protected'];
+  }
+
+  /**
+   * Normalize and apply context-levevl @protected terms onto each term separately.
+   * @param {IJsonLdContextNormalized} context A context.
+   * @param {number} processingMode The processing mode.
+   * @return {IJsonLdContextNormalized} The mutated input context.
+   */
+  public static applyScopedProtected(context: IJsonLdContextNormalized, { processingMode }: IParseOptions)
+    : IJsonLdContextNormalized {
+    if (processingMode >= 1.1) {
+      if (context['@protected']) {
+        for (const key of Object.keys(context)) {
+          if (!ContextParser.isPotentialKeyword(key) && !ContextParser.isTermProtected(context, key)) {
+            const value = context[key];
+            if (value && typeof value === 'object') {
+              if (!('@protected' in context[key])) {
+                // Mark terms with object values as protected if they don't have an @protected: false annotation
+                context[key]['@protected'] = true;
+              }
+            } else {
+              // Convert string-based term values to object-based values with @protected: true
+              context[key] = {
+                '@id': value,
+                '@protected': true,
+              };
+            }
+          }
+        }
+        delete context['@protected'];
+      }
+    }
+    return context;
+  }
+
+  /**
+   * Check if the given context inheritance does not contain any overrides of protected terms.
+   * @param {IJsonLdContextNormalized} contextBefore The context that may contain some protected terms.
+   * @param {IJsonLdContextNormalized} contextAfter A new context that is being applied on the first one.
+   */
+  public static validateKeywordRedefinitions(contextBefore: IJsonLdContextNormalized,
+                                             contextAfter: IJsonLdContextNormalized) {
+    for (const key of Object.keys(contextAfter)) {
+      if (ContextParser.isTermProtected(contextBefore, key)) {
+        // The entry in the context before will always be in object-mode
+        // If the new entry is in string-mode, convert it to object-mode
+        // before checking if it is identical.
+        if (typeof contextAfter[key] === 'string') {
+          contextAfter[key] = { '@id': contextAfter[key] };
+        }
+
+        // Convert term values to strings for each comparison
+        const valueBefore = JSON.stringify(contextBefore[key]);
+        // We modify this deliberately,
+        // as we need it for the value comparison (they must be identical modulo '@protected')),
+        // and for the fact that this new value will override the first one.
+        contextAfter[key]['@protected'] = true;
+        const valueAfter = JSON.stringify(contextAfter[key]);
+
+        // Error if they are not identical
+        if (valueBefore !== valueAfter) {
+          throw new ErrorCoded(`Attempted to override the protected keyword ${key} from ${
+            JSON.stringify(ContextParser.getContextValueId(contextBefore[key]))} to ${
+            JSON.stringify(ContextParser.getContextValueId(contextAfter[key]))}`,
+            ERROR_CODES.PROTECTED_TERM_REDIFINITION);
+        }
+      }
+    }
   }
 
   /**
@@ -706,6 +785,11 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
         }
       }
 
+      // In JSON-LD 1.1, check if we are not redefining any protected keywords
+      if (parentContext && processingMode >= 1.1) {
+        ContextParser.validateKeywordRedefinitions(parentContext, context);
+      }
+
       newContext = { ...newContext, ...parentContext, ...context };
 
       // In JSON-LD 1.1, @vocab can be relative to @vocab in the parent context.
@@ -718,6 +802,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       ContextParser.idifyReverseTerms(newContext);
       ContextParser.expandPrefixedTerms(newContext, this.expandContentTypeToBase);
       ContextParser.normalize(newContext, { processingMode, normalizeLanguageTags });
+      ContextParser.applyScopedProtected(newContext, { processingMode });
       if (this.validate) {
         ContextParser.validate(newContext, { processingMode });
       }
