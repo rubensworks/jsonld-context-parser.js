@@ -1202,11 +1202,23 @@ Tried mapping @id to "http//ex.org/id"`));
         .not.toThrow();
     });
 
+    it('should not error on a term with @container: @id', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@id' } },
+        parseDefaults))
+        .not.toThrow();
+    });
+
+    it('should not error on a term with @container: @graph', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@graph' } },
+        parseDefaults))
+        .not.toThrow();
+    });
+
     it('should error on a term with @container: @unknown', async () => {
       expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@unknown' } },
         parseDefaults))
         .toThrow(new Error('Invalid term @container for \'term\' (\'@unknown\'), ' +
-          'must be one of @list, @set, @index, @language'));
+          'must be one of @list, @set, @index, @language, @graph, @id'));
     });
 
     it('should error on a term with @container: @list and @reverse', async () => {

@@ -80,6 +80,8 @@ export class ContextParser implements IDocumentLoader {
     '@set',
     '@index',
     '@language',
+    '@graph',
+    '@id',
   ];
 
   private readonly documentLoader: IDocumentLoader;
