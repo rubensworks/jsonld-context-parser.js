@@ -20,7 +20,7 @@ const type = argv[0];
 
 let input: any;
 let external: boolean = false;
-let baseIRI: string;
+let baseIRI: string | undefined;
 switch (type) {
 case 'url':
   input = argv[1];

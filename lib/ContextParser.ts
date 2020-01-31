@@ -94,7 +94,7 @@ export class ContextParser implements IDocumentLoader {
     this.documentLoader = options.documentLoader || new FetchDocumentLoader();
     this.documentCache = {};
     this.validate = !options.skipValidation;
-    this.expandContentTypeToBase = options.expandContentTypeToBase;
+    this.expandContentTypeToBase = !!options.expandContentTypeToBase;
   }
 
   /**
@@ -114,7 +114,7 @@ export class ContextParser implements IDocumentLoader {
    * @param {IJsonLdContextNormalized} context A context.
    * @return {string} The prefix or null.
    */
-  public static getPrefix(term: string, context: IJsonLdContextNormalized): string {
+  public static getPrefix(term: string, context: IJsonLdContextNormalized): string | null {
     // Do not consider relative IRIs starting with a hash as compact IRIs
     if (term && term[0] === '#') {
       return null;
@@ -180,7 +180,7 @@ export class ContextParser implements IDocumentLoader {
    * @throws If the term is aliased to an invalid value (not a string, IRI or keyword).
    */
   public static expandTerm(term: string, context: IJsonLdContextNormalized, expandVocab?: boolean,
-                           options: IExpandOptions = defaultExpandOptions): string {
+                           options: IExpandOptions = defaultExpandOptions): string | null {
     ContextParser.assertNormalized(context);
 
     const contextValue = context[term];
@@ -208,10 +208,10 @@ export class ContextParser implements IDocumentLoader {
     }
 
     // Check if the term is prefixed
-    const prefix: string = ContextParser.getPrefix(term, context);
-    const vocab: string = context['@vocab'];
-    const vocabRelative: boolean = (vocab || vocab === '') && vocab.indexOf(':') < 0;
-    const base: string = context['@base'];
+    const prefix: string | null = ContextParser.getPrefix(term, context);
+    const vocab: string | undefined = context['@vocab'];
+    const vocabRelative: boolean = (!!vocab || vocab === '') && vocab.indexOf(':') < 0;
+    const base: string | undefined = context['@base'];
     const potentialKeyword = ContextParser.isPotentialKeyword(term);
     if (prefix) {
       const contextPrefixValue = context[prefix];
@@ -234,7 +234,7 @@ export class ContextParser implements IDocumentLoader {
       && !(reversed && !options.allowReverseRelativeToVocab)) {
       if (vocabRelative) {
         if (options.allowVocabRelativeToBase) {
-          return resolve(vocab, base) + term;
+          return resolve(<string> vocab, base) + term;
         } else {
           throw new ErrorCoded(`Relative vocab expansion for term '${term}' with vocab '${
             vocab}' is not allowed.`, ERROR_CODES.INVALID_VOCAB_MAPPING);
@@ -452,7 +452,7 @@ Tried mapping ${key} to ${JSON.stringify(context[key])}`);
     if (normalizeLanguageTags || processingMode === 1.0) {
       for (const key of Object.keys(context)) {
         if (key === '@language' && typeof context[key] === 'string') {
-          context[key] = context[key].toLowerCase();
+          context[key] = (<string> context[key]).toLowerCase();
         } else {
           const value = context[key];
           if (value && typeof value === 'object') {
@@ -485,7 +485,7 @@ Tried mapping ${key} to ${JSON.stringify(context[key])}`);
    */
   public static applyScopedProtected(context: IJsonLdContextNormalized, { processingMode }: IParseOptions)
     : IJsonLdContextNormalized {
-    if (processingMode >= 1.1) {
+    if (processingMode && processingMode >= 1.1) {
       if (context['@protected']) {
         for (const key of Object.keys(context)) {
           if (!ContextParser.isPotentialKeyword(key) && !ContextParser.isTermProtected(context, key)) {
@@ -717,7 +717,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
    * @param {string} baseIRI A base IRI.
    * @return {string} The normalized context IRI.
    */
-  protected static normalizeContextIri(contextIri: string, baseIRI: string) {
+  protected static normalizeContextIri(contextIri: string, baseIRI?: string) {
     if (!ContextParser.isValidIri(contextIri)) {
       contextIri = resolve(contextIri, baseIRI);
       if (!ContextParser.isValidIri(contextIri)) {
@@ -761,7 +761,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
             parentContext: accContext,
             processingMode,
           })),
-        Promise.resolve(parentContext));
+        Promise.resolve(parentContext || {}));
     } else if (typeof context === 'object') {
       if (context['@context']) {
         return await this.parse(context['@context'], { baseIRI, parentContext, external, processingMode });
@@ -783,14 +783,14 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
         if (!('@base' in context)) {
           // The context base is the document base
           context['@base'] = baseIRI;
-        } else if (context['@base'] !== null && !ContextParser.isValidIri(context['@base'])) {
+        } else if (context['@base'] !== null && !ContextParser.isValidIri(<string> context['@base'])) {
           // The context base is relative to the document base
-          context['@base'] = resolve(context['@base'], baseIRI);
+          context['@base'] = resolve(<string> context['@base'], baseIRI);
         }
       }
 
       // In JSON-LD 1.1, check if we are not redefining any protected keywords
-      if (parentContext && processingMode >= 1.1) {
+      if (parentContext && processingMode && processingMode >= 1.1) {
         ContextParser.validateKeywordRedefinitions(parentContext, context);
       }
 
@@ -799,7 +799,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       // In JSON-LD 1.1, @vocab can be relative to @vocab in the parent context.
       if ((newContext['@version'] || processingMode) >= 1.1
         && (context['@vocab'] || context['@vocab'] === '')
-        && context['@vocab'].indexOf(':') < 0 && '@vocab' in parentContext) {
+        && context['@vocab'].indexOf(':') < 0 && parentContext && '@vocab' in parentContext) {
         newContext['@vocab'] = parentContext['@vocab'] + context['@vocab'];
       }
 
