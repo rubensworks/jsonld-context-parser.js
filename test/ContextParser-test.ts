@@ -1156,6 +1156,17 @@ Tried mapping @id to "http//ex.org/id"`));
           ERROR_CODES.INVALID_TYPE_MAPPING));
     });
 
+    it('should not error on term with @type: @none', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@none' } }, parseDefaults))
+        .not.toThrow();
+    });
+
+    it('should error on term with @type: @none in 1.0', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@none' } }, { processingMode: 1.0 }))
+        .toThrow(new ErrorCoded(`A context @type must be an absolute IRI, found: 'term': '@none'`,
+          ERROR_CODES.INVALID_TYPE_MAPPING));
+    });
+
     it('should error on term with @type: _:bnode', async () => {
       expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '_:bnode' } }, parseDefaults))
         .toThrow(new Error('A context @type must be an absolute IRI, found: \'term\': \'_:bnode\''));

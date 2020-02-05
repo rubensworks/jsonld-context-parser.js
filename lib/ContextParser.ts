@@ -616,6 +616,7 @@ Tried mapping ${key} to ${JSON.stringify(context[key])}`);
             case '@type':
               if (objectValue !== '@id' && objectValue !== '@vocab'
                 && (processingMode === 1.0 || objectValue !== '@json')
+                && (processingMode === 1.0 || objectValue !== '@none')
                 && (objectValue[0] === '_' || !ContextParser.isValidIri(objectValue))) {
                 throw new ErrorCoded(`A context @type must be an absolute IRI, found: '${key}': '${objectValue}'`,
                   ERROR_CODES.INVALID_TYPE_MAPPING);
