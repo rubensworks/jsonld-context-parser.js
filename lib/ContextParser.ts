@@ -82,6 +82,7 @@ export class ContextParser implements IDocumentLoader {
     '@language',
     '@graph',
     '@id',
+    '@type',
   ];
 
   private readonly documentLoader: IDocumentLoader;
