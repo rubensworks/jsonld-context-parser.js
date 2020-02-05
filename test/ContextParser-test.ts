@@ -1167,6 +1167,23 @@ Tried mapping @id to "http//ex.org/id"`));
           ERROR_CODES.INVALID_TYPE_MAPPING));
     });
 
+    it('should not error on term with @type: @id with @container: @type', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@id', '@container': '@type' } },
+        parseDefaults)).not.toThrow();
+    });
+
+    it('should not error on term with @type: @vocab with @container: @type', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@vocab', '@container': '@type' } },
+        parseDefaults)).not.toThrow();
+    });
+
+    it('should error on term with @type: @none with @container: @type', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@none', '@container': '@type' } },
+        parseDefaults))
+        .toThrow(new ErrorCoded(`@container: @type only allows @type: @id or @vocab, but got: 'term': '@none'`,
+          ERROR_CODES.INVALID_TYPE_MAPPING));
+    });
+
     it('should error on term with @type: _:bnode', async () => {
       expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '_:bnode' } }, parseDefaults))
         .toThrow(new Error('A context @type must be an absolute IRI, found: \'term\': \'_:bnode\''));

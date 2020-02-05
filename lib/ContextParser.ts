@@ -621,6 +621,11 @@ Tried mapping ${key} to ${JSON.stringify(context[key])}`);
                 throw new ErrorCoded(`A context @type must be an absolute IRI, found: '${key}': '${objectValue}'`,
                   ERROR_CODES.INVALID_TYPE_MAPPING);
               }
+              if (value['@container'] === '@type' && objectValue !== '@id' && objectValue !== '@vocab') {
+                throw new ErrorCoded(`@container: @type only allows @type: @id or @vocab, but got: '${
+                  key}': '${objectValue}'`,
+                  ERROR_CODES.INVALID_TYPE_MAPPING);
+              }
               break;
             case '@reverse':
               if (typeof objectValue === 'string' && value['@id'] && value['@id'] !== objectValue) {
