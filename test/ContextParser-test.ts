@@ -980,6 +980,44 @@ Tried mapping @id to "http//ex.org/id"`));
     });
   });
 
+  describe('#containersToHash', () => {
+    it('should not modify an empty context', async () => {
+      expect(ContextParser.containersToHash({})).toEqual({});
+    });
+
+    it('should not modify a context with @non-container', async () => {
+      expect(ContextParser.containersToHash({
+        term: { '@non-container': 'bla' },
+      })).toEqual({
+        term: { '@non-container': 'bla' },
+      });
+    });
+
+    it('should not modify @container with a hash', async () => {
+      expect(ContextParser.containersToHash({
+        term: { '@container': { 1: true, 2: true } },
+      })).toEqual({
+        term: { '@container': { 1: true, 2: true } },
+      });
+    });
+
+    it('should modify @container with an array', async () => {
+      expect(ContextParser.containersToHash({
+        term: { '@container': [ '1', '2', '2' ] },
+      })).toEqual({
+        term: { '@container': { 1: true, 2: true } },
+      });
+    });
+
+    it('should arrayify @container with a string', async () => {
+      expect(ContextParser.containersToHash({
+        term: { '@container': '1' },
+      })).toEqual({
+        term: { '@container': { 1: true } },
+      });
+    });
+  });
+
   describe('#expandPrefixedTerms with expandContentTypeToBase false', () => {
     it('should not let @type fallback to base when when vocab is disabled', async () => {
       expect(ContextParser.expandPrefixedTerms({
@@ -1206,6 +1244,12 @@ Tried mapping @id to "http//ex.org/id"`));
           new Error('Found non-matching @id and @reverse term values in \'term\':\'abc\' and \'http://ex.org/\''));
     });
 
+    it('should not error on an @container: {}', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': {} } },
+        parseDefaults))
+        .not.toThrow();
+    });
+
     it('should not error on a term with @container: @list', async () => {
       expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@list' } },
         parseDefaults))
@@ -1218,9 +1262,21 @@ Tried mapping @id to "http//ex.org/id"`));
         .not.toThrow();
     });
 
+    it('should not error on a term with @container: @set in an array', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': [ '@set' ] } },
+        parseDefaults))
+        .not.toThrow();
+    });
+
     it('should not error on a term with @container: @index', async () => {
       expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@index' } },
         parseDefaults))
+        .not.toThrow();
+    });
+
+    it('should not error on a term with @container: @index, @set', async () => {
+      expect(() => ContextParser.validate(<any>
+          { term: { '@id': 'http://ex.org/', '@container': [ '@index', '@set' ] } }, parseDefaults))
         .not.toThrow();
     });
 
@@ -1230,8 +1286,20 @@ Tried mapping @id to "http//ex.org/id"`));
         .not.toThrow();
     });
 
+    it('should not error on a term with @container: @language, @set', async () => {
+      expect(() => ContextParser.validate(<any>
+          { term: { '@id': 'http://ex.org/', '@container': [ '@language', '@set' ] } }, parseDefaults))
+        .not.toThrow();
+    });
+
     it('should not error on a term with @container: @id', async () => {
       expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@id' } },
+        parseDefaults))
+        .not.toThrow();
+    });
+
+    it('should not error on a term with @container: @id, @set', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': [ '@id', '@set' ] } },
         parseDefaults))
         .not.toThrow();
     });
@@ -1242,9 +1310,21 @@ Tried mapping @id to "http//ex.org/id"`));
         .not.toThrow();
     });
 
+    it('should not error on a term with @container: @graph, @set', async () => {
+      expect(() => ContextParser.validate(<any>
+          { term: { '@id': 'http://ex.org/', '@container': [ '@graph', '@set' ] } }, parseDefaults))
+        .not.toThrow();
+    });
+
     it('should not error on a term with @container: @type', async () => {
       expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@type' } },
         parseDefaults))
+        .not.toThrow();
+    });
+
+    it('should not error on a term with @container: @type, @set', async () => {
+      expect(() => ContextParser.validate(<any>
+          { term: { '@id': 'http://ex.org/', '@container': [ '@type', '@set' ] } }, parseDefaults))
         .not.toThrow();
     });
 
@@ -2102,7 +2182,7 @@ Tried mapping @id to "http//ex.org/id"`));
         },
         "constructorArguments": {
           "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#constructorArguments",
-          "@container": "@list",
+          "@container": { "@list": true },
         },
         "unique": {
           "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#uniqueValue",
@@ -2125,7 +2205,7 @@ Tried mapping @id to "http//ex.org/id"`));
         },
         "arguments": {
           "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-oriented#arguments",
-          "@container": "@list",
+          "@container": { "@list": true },
         },
         "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
         "comment": {
@@ -2180,7 +2260,7 @@ Tried mapping @id to "http//ex.org/id"`));
         "elements": {
           "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#elements",
           "@type": "@id",
-          "@container": "@list",
+          "@container": { "@list": true },
         },
         "collectEntries": {
           "@id": "https://linkedsoftwaredependencies.org/vocabularies/object-mapping#collectsEntriesFrom",

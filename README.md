@@ -12,6 +12,7 @@ This parser has the following functionality:
 * Merge arrays of contexts.
 * Create a default `@base` entry if a base IRI is provided.
 * Create `@id` entries for all `@reverse` occurences.
+* Convert `@container` string and array values to a hash-based value.
 * Expand prefixes and `@vocab` in string values, `@id`, `@type` and `@reverse`.
 * Context validation according to the [JSON-LD](https://json-ld.org/) specification while parsing (_can be disabled_).
 * Term expansion with the `ContextParser.expandTerm` helper function.

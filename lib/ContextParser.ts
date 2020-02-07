@@ -468,6 +468,29 @@ Tried mapping ${key} to ${JSON.stringify(context[key])}`);
   }
 
   /**
+   * Convert all @container strings and array values to hash-based values.
+   * @param {IJsonLdContextNormalized} context A context.
+   * @return {IJsonLdContextNormalized} The mutated input context.
+   */
+  public static containersToHash(context: IJsonLdContextNormalized): IJsonLdContextNormalized {
+    for (const key of Object.keys(context)) {
+      const value = context[key];
+      if (value && typeof value === 'object') {
+        if (typeof value['@container'] === 'string') {
+          value['@container'] = { [value['@container']]: true };
+        } else if (Array.isArray(value['@container'])) {
+          const newValue: {[key: string]: boolean} = {};
+          for (const containerValue of value['@container']) {
+            newValue[containerValue] = true;
+          }
+          value['@container'] = newValue;
+        }
+      }
+    }
+    return context;
+  }
+
+  /**
    * Check if the given term is protected in the context.
    * @param {IJsonLdContextNormalized} context A context.
    * @param {string} key A context term.
@@ -634,12 +657,18 @@ Tried mapping ${key} to ${JSON.stringify(context[key])}`);
               }
               break;
             case '@container':
-              if (objectValue === '@list' && value['@reverse']) {
-                throw new Error(`Term value can not be @container: @list and @reverse at the same time on '${key}'`);
-              }
-              if (ContextParser.CONTAINERS.indexOf(objectValue) < 0) {
-                throw new Error(`Invalid term @container for '${key}' ('${objectValue}'), \
+              const containerValues = typeof objectValue === 'string' ? [ objectValue ] : objectValue;
+              if (Array.isArray(containerValues)) {
+                for (const containerValue of containerValues) {
+                  if (containerValue === '@list' && value['@reverse']) {
+                    throw new Error(`Term value can not be @container: @list and @reverse at the same time on '${
+                      key}'`);
+                  }
+                  if (ContextParser.CONTAINERS.indexOf(containerValue) < 0) {
+                    throw new Error(`Invalid term @container for '${key}' ('${containerValue}'), \
 must be one of ${ContextParser.CONTAINERS.join(', ')}`);
+                  }
+                }
               }
               break;
             case '@language':
@@ -813,6 +842,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       ContextParser.idifyReverseTerms(newContext);
       ContextParser.expandPrefixedTerms(newContext, this.expandContentTypeToBase);
       ContextParser.normalize(newContext, { processingMode, normalizeLanguageTags });
+      ContextParser.containersToHash(newContext);
       ContextParser.applyScopedProtected(newContext, { processingMode });
       if (this.validate) {
         ContextParser.validate(newContext, { processingMode });
