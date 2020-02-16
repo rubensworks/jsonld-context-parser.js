@@ -2420,5 +2420,28 @@ Tried mapping @id to "http//ex.org/id"`));
           .toEqual(new Error('Tried parsing a context that is not a string, array or object, but got 1'));
       });
     });
+
+    describe('for scoped contexts', () => {
+      it('should not modify scoped context', () => {
+        return expect(parser.parse({
+          prop: {
+            '@context': {
+              prefix: 'http://ex.org/',
+              value: 'prefix:value',
+            },
+            '@id': 'http://ex.org/prop',
+          },
+        }, { processingMode: 1.1 })).resolves.toEqual({
+          prop: {
+            '@context': {
+              prefix: 'http://ex.org/',
+              value: 'prefix:value',
+            },
+            '@id': 'http://ex.org/prop',
+          },
+        });
+      });
+    });
+
   });
 });
