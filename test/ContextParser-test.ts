@@ -1123,6 +1123,21 @@ Tried mapping @id to "http//ex.org/id"`));
         .not.toThrow();
     });
 
+    it('should error on a valid @propagate in 1.0', async () => {
+      expect(() => ContextParser.validate(<any> { '@propagate': true }, { processingMode: 1.0 }))
+        .toThrow(new ErrorCoded('Found an illegal @propagate keyword: true', ERROR_CODES.INVALID_CONTEXT_ENTRY));
+    });
+
+    it('should not error on a valid @propagate in 1.1', async () => {
+      expect(() => ContextParser.validate(<any> { '@propagate': true }, parseDefaults))
+        .not.toThrow();
+    });
+
+    it('should error on an invalid @propagate', async () => {
+      expect(() => ContextParser.validate(<any> { '@propagate': 'a' }, parseDefaults))
+        .toThrow(new ErrorCoded('Found an invalid @propagate value: a', ERROR_CODES.INVALID_PROPAGATE_VALUE));
+    });
+
     it('should not error on an invalid @unknown', async () => {
       expect(() => ContextParser.validate(<any> { '@unknown': 'true' }, parseDefaults))
         .not.toThrow();

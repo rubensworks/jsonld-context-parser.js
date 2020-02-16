@@ -606,6 +606,14 @@ Tried mapping ${key} to ${JSON.stringify(context[key])}`);
             ContextParser.validateDirection(value, true);
           }
           break;
+        case 'propagate':
+          if (processingMode === 1.0) {
+            throw new ErrorCoded(`Found an illegal @propagate keyword: ${value}`, ERROR_CODES.INVALID_CONTEXT_ENTRY);
+          }
+          if (value !== null && valueType !== 'boolean') {
+            throw new ErrorCoded(`Found an invalid @propagate value: ${value}`, ERROR_CODES.INVALID_PROPAGATE_VALUE);
+          }
+          break;
         }
         continue;
       }
