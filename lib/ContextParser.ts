@@ -422,7 +422,7 @@ Tried mapping ${key} to ${JSON.stringify(context[key])}`);
               context[key]['@id'] = ContextParser.expandTerm(id, context, true);
               changed = changed || id !== context[key]['@id'];
             }
-            if (type && type !== '@vocab') {
+            if (type && type !== '@vocab' && value['@container'] !== '@type') {
               // First check @vocab, then fallback to @base
               context[key]['@type'] = ContextParser.expandTerm(type, context, true);
               if (expandContentTypeToBase && type === context[key]['@type']) {
@@ -645,16 +645,16 @@ Tried mapping ${key} to ${JSON.stringify(context[key])}`);
 
               break;
             case '@type':
+              if (value['@container'] === '@type' && objectValue !== '@id' && objectValue !== '@vocab') {
+                throw new ErrorCoded(`@container: @type only allows @type: @id or @vocab, but got: '${
+                    key}': '${objectValue}'`,
+                  ERROR_CODES.INVALID_TYPE_MAPPING);
+              }
               if (objectValue !== '@id' && objectValue !== '@vocab'
                 && (processingMode === 1.0 || objectValue !== '@json')
                 && (processingMode === 1.0 || objectValue !== '@none')
                 && (objectValue[0] === '_' || !ContextParser.isValidIri(objectValue))) {
                 throw new ErrorCoded(`A context @type must be an absolute IRI, found: '${key}': '${objectValue}'`,
-                  ERROR_CODES.INVALID_TYPE_MAPPING);
-              }
-              if (value['@container'] === '@type' && objectValue !== '@id' && objectValue !== '@vocab') {
-                throw new ErrorCoded(`@container: @type only allows @type: @id or @vocab, but got: '${
-                  key}': '${objectValue}'`,
                   ERROR_CODES.INVALID_TYPE_MAPPING);
               }
               break;

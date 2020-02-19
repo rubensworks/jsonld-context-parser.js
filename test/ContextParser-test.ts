@@ -1237,6 +1237,17 @@ Tried mapping @id to "http//ex.org/id"`));
           ERROR_CODES.INVALID_TYPE_MAPPING));
     });
 
+    it('should error on term with @type: bla with @container: @type', async () => {
+      expect(() => ContextParser.validate(<any> {
+        '@base': 'http://example.org/base/',
+        '@vocab': 'http://example.org/ns/',
+        'term': { '@type': 'bla', '@container': '@type' },
+      },
+        parseDefaults))
+        .toThrow(new ErrorCoded(`@container: @type only allows @type: @id or @vocab, but got: 'term': 'bla'`,
+          ERROR_CODES.INVALID_TYPE_MAPPING));
+    });
+
     it('should error on term with @type: _:bnode', async () => {
       expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '_:bnode' } }, parseDefaults))
         .toThrow(new Error('A context @type must be an absolute IRI, found: \'term\': \'_:bnode\''));
@@ -1891,6 +1902,29 @@ Tried mapping @id to "http//ex.org/id"`));
           .resolves.toEqual({
             '@version': 1.1,
             '@vocab': 'vocab/',
+          });
+      });
+
+      it('should not expand @type in @container: @type', () => {
+        return expect(parser.parse({
+          '@base': 'http://example.org/base/',
+          '@vocab': 'http://example.org/ns/',
+          'foo': { '@type': 'literal', '@container': '@type' },
+        }, { parentContext: {} }))
+          .rejects.toThrow(new ErrorCoded('A context @type must be an absolute IRI, found: \'foo\': \'literal\'',
+            ERROR_CODES.INVALID_TYPE_VALUE));
+      });
+
+      it('should expand @type in @container: @set', () => {
+        return expect(parser.parse({
+          '@base': 'http://example.org/base/',
+          '@vocab': 'http://example.org/ns/',
+          'foo': { '@type': 'literal', '@container': '@set' },
+        }, { parentContext: {} }))
+          .resolves.toEqual({
+            '@base': 'http://example.org/base/',
+            '@vocab': 'http://example.org/ns/',
+            'foo': { '@type': 'http://example.org/ns/literal', '@container': { '@set': true } },
           });
       });
     });
