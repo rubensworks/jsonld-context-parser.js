@@ -838,7 +838,27 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
         ContextParser.validateKeywordRedefinitions(parentContext, context);
       }
 
-      newContext = { ...newContext, ...parentContext, ...context };
+      // In JSON-LD 1.1, load @import'ed context prior to processing.
+      let importContext = {};
+      if ('@import' in context) {
+        if (processingMode && processingMode >= 1.1) {
+          // Only accept string values
+          if (typeof context['@import'] !== 'string') {
+            throw new ErrorCoded('An @import value must be a string, but got ' + typeof context['@import'],
+              ERROR_CODES.INVALID_IMPORT_VALUE);
+          }
+
+          // Load context
+          importContext = await this.loadImportContext(ContextParser.normalizeContextIri(context['@import'], baseIRI));
+          delete context['@import'];
+        } else {
+          throw new ErrorCoded('Context importing is not supported in JSON-LD 1.0',
+            ERROR_CODES.INVALID_CONTEXT_ENTRY);
+        }
+      }
+
+      // Merge different parts of the final context in order
+      newContext = { ...newContext, ...parentContext, ...importContext, ...context };
 
       // In JSON-LD 1.1, @vocab can be relative to @vocab in the parent context.
       if ((newContext['@version'] || processingMode) >= 1.1
@@ -867,6 +887,29 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       return Array.isArray(cached) ? cached.slice() : {... cached};
     }
     return this.documentCache[url] = (await this.documentLoader.load(url))['@context'];
+  }
+
+  /**
+   * Load an @import'ed context.
+   * @param importContextIri The full URI of an @import value.
+   */
+  public async loadImportContext(importContextIri: string): Promise<IJsonLdContextNormalized> {
+    // Load the context
+    const importContext = await this.load(importContextIri);
+
+    // Require the context to be a non-array object
+    if (typeof importContext !== 'object' || Array.isArray(importContext)) {
+      throw new ErrorCoded('An imported context must be a single object: ' + importContextIri,
+        ERROR_CODES.INVALID_REMOTE_CONTEXT);
+    }
+
+    // Error if the context contains another @import
+    if ('@import' in importContext) {
+      throw new ErrorCoded('An imported context can not import another context: ' + importContextIri,
+        ERROR_CODES.INVALID_CONTEXT_ENTRY);
+    }
+
+    return importContext;
   }
 
 }

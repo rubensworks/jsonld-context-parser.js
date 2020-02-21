@@ -2492,5 +2492,74 @@ Tried mapping @id to "http//ex.org/id"`));
       });
     });
 
+    describe('for contexts with @import', () => {
+      it('should load an existing context', () => {
+        return expect(parser.parse({
+          '@context': {
+            '@import': 'http://example.org/simple.jsonld',
+          },
+        })).resolves.toEqual({
+          name: "http://xmlns.com/foaf/0.1/name",
+          xsd: "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+
+      it('should fail to load a non-existing context', () => {
+        return expect(parser.parse({
+          '@context': {
+            '@import': 'http://example.org/404.jsonld',
+          },
+        })).rejects.toThrow(new ErrorCoded('No valid context was found at http://example.org/404.jsonld: undefined',
+          ERROR_CODES.INVALID_REMOTE_CONTEXT));
+      });
+
+      it('should error on @import on an array', () => {
+        return expect(parser.parse({
+          '@context': {
+            '@import': [ 'http://example.org/simple.jsonld' ],
+          },
+        })).rejects.toThrow(new ErrorCoded('An @import value must be a string, but got object',
+          ERROR_CODES.INVALID_IMPORT_VALUE));
+      });
+
+      it('should error on @import on an object', () => {
+        return expect(parser.parse({
+          '@context': {
+            '@import': {},
+          },
+        })).rejects.toThrow(new ErrorCoded('An @import value must be a string, but got object',
+          ERROR_CODES.INVALID_IMPORT_VALUE));
+      });
+
+      it('should error on @import on remote context with an array', () => {
+        return expect(parser.parse({
+          '@context': {
+            '@import': 'http://example.org/array.jsonld',
+          },
+        })).rejects.toThrow(new ErrorCoded('An imported context must be a single object: ' +
+          'http://example.org/array.jsonld',
+          ERROR_CODES.INVALID_REMOTE_CONTEXT));
+      });
+
+      it('should error on @import on remote context with another @import', () => {
+        return expect(parser.parse({
+          '@context': {
+            '@import': 'http://example.org/import.jsonld',
+          },
+        })).rejects.toThrow(new ErrorCoded('An imported context can not import another context: ' +
+          'http://example.org/import.jsonld',
+          ERROR_CODES.INVALID_REMOTE_CONTEXT));
+      });
+
+      it('should error in 1.0', () => {
+        return expect(parser.parse({
+          '@context': {
+            '@import': 'http://example.org/simple.jsonld',
+          },
+        }, { processingMode: 1.0 })).rejects.toThrow(new ErrorCoded('Context importing is not supported in JSON-LD 1.0',
+          ERROR_CODES.INVALID_CONTEXT_ENTRY));
+      });
+    });
+
   });
 });
