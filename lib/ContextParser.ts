@@ -13,7 +13,7 @@ export class ContextParser implements IDocumentLoader {
   public static readonly DEFAULT_PROCESSING_MODE: number = 1.1;
 
   // Regex for valid IRIs
-  public static readonly IRI_REGEX: RegExp = /^([A-Za-z][A-Za-z0-9+-.]*|_):[^ "<>{}|\\\[\]`]*$/;
+  public static readonly IRI_REGEX: RegExp = /^([A-Za-z][A-Za-z0-9+-.]*|_):[^ "<>{}|\\\[\]`#]*(#[^#]*)?$/;
   // Regex for keyword form
   public static readonly KEYWORD_REGEX: RegExp = /^@[a-z]+$/i;
   // Regex to see if an IRI ends with a gen-delim character (see RFC 3986)

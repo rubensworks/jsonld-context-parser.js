@@ -649,6 +649,14 @@ describe('ContextParser', () => {
     it('should be false for an http://google .com', async () => {
       expect(ContextParser.isValidIri('http://google .com')).toBeFalsy();
     });
+
+    it('should be true for an http://google.com/#abc', async () => {
+      expect(ContextParser.isValidIri('http://google.com/#abc')).toBeTruthy();
+    });
+
+    it('should be false for an http://google.com/#ab#c', async () => {
+      expect(ContextParser.isValidIri('http://google.com/#ab#c')).toBeFalsy();
+    });
   });
 
   describe('#isValidKeyword', () => {
