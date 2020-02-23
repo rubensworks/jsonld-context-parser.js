@@ -2034,6 +2034,22 @@ Tried mapping @id to "http//ex.org/id"`));
           ERROR_CODES.PROTECTED_TERM_REDIFINITION));
       });
 
+      it('should not error on a protected term with override if ignoreProtection is true', () => {
+        return expect(parser.parse([
+          {
+            name: {
+              '@id': 'http://xmlns.com/foaf/0.1/name',
+              '@protected': true,
+            },
+          },
+          {
+            name: 'http://schema.org/name',
+          },
+        ], { processingMode: 1.1, ignoreProtection: true })).resolves.toEqual({
+          name: 'http://schema.org/name',
+        });
+      });
+
       it('should error on a protected keyword alias with override', () => {
         return expect(parser.parse([
           {

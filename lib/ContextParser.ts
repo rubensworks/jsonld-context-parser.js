@@ -778,7 +778,14 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
    * @return {Promise<IJsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
-                     { baseIRI, parentContext, external, processingMode, normalizeLanguageTags }: IParseOptions = {
+                     {
+                       baseIRI,
+                       parentContext,
+                       external,
+                       processingMode,
+                       normalizeLanguageTags,
+                       ignoreProtection,
+                     }: IParseOptions = {
                        processingMode: ContextParser.DEFAULT_PROCESSING_MODE,
                      })
     : Promise<IJsonLdContextNormalized> {
@@ -787,7 +794,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       return baseIRI ? { '@base': baseIRI } : {};
     } else if (typeof context === 'string') {
       return this.parse(await this.load(ContextParser.normalizeContextIri(context, baseIRI)),
-        { baseIRI, parentContext, external: true, processingMode });
+        { baseIRI, parentContext, external: true, processingMode, normalizeLanguageTags, ignoreProtection });
     } else if (Array.isArray(context)) {
       // As a performance consideration, first load all external contexts in parallel.
       const contexts = await Promise.all(context.map((subContext) => {
@@ -802,13 +809,22 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
           .then((accContext) => this.parse(contextEntry, {
             baseIRI: accContext && accContext['@base'] || baseIRI,
             external,
+            ignoreProtection,
+            normalizeLanguageTags,
             parentContext: accContext,
             processingMode,
           })),
         Promise.resolve(parentContext || {}));
     } else if (typeof context === 'object') {
       if (context['@context']) {
-        return await this.parse(context['@context'], { baseIRI, parentContext, external, processingMode });
+        return await this.parse(context['@context'], {
+          baseIRI,
+          external,
+          ignoreProtection,
+          normalizeLanguageTags,
+          parentContext,
+          processingMode,
+        });
       }
 
       // Make a deep clone of the given context, to avoid modifying it.
@@ -834,7 +850,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       }
 
       // In JSON-LD 1.1, check if we are not redefining any protected keywords
-      if (parentContext && processingMode && processingMode >= 1.1) {
+      if (!ignoreProtection && parentContext && processingMode && processingMode >= 1.1) {
         ContextParser.validateKeywordRedefinitions(parentContext, context);
       }
 
@@ -955,6 +971,10 @@ export interface IParseOptions {
    * but false by default for all following versions.
    */
   normalizeLanguageTags?: boolean;
+  /**
+   * If checks for validating term protection should be skipped.
+   */
+  ignoreProtection?: boolean;
 }
 
 export interface IExpandOptions {
