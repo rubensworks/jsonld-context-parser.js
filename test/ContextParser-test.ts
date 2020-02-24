@@ -1576,6 +1576,10 @@ Tried mapping @id to "http//ex.org/id"`));
         });
       });
 
+      it('should parse an object with indirect null context', () => {
+        return expect(parser.parse({ "@context": null })).resolves.toEqual({});
+      });
+
       it('should parse without modifying the original context', async () => {
         const contextIn = { "@context": { rev: { "@reverse": "http://example.com/" } } };
         await expect(parser.parse(contextIn)).resolves.toEqual({

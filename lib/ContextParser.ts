@@ -836,7 +836,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
           })),
         Promise.resolve(parentContext || {}));
     } else if (typeof context === 'object') {
-      if (context['@context']) {
+      if ('@context' in context) {
         return await this.parse(context['@context'], {
           baseIRI,
           external,
