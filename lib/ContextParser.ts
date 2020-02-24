@@ -502,6 +502,20 @@ Tried mapping ${key} to ${JSON.stringify(context[key])}`);
   }
 
   /**
+   * Check if the given context has at least one protected term.
+   * @param context A context.
+   * @return If the context has a protected term.
+   */
+  public static hasProtectedTerms(context: IJsonLdContextNormalized) {
+    for (const key of Object.keys(context)) {
+      if (ContextParser.isTermProtected(context, key)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Normalize and apply context-levevl @protected terms onto each term separately.
    * @param {IJsonLdContextNormalized} context A context.
    * @param {number} processingMode The processing mode.
@@ -790,6 +804,12 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
                      })
     : Promise<IJsonLdContextNormalized> {
     if (context === null || context === undefined) {
+      // Don't allow context nullification and there are protected terms
+      if (!ignoreProtection && parentContext && ContextParser.hasProtectedTerms(parentContext)) {
+        throw new ErrorCoded('Illegal context nullification when terms are protected',
+          ERROR_CODES.INVALID_CONTEXT_NULLIFICATION);
+      }
+
       // Context that are explicitly set to null are empty.
       return baseIRI ? { '@base': baseIRI } : {};
     } else if (typeof context === 'string') {

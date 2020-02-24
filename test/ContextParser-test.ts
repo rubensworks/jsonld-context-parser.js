@@ -2050,6 +2050,43 @@ Tried mapping @id to "http//ex.org/id"`));
         });
       });
 
+      it('should not error on a protected term with nullification if ignoreProtection is true', () => {
+        return expect(parser.parse([
+          {
+            name: {
+              '@id': 'http://xmlns.com/foaf/0.1/name',
+              '@protected': true,
+            },
+          },
+          null,
+        ], { processingMode: 1.1, ignoreProtection: true })).resolves.toEqual({});
+      });
+
+      it('should error on a protected term with nullification if ignoreProtection is false', () => {
+        return expect(parser.parse([
+          {
+            name: {
+              '@id': 'http://xmlns.com/foaf/0.1/name',
+              '@protected': true,
+            },
+          },
+          null,
+        ], { processingMode: 1.1, ignoreProtection: false })).rejects
+          .toThrow(new ErrorCoded('Illegal context nullification when terms are protected',
+            ERROR_CODES.INVALID_CONTEXT_NULLIFICATION));
+      });
+
+      it('should not error on a non-protected term with nullification if ignoreProtection is true', () => {
+        return expect(parser.parse([
+          {
+            name: {
+              '@id': 'http://xmlns.com/foaf/0.1/name',
+            },
+          },
+          null,
+        ], { processingMode: 1.1, ignoreProtection: true })).resolves.toEqual({});
+      });
+
       it('should error on a protected keyword alias with override', () => {
         return expect(parser.parse([
           {
