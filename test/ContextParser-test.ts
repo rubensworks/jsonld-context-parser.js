@@ -1275,12 +1275,14 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
     });
 
     it('should not error on term with @type: @id with @container: @type', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@id', '@container': '@type' } },
+      expect(() => ContextParser.validate(
+        <any> { term: { '@id': '@id', '@type': '@id', '@container': { '@type': true } } },
         parseDefaults)).not.toThrow();
     });
 
     it('should not error on term with @type: @vocab with @container: @type', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@vocab', '@container': '@type' } },
+      expect(() => ContextParser.validate(
+        <any> { term: { '@id': '@id', '@type': '@vocab', '@container': { '@type': true } } },
         parseDefaults)).not.toThrow();
     });
 
@@ -1331,44 +1333,38 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
     });
 
     it('should not error on a term with @container: @list', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@list' } },
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@list': true } } },
         parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @container: @set', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@set' } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @container: @set in an array', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': [ '@set' ] } },
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@set': true } } },
         parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on @type with @container: @set', async () => {
-      expect(() => ContextParser.validate(<any> { '@type': { '@container': '@set' } },
+      expect(() => ContextParser.validate(<any> { '@type': { '@container': { '@set': true } } },
         parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on @type with @container: @set and @protected: true', async () => {
-      expect(() => ContextParser.validate(<any> { '@type': { '@container': '@set', '@protected': true } },
+      expect(() => ContextParser.validate(<any> { '@type': { '@container': { '@set': true }, '@protected': true } },
         parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @container: @index', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@index' } },
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@index': true } } },
         parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @container: @index, @set', async () => {
       expect(() => ContextParser.validate(<any>
-          { term: { '@id': 'http://ex.org/', '@container': [ '@index', '@set' ] } }, parseDefaults))
+          { term: { '@id': 'http://ex.org/', '@container': { '@index': true, '@set': true } } }, parseDefaults))
         .not.toThrow();
     });
 
@@ -1381,10 +1377,10 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
 
     it('should error on a term with @container: @index with an @index in 1.0', async () => {
       expect(() => ContextParser.validate(
-        <any> { term: { '@id': 'http://ex.org/', '@container': '@index', '@index': 'prop' } },
+        <any> { term: { '@id': 'http://ex.org/', '@container': { '@index': true }, '@index': 'prop' } },
         { processingMode: 1.0 }))
         .toThrow(new ErrorCoded('Attempt to add illegal key to value object: ' +
-          '\'term\': \'{"@id":"http://ex.org/","@container":"@index","@index":"prop"}\'',
+          '\'term\': \'{"@id":"http://ex.org/","@container":{"@index":true},"@index":"prop"}\'',
           ERROR_CODES.INVALID_TERM_DEFINITION));
     });
 
@@ -1403,55 +1399,58 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
     });
 
     it('should not error on a term with @container: @language', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@language' } },
+      expect(() => ContextParser.validate(
+        <any> { term: { '@id': 'http://ex.org/', '@container': { '@language': true } } },
         parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @container: @language, @set', async () => {
       expect(() => ContextParser.validate(<any>
-          { term: { '@id': 'http://ex.org/', '@container': [ '@language', '@set' ] } }, parseDefaults))
+          { term: { '@id': 'http://ex.org/', '@container': { '@language': true, '@set': true } } }, parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @container: @id', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@id' } },
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@id': true } } },
         parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @container: @id, @set', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': [ '@id', '@set' ] } },
+      expect(() => ContextParser.validate(
+        <any> { term: { '@id': 'http://ex.org/', '@container': { '@id': true, '@set': true } } },
         parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @container: @graph', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@graph' } },
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@graph': true } } },
         parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @container: @graph, @set', async () => {
       expect(() => ContextParser.validate(<any>
-          { term: { '@id': 'http://ex.org/', '@container': [ '@graph', '@set' ] } }, parseDefaults))
+          { term: { '@id': 'http://ex.org/', '@container': { '@graph': true, '@set': true } } }, parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @container: @type', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@type' } },
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@type': true } } },
         parseDefaults))
         .not.toThrow();
     });
 
     it('should not error on a term with @container: @type, @set', async () => {
       expect(() => ContextParser.validate(<any>
-          { term: { '@id': 'http://ex.org/', '@container': [ '@type', '@set' ] } }, parseDefaults))
+          { term: { '@id': 'http://ex.org/', '@container': { '@type': true, '@set': true } } }, parseDefaults))
         .not.toThrow();
     });
 
     it('should error on a term with @container: @unknown', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@unknown' } },
+      expect(() => ContextParser.validate(
+        <any> { term: { '@id': 'http://ex.org/', '@container': { '@unknown': true } } },
         parseDefaults))
         .toThrow(new Error('Invalid term @container for \'term\' (\'@unknown\'), ' +
           'must be one of @list, @set, @index, @language, @graph, @id, @type'));
@@ -1459,7 +1458,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
 
     it('should error on a term with @container: @list and @reverse', async () => {
       expect(() => ContextParser.validate(<any>
-        { term: { '@id': 'http://ex.org/', '@container': '@list', '@reverse': true } }, parseDefaults))
+        { term: { '@id': 'http://ex.org/', '@container': { '@list': true }, '@reverse': true } }, parseDefaults))
         .toThrow(new Error('Term value can not be @container: @list and @reverse at the same time on \'term\''));
     });
 

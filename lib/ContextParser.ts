@@ -687,17 +687,14 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
               }
               break;
             case '@container':
-              const containerValues = typeof objectValue === 'string' ? [ objectValue ] : objectValue;
-              if (Array.isArray(containerValues)) {
-                for (const containerValue of containerValues) {
-                  if (containerValue === '@list' && value['@reverse']) {
-                    throw new Error(`Term value can not be @container: @list and @reverse at the same time on '${
-                      key}'`);
-                  }
-                  if (ContextParser.CONTAINERS.indexOf(containerValue) < 0) {
-                    throw new Error(`Invalid term @container for '${key}' ('${containerValue}'), \
+              for (const containerValue of Object.keys(objectValue)) {
+                if (containerValue === '@list' && value['@reverse']) {
+                  throw new Error(`Term value can not be @container: @list and @reverse at the same time on '${
+                    key}'`);
+                }
+                if (ContextParser.CONTAINERS.indexOf(containerValue) < 0) {
+                  throw new Error(`Invalid term @container for '${key}' ('${containerValue}'), \
 must be one of ${ContextParser.CONTAINERS.join(', ')}`);
-                  }
                 }
               }
               break;
