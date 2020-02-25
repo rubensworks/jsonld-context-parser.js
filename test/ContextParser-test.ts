@@ -13,6 +13,10 @@ describe('ContextParser', () => {
     it('to be false for a hash that looks like a compact IRI', async () => {
       expect(ContextParser.isCompactIri('#a:b')).toBeFalsy();
     });
+
+    it('to be false for terms starting with a colon', async () => {
+      expect(ContextParser.isCompactIri(':b')).toBeFalsy();
+    });
   });
 
   describe('#isTermProtected', () => {
@@ -383,6 +387,16 @@ describe('ContextParser', () => {
             { ...defaultExpandOptions, allowReverseRelativeToVocab: true }))
             .toBe('http://example.org/ignoreMe');
         });
+
+      it('to return on a term starting with a colon with @vocab', async () => {
+        expect(ContextParser.expandTerm(':b', {':b': {'@type': '@id'}, '@vocab': 'http://ex.org/'},
+          true)).toBe('http://ex.org/:b');
+      });
+
+      it('to return on a term starting with a colon without @vocab', async () => {
+        expect(ContextParser.expandTerm(':b', {':b': {'@type': '@id'}},
+          true)).toBe(':b');
+      });
     });
 
     describe('in base-mode', () => {

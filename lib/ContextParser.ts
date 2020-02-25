@@ -105,7 +105,7 @@ export class ContextParser implements IDocumentLoader {
    * @return {boolean} If it is a compact IRI.
    */
   public static isCompactIri(term: string) {
-    return term.indexOf(':') >= 0 && !(term && term[0] === '#');
+    return term.indexOf(':') > 0 && !(term && term[0] === '#');
   }
 
   /**
