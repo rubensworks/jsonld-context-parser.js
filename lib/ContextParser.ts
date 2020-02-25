@@ -410,6 +410,12 @@ export class ContextParser implements IDocumentLoader {
 Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWORD_ALIAS);
         }
 
+        // Error if this term was marked as prefix as well
+        if (keyValue && keyValue['@prefix'] === true) {
+          throw new ErrorCoded(`Tried to use keyword aliases as prefix: '${key}': '${JSON.stringify(keyValue)}'`,
+            ERROR_CODES.INVALID_TERM_DEFINITION);
+        }
+
         // Loop because prefixes might be nested
         while (ContextParser.isPrefixValue(context[key])) {
           const value: IPrefixValue = context[key];

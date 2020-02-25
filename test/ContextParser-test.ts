@@ -965,6 +965,21 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
         '@type': { '@container': '@set', '@protected': true },
       });
     });
+
+    it('should error on keyword aliasing with @prefix: true', async () => {
+      expect(() => ContextParser.expandPrefixedTerms({
+        foo: { '@id': '@type', '@prefix': true },
+      }, true)).toThrow(new ErrorCoded('Tried to use keyword aliases as prefix: ' +
+        '\'foo\': \'{"@id":"@type","@prefix":true}\'', ERROR_CODES.INVALID_TERM_DEFINITION));
+    });
+
+    it('should handle keyword aliasing with @prefix: false', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        foo: { '@id': '@type', '@prefix': false },
+      }, true)).toEqual({
+        foo: { '@id': '@type', '@prefix': false },
+      });
+    });
   });
 
   describe('#normalize', () => {
