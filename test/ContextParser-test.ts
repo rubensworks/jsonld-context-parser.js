@@ -911,8 +911,15 @@ describe('ContextParser', () => {
     it('should error on aliasing of keywords', async () => {
       expect(() => ContextParser.expandPrefixedTerms({
         '@id': 'http//ex.org/id',
-      }, true)).toThrow(new Error(`Keywords can not be aliased to something else.
-Tried mapping @id to "http//ex.org/id"`));
+      }, true)).toThrow(new ErrorCoded(`Keywords can not be aliased to something else.
+Tried mapping @id to "http//ex.org/id"`, ERROR_CODES.INVALID_KEYWORD_ALIAS));
+    });
+
+    it('should error on aliasing of keywords in expanded form', async () => {
+      expect(() => ContextParser.expandPrefixedTerms({
+        '@id': { '@id': 'http//ex.org/id' },
+      }, true)).toThrow(new ErrorCoded(`Keywords can not be aliased to something else.
+Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALIAS));
     });
 
     it('should expand aliases', async () => {
@@ -932,6 +939,30 @@ Tried mapping @id to "http//ex.org/id"`));
       }, true)).toEqual({
         '@vocab': 'http://example.org/',
         'ignoreMe': '@ignoreMe',
+      });
+    });
+
+    it('should handle @id with @protected: true', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@id': { '@protected': true },
+      }, true)).toEqual({
+        '@id': { '@protected': true },
+      });
+    });
+
+    it('should handle @type with @container: @set', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@type': { '@container': '@set' },
+      }, true)).toEqual({
+        '@type': { '@container': '@set' },
+      });
+    });
+
+    it('should handle @type with @container: @set and @protected: true', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@type': { '@container': '@set', '@protected': true },
+      }, true)).toEqual({
+        '@type': { '@container': '@set', '@protected': true },
       });
     });
   });
@@ -1298,6 +1329,18 @@ Tried mapping @id to "http//ex.org/id"`));
 
     it('should not error on a term with @container: @set in an array', async () => {
       expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': [ '@set' ] } },
+        parseDefaults))
+        .not.toThrow();
+    });
+
+    it('should not error on @type with @container: @set', async () => {
+      expect(() => ContextParser.validate(<any> { '@type': { '@container': '@set' } },
+        parseDefaults))
+        .not.toThrow();
+    });
+
+    it('should not error on @type with @container: @set and @protected: true', async () => {
+      expect(() => ContextParser.validate(<any> { '@type': { '@container': '@set', '@protected': true } },
         parseDefaults))
         .not.toThrow();
     });

@@ -403,9 +403,11 @@ export class ContextParser implements IDocumentLoader {
       // Only expand allowed keys
       if (ContextParser.EXPAND_KEYS_BLACKLIST.indexOf(key) < 0) {
         // Error if we try to alias a keyword to something else.
-        if (ContextParser.isPotentialKeyword(key) && ContextParser.ALIAS_KEYS_BLACKLIST.indexOf(key) >= 0) {
-          throw new Error(`Keywords can not be aliased to something else.
-Tried mapping ${key} to ${JSON.stringify(context[key])}`);
+        const keyValue = context[key];
+        if (ContextParser.getContextValueId(keyValue) && ContextParser.isPotentialKeyword(key)
+          && ContextParser.ALIAS_KEYS_BLACKLIST.indexOf(key) >= 0) {
+          throw new ErrorCoded(`Keywords can not be aliased to something else.
+Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWORD_ALIAS);
         }
 
         // Loop because prefixes might be nested
