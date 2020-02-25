@@ -716,6 +716,12 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
                 throw new Error(`Found an invalid term @prefix boolean in: '${key}': '${JSON.stringify(value)}'`);
               }
               break;
+            case '@index':
+              if (processingMode === 1.0 || !value['@container'] || !value['@container']['@index']) {
+                throw new ErrorCoded(`Attempt to add illegal key to value object: '${
+                  key}': '${JSON.stringify(value)}'`, ERROR_CODES.INVALID_TERM_DEFINITION);
+              }
+              break;
             }
           }
           break;

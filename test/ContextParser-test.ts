@@ -1372,6 +1372,36 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
         .not.toThrow();
     });
 
+    it('should not error on a term with @container: @index with an @index', async () => {
+      expect(() => ContextParser.validate(
+        <any> { term: { '@id': 'http://ex.org/', '@container': { '@index': true }, '@index': 'prop' } },
+        parseDefaults))
+        .not.toThrow();
+    });
+
+    it('should error on a term with @container: @index with an @index in 1.0', async () => {
+      expect(() => ContextParser.validate(
+        <any> { term: { '@id': 'http://ex.org/', '@container': '@index', '@index': 'prop' } },
+        { processingMode: 1.0 }))
+        .toThrow(new ErrorCoded('Attempt to add illegal key to value object: ' +
+          '\'term\': \'{"@id":"http://ex.org/","@container":"@index","@index":"prop"}\'',
+          ERROR_CODES.INVALID_TERM_DEFINITION));
+    });
+
+    it('should error on a term without @container: @index with an @index in 1.0', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@index': 'prop' } },
+        { processingMode: 1.0 }))
+        .toThrow(new ErrorCoded('Attempt to add illegal key to value object: ' +
+          '\'term\': \'{"@id":"http://ex.org/","@index":"prop"}\'', ERROR_CODES.INVALID_TERM_DEFINITION));
+    });
+
+    it('should error on a term without @container: @index with an @index', async () => {
+      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@index': 'prop' } },
+        parseDefaults))
+        .toThrow(new ErrorCoded('Attempt to add illegal key to value object: ' +
+          '\'term\': \'{"@id":"http://ex.org/","@index":"prop"}\'', ERROR_CODES.INVALID_TERM_DEFINITION));
+    });
+
     it('should not error on a term with @container: @language', async () => {
       expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': '@language' } },
         parseDefaults))
