@@ -430,7 +430,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
               context[key]['@id'] = ContextParser.expandTerm(id, context, true);
               changed = changed || id !== context[key]['@id'];
             }
-            if (type && type !== '@vocab' && value['@container'] !== '@type') {
+            if (type && type !== '@vocab' && (!value['@container'] || !(<any> value['@container'])['@type'])) {
               // First check @vocab, then fallback to @base
               context[key]['@type'] = ContextParser.expandTerm(type, context, true);
               if (expandContentTypeToBase && type === context[key]['@type']) {
@@ -877,6 +877,10 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
         }
       }
 
+      // Hashify container entries
+      // Do this before protected term validation as that influences term format
+      ContextParser.containersToHash(context);
+
       // In JSON-LD 1.1, check if we are not redefining any protected keywords
       if (!ignoreProtection && parentContext && processingMode && processingMode >= 1.1) {
         ContextParser.validateKeywordRedefinitions(parentContext, context);
@@ -914,7 +918,6 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       ContextParser.idifyReverseTerms(newContext);
       ContextParser.expandPrefixedTerms(newContext, this.expandContentTypeToBase);
       ContextParser.normalize(newContext, { processingMode, normalizeLanguageTags });
-      ContextParser.containersToHash(newContext);
       ContextParser.applyScopedProtected(newContext, { processingMode });
       if (this.validate) {
         ContextParser.validate(newContext, { processingMode });
