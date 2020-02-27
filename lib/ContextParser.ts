@@ -411,7 +411,8 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
         }
 
         // Error if this term was marked as prefix as well
-        if (keyValue && keyValue['@prefix'] === true) {
+        if (keyValue && ContextParser.isPotentialKeyword(ContextParser.getContextValueId(keyValue))
+          && keyValue['@prefix'] === true) {
           throw new ErrorCoded(`Tried to use keyword aliases as prefix: '${key}': '${JSON.stringify(keyValue)}'`,
             ERROR_CODES.INVALID_TERM_DEFINITION);
         }

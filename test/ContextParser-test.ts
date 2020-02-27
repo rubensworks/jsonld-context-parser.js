@@ -987,6 +987,14 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
         '\'foo\': \'{"@id":"@type","@prefix":true}\'', ERROR_CODES.INVALID_TERM_DEFINITION));
     });
 
+    it('should not error on regular prefix definitions', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        foo: { '@id': 'http://foo.org/', '@prefix': true },
+      }, true)).toEqual({
+        foo: { '@id': 'http://foo.org/', '@prefix': true },
+      });
+    });
+
     it('should handle keyword aliasing with @prefix: false', async () => {
       expect(ContextParser.expandPrefixedTerms({
         foo: { '@id': '@type', '@prefix': false },
