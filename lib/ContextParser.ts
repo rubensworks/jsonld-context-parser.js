@@ -5,6 +5,9 @@ import {FetchDocumentLoader} from "./FetchDocumentLoader";
 import {IDocumentLoader} from "./IDocumentLoader";
 import {IJsonLdContextNormalized, IPrefixValue, JsonLdContext} from "./JsonLdContext";
 
+// tslint:disable-next-line:no-var-requires
+const canonicalizeJson = require('canonicalize');
+
 /**
  * Parses JSON-LD contexts.
  */
@@ -159,6 +162,17 @@ export class ContextParser implements IDocumentLoader {
   }
 
   /**
+   * Check if the given simple term definition (string-based value of a context term)
+   * should be considered a prefix.
+   * @param value A simple term definition value.
+   * @param options Options that define the way how expansion must be done.
+   */
+  public static isSimpleTermDefinitionPrefix(value: string, options: IExpandOptions): boolean {
+    return !ContextParser.isPotentialKeyword(value)
+      && (value[0] === '_' || options.allowPrefixNonGenDelims || ContextParser.isPrefixIriEndingWithGenDelim(value));
+  }
+
+  /**
    * Expand the term or prefix of the given term if it has one,
    * otherwise return the term as-is.
    *
@@ -219,12 +233,19 @@ export class ContextParser implements IDocumentLoader {
       const value = this.getContextValueId(contextPrefixValue);
 
       if (value) {
-        // Validate that prefix ends with gen-delim character, unless @prefix is true
-        if (value[0] !== '_' && !potentialKeyword
-          && (!options.allowNonGenDelimsIfPrefix || !contextPrefixValue['@prefix'])) {
-          if (!ContextParser.isPrefixIriEndingWithGenDelim(value)) {
+        if (typeof contextPrefixValue === 'string' || !options.allowPrefixForcing) {
+          // If we have a simple term definition,
+          // check the last character of the prefix to determine whether or not it is a prefix.
+          // Validate that prefix ends with gen-delim character, unless @prefix is true
+          if (!ContextParser.isSimpleTermDefinitionPrefix(value, options)) {
             // Treat the term as an absolute IRI
-            return null;
+            return term;
+          }
+        } else {
+          // If we have an expanded term definition, default to @prefix: false
+          if (value[0] !== '_' && !potentialKeyword && !contextPrefixValue['@prefix'] && !(term in context)) {
+            // Treat the term as an absolute IRI
+            return term;
           }
         }
 
@@ -561,25 +582,36 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
    * Check if the given context inheritance does not contain any overrides of protected terms.
    * @param {IJsonLdContextNormalized} contextBefore The context that may contain some protected terms.
    * @param {IJsonLdContextNormalized} contextAfter A new context that is being applied on the first one.
+   * @param {IExpandOptions} expandOptions Options that are needed for any expansions during this validation.
    */
   public static validateKeywordRedefinitions(contextBefore: IJsonLdContextNormalized,
-                                             contextAfter: IJsonLdContextNormalized) {
+                                             contextAfter: IJsonLdContextNormalized,
+                                             expandOptions: IExpandOptions) {
     for (const key of Object.keys(contextAfter)) {
       if (ContextParser.isTermProtected(contextBefore, key)) {
         // The entry in the context before will always be in object-mode
         // If the new entry is in string-mode, convert it to object-mode
         // before checking if it is identical.
         if (typeof contextAfter[key] === 'string') {
+          const isPrefix = ContextParser.isSimpleTermDefinitionPrefix(contextAfter[key], expandOptions);
           contextAfter[key] = { '@id': contextAfter[key] };
+
+          // If the simple term def was a prefix, explicitly mark the term as a prefix in the expanded term definition,
+          // because otherwise we loose this information due to JSON-LD interpreting prefixes differently
+          // in simple vs expanded term definitions.
+          if (isPrefix) {
+            contextAfter[key]['@prefix'] = true;
+            contextBefore[key]['@prefix'] = true; // Also on before, to make sure the next step still considers them ==
+          }
         }
 
         // Convert term values to strings for each comparison
-        const valueBefore = JSON.stringify(contextBefore[key]);
+        const valueBefore = canonicalizeJson(contextBefore[key]);
         // We modify this deliberately,
         // as we need it for the value comparison (they must be identical modulo '@protected')),
         // and for the fact that this new value will override the first one.
         contextAfter[key]['@protected'] = true;
-        const valueAfter = JSON.stringify(contextAfter[key]);
+        const valueAfter = canonicalizeJson(contextAfter[key]);
 
         // Error if they are not identical
         if (valueBefore !== valueAfter) {
@@ -887,7 +919,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
 
       // In JSON-LD 1.1, check if we are not redefining any protected keywords
       if (!ignoreProtection && parentContext && processingMode && processingMode >= 1.1) {
-        ContextParser.validateKeywordRedefinitions(parentContext, context);
+        ContextParser.validateKeywordRedefinitions(parentContext, context, defaultExpandOptions);
       }
 
       // In JSON-LD 1.1, load @import'ed context prior to processing.
@@ -1014,10 +1046,15 @@ export interface IParseOptions {
 
 export interface IExpandOptions {
   /**
-   * If compact IRI prefixes can end with any kind of character iff the term's @prefix=true,
-   * instead of only the default gen-delim characters (:,/,?,#,[,],@)
+   * If compact IRI prefixes can end with any kind of character in simple term definitions,
+   * instead of only the default gen-delim characters (:,/,?,#,[,],@).
    */
-  allowNonGenDelimsIfPrefix: boolean;
+  allowPrefixNonGenDelims: boolean;
+  /**
+   * If compact IRI prefixes ending with a non-gen-delim character
+   * can be forced as a prefix using @prefix: true.
+   */
+  allowPrefixForcing: boolean;
   /**
    * If @reverse values are allowed to be relative to the @vocab.
    */
@@ -1028,7 +1065,8 @@ export interface IExpandOptions {
   allowVocabRelativeToBase: boolean;
 }
 export const defaultExpandOptions: IExpandOptions = {
-  allowNonGenDelimsIfPrefix: true,
+  allowPrefixForcing: true,
+  allowPrefixNonGenDelims: false,
   allowReverseRelativeToVocab: false,
   allowVocabRelativeToBase: true,
 };

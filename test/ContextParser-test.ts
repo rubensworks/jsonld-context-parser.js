@@ -95,7 +95,7 @@ describe('ContextParser', () => {
       });
 
       it('to return when a prefix applies with @id', async () => {
-        expect(ContextParser.expandTerm('def:123', {def: { '@id': 'DEF/' }}, true)).toBe('DEF/123');
+        expect(ContextParser.expandTerm('def:123', {def: { '@id': 'DEF/' }}, true)).toBe('def:123');
       });
 
       it('to return when a direct value applies', async () => {
@@ -253,86 +253,306 @@ describe('ContextParser', () => {
           opts)).toBe('http://abc.org/def');
       });
 
-      it('to return null when allowNonGenDelimsIfPrefix is true with non-gen-delim without @prefix', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowNonGenDelimsIfPrefix: true,
-        };
-        expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact-' }, true,
-          opts)).toBe(null);
-      });
+      describe('prefix handling', () => {
+        describe('for allowPrefixForcing true', () => {
+          describe('for allowPrefixNonGenDelims false', () => {
+            const opts = {
+              ...defaultExpandOptions,
+              allowPrefixForcing: true,
+              allowPrefixNonGenDelims: false,
+            };
 
-      it('to return when allowNonGenDelimsIfPrefix is true with non-gen-delim with @prefix', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowNonGenDelimsIfPrefix: true,
-        };
-        expect(ContextParser.expandTerm('abc:def',
-          { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } }, true, opts))
-          .toBe('http://ex.org/compact-def');
-      });
+            describe('for simple term definitions', () => {
+              it('not to expand with non-gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact-' }, true,
+                  opts)).toBe('abc:def');
+              });
 
-      it('to return null when allowNonGenDelimsIfPrefix is false with non-gen-delim without @prefix', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowNonGenDelimsIfPrefix: false,
-        };
-        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-' } }, true,
-          opts)).toBe(null);
-      });
+              it('to expand with gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact/' }, true,
+                  opts)).toBe('http://ex.org/compact/def');
+              });
 
-      it('to return null when allowNonGenDelimsIfPrefix is false with non-gen-delim with @prefix', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowNonGenDelimsIfPrefix: false,
-        };
-        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } },
-          true, opts)).toBe(null);
-      });
+              it('to expand for a blank node', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: '_:b' }, true,
+                  opts)).toBe('_:bdef');
+              });
+            });
 
-      it('to return when allowNonGenDelimsIfPrefix is true with gen-delim without @prefix', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowNonGenDelimsIfPrefix: true,
-        };
-        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/' } }, true,
-          opts)).toBe('http://ex.org/def');
-      });
+            describe('for expanded term definitions', () => {
+              it('not to expand with non-gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-' } }, true,
+                  opts)).toBe('abc:def');
+              });
 
-      it('to return when allowNonGenDelimsIfPrefix is true with gen-delim with @prefix', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowNonGenDelimsIfPrefix: true,
-        };
-        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/', '@prefix': true } }, true,
-          opts)).toBe('http://ex.org/def');
-      });
+              it('not to expand with non-gen-delim with @prefix false', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': false } },
+                  true, opts)).toBe('abc:def');
+              });
 
-      it('to return when allowNonGenDelimsIfPrefix is true for a blank node', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowNonGenDelimsIfPrefix: true,
-        };
-        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': '_:b' } }, true,
-          opts)).toBe('_:bdef');
-      });
+              it('to expand with non-gen-delim with @prefix true', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } }, true, opts))
+                  .toBe('http://ex.org/compact-def');
+              });
 
-      it('to return when allowNonGenDelimsIfPrefix is false with gen-delim without @prefix', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowNonGenDelimsIfPrefix: false,
-        };
-        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/' } }, true,
-          opts)).toBe('http://ex.org/def');
-      });
+              it('not to expand with gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact/' } }, true,
+                  opts)).toBe('abc:def');
+              });
 
-      it('to return when allowNonGenDelimsIfPrefix is false with gen-delim with @prefix', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowNonGenDelimsIfPrefix: false,
-        };
-        expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/', '@prefix': true } }, true,
-          opts)).toBe('http://ex.org/def');
+              it('not to expand with gen-delim with @prefix false', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': false } },
+                  true, opts)).toBe('abc:def');
+              });
+
+              it('to expand with gen-delim with @prefix true', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': true } }, true, opts))
+                  .toBe('http://ex.org/compact/def');
+              });
+
+              it('to expand for a blank node', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': '_:b' } }, true,
+                  opts)).toBe('_:bdef');
+              });
+
+              it('to expand with gen-delim without @prefix but with a dedicated term entry', async () => {
+                expect(ContextParser.expandTerm('abc:def', {
+                  'abc': { '@id': 'http://ex.org/compact/' },
+                  'abc:def': {},
+                }, true,
+                  opts)).toBe('http://ex.org/compact/def');
+              });
+            });
+          });
+
+          describe('for allowPrefixNonGenDelims true', () => {
+            const opts = {
+              ...defaultExpandOptions,
+              allowPrefixForcing: true,
+              allowPrefixNonGenDelims: true,
+            };
+
+            describe('for simple term definitions', () => {
+              it('to expand with non-gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact-' }, true,
+                  opts)).toBe('http://ex.org/compact-def');
+              });
+
+              it('to expand with gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact/' }, true,
+                  opts)).toBe('http://ex.org/compact/def');
+              });
+
+              it('to expand for a blank node', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: '_:b' }, true,
+                  opts)).toBe('_:bdef');
+              });
+            });
+
+            describe('for expanded term definitions', () => {
+              it('not to expand with non-gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-' } }, true,
+                  opts)).toBe('abc:def');
+              });
+
+              it('not to expand with non-gen-delim with @prefix false', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': false } },
+                  true, opts)).toBe('abc:def');
+              });
+
+              it('to expand with non-gen-delim with @prefix true', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } }, true, opts))
+                  .toBe('http://ex.org/compact-def');
+              });
+
+              it('not to expand with gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact/' } }, true,
+                  opts)).toBe('abc:def');
+              });
+
+              it('not to expand with gen-delim with @prefix false', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': false } },
+                  true, opts)).toBe('abc:def');
+              });
+
+              it('to expand with gen-delim with @prefix true', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': true } }, true, opts))
+                  .toBe('http://ex.org/compact/def');
+              });
+
+              it('to expand for a blank node', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': '_:b' } }, true,
+                  opts)).toBe('_:bdef');
+              });
+
+              it('to expand with gen-delim without @prefix but with a dedicated term entry', async () => {
+                expect(ContextParser.expandTerm('abc:def', {
+                  'abc': { '@id': 'http://ex.org/compact/' },
+                  'abc:def': {},
+                }, true,
+                  opts)).toBe('http://ex.org/compact/def');
+              });
+            });
+          });
+        });
+
+        describe('for allowPrefixForcing false', () => {
+          describe('for allowPrefixNonGenDelims false', () => {
+            const opts = {
+              ...defaultExpandOptions,
+              allowPrefixForcing: false,
+              allowPrefixNonGenDelims: false,
+            };
+
+            describe('for simple term definitions', () => {
+              it('not to expand with non-gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact-' }, true,
+                  opts)).toBe('abc:def');
+              });
+
+              it('to expand with gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact/' }, true,
+                  opts)).toBe('http://ex.org/compact/def');
+              });
+
+              it('to expand for a blank node', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: '_:b' }, true,
+                  opts)).toBe('_:bdef');
+              });
+            });
+
+            describe('for expanded term definitions', () => {
+              it('not to expand with non-gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-' } }, true,
+                  opts)).toBe('abc:def');
+              });
+
+              it('not to expand with non-gen-delim with @prefix false', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': false } },
+                  true, opts)).toBe('abc:def');
+              });
+
+              it('not to expand with non-gen-delim with @prefix true', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } }, true, opts))
+                  .toBe('abc:def');
+              });
+
+              it('to expand with gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact/' } }, true,
+                  opts)).toBe('http://ex.org/compact/def');
+              });
+
+              it('to expand with gen-delim with @prefix false', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': false } },
+                  true, opts)).toBe('http://ex.org/compact/def');
+              });
+
+              it('to expand with gen-delim with @prefix true', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': true } }, true, opts))
+                  .toBe('http://ex.org/compact/def');
+              });
+
+              it('to expand for a blank node', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': '_:b' } }, true,
+                  opts)).toBe('_:bdef');
+              });
+
+              it('to expand with gen-delim without @prefix but with a dedicated term entry', async () => {
+                expect(ContextParser.expandTerm('abc:def', {
+                  'abc': { '@id': 'http://ex.org/compact/' },
+                  'abc:def': {},
+                }, true,
+                  opts)).toBe('http://ex.org/compact/def');
+              });
+            });
+          });
+
+          describe('for allowPrefixNonGenDelims true', () => {
+            const opts = {
+              ...defaultExpandOptions,
+              allowPrefixForcing: false,
+              allowPrefixNonGenDelims: true,
+            };
+
+            describe('for simple term definitions', () => {
+              it('to expand with non-gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact-' }, true,
+                  opts)).toBe('http://ex.org/compact-def');
+              });
+
+              it('to expand with gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact/' }, true,
+                  opts)).toBe('http://ex.org/compact/def');
+              });
+
+              it('to expand for a blank node', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: '_:b' }, true,
+                  opts)).toBe('_:bdef');
+              });
+            });
+
+            describe('for expanded term definitions', () => {
+              it('to expand with non-gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-' } }, true,
+                  opts)).toBe('http://ex.org/compact-def');
+              });
+
+              it('to expand with non-gen-delim with @prefix false', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': false } },
+                  true, opts)).toBe('http://ex.org/compact-def');
+              });
+
+              it('to expand with non-gen-delim with @prefix true', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } }, true, opts))
+                  .toBe('http://ex.org/compact-def');
+              });
+
+              it('to expand with gen-delim without @prefix', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact/' } }, true,
+                  opts)).toBe('http://ex.org/compact/def');
+              });
+
+              it('to expand with gen-delim with @prefix false', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': false } },
+                  true, opts)).toBe('http://ex.org/compact/def');
+              });
+
+              it('to expand with gen-delim with @prefix true', async () => {
+                expect(ContextParser.expandTerm('abc:def',
+                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': true } }, true, opts))
+                  .toBe('http://ex.org/compact/def');
+              });
+
+              it('to expand for a blank node', async () => {
+                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': '_:b' } }, true,
+                  opts)).toBe('_:bdef');
+              });
+
+              it('to expand with gen-delim without @prefix but with a dedicated term entry', async () => {
+                expect(ContextParser.expandTerm('abc:def', {
+                  'abc': { '@id': 'http://ex.org/compact/' },
+                  'abc:def': {},
+                }, true,
+                  opts)).toBe('http://ex.org/compact/def');
+              });
+            });
+          });
+        });
       });
 
       it('to throw when context alias value is not a string', async () => {
@@ -417,7 +637,7 @@ describe('ContextParser', () => {
       });
 
       it('to return when a prefix applies with @id', async () => {
-        expect(ContextParser.expandTerm('def:123', {def: { '@id': 'DEF/'} }, false)).toBe('DEF/123');
+        expect(ContextParser.expandTerm('def:123', {def: { '@id': 'DEF/'} }, false)).toBe('def:123');
       });
 
       it('to return when a direct value applies, but ignore it in base-mode', async () => {
@@ -2371,6 +2591,61 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
         ], { processingMode: 1.1 })).resolves.toEqual({
           id: {
             '@id': '@id',
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should parse a globally protected string term with identical override', () => {
+        return expect(parser.parse([
+          {
+            '@protected': true,
+            'name': 'http://xmlns.com/foaf/0.1/name',
+          },
+          {
+            '@protected': true,
+            'name': 'http://xmlns.com/foaf/0.1/name',
+          },
+        ], { processingMode: 1.1 })).resolves.toEqual({
+          name: {
+            '@id': 'http://xmlns.com/foaf/0.1/name',
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should parse a globally protected string term ending in gen-delim with identical override', () => {
+        return expect(parser.parse([
+          {
+            '@protected': true,
+            'foo': 'http://example/foo#',
+          },
+          {
+            '@protected': true,
+            'foo': 'http://example/foo#',
+          },
+        ], { processingMode: 1.1 })).resolves.toEqual({
+          foo: {
+            '@id': 'http://example/foo#',
+            '@prefix': true,
+            '@protected': true,
+          },
+        });
+      });
+
+      it('should parse a globally protected string term ending in non-gen-delim with identical override', () => {
+        return expect(parser.parse([
+          {
+            '@protected': true,
+            'foo': 'http://example/foo',
+          },
+          {
+            '@protected': true,
+            'foo': 'http://example/foo',
+          },
+        ], { processingMode: 1.1 })).resolves.toEqual({
+          foo: {
+            '@id': 'http://example/foo',
             '@protected': true,
           },
         });

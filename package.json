@@ -78,6 +78,7 @@
     "version": "manual-git-changelog onversion"
   },
   "dependencies": {
+    "canonicalize": "^1.0.1",
     "isomorphic-fetch": "^2.2.1",
     "relative-to-absolute-iri": "^1.0.5"
   }
