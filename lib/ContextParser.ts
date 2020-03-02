@@ -814,6 +814,34 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
   }
 
   /**
+   * Apply the @base context entry to the given context under certain circumstances.
+   * @param context A context.
+   * @param options Parsing options.
+   * @param inheritFromParent If the @base value from the parent context can be inherited.
+   * @return The given context.
+   */
+  public static applyBaseEntry(context: IJsonLdContextNormalized, options: IParseOptions,
+                               inheritFromParent: boolean): IJsonLdContextNormalized {
+    // Give priority to @base in the parent context
+    if (inheritFromParent && !('@base' in context) && options.parentContext && '@base' in options.parentContext) {
+      context['@base'] = options.parentContext['@base'];
+    }
+
+    // Override the base IRI if provided.
+    if (options.baseIRI && !options.external) {
+      if (!('@base' in context)) {
+        // The context base is the document base
+        context['@base'] = options.baseIRI;
+      } else if (context['@base'] !== null && !ContextParser.isValidIri(<string> context['@base'])) {
+        // The context base is relative to the document base
+        context['@base'] = resolve(<string> context['@base'],
+          options.parentContext && options.parentContext['@base'] || options.baseIRI);
+      }
+    }
+    return context;
+  }
+
+  /**
    * Resolve relative context IRIs, or return full IRIs as-is.
    * @param {string} contextIri A context IRI.
    * @param {string} baseIRI A base IRI.
@@ -830,23 +858,45 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
   }
 
   /**
+   * Normalize the @language entries in the given context to lowercase.
+   * @param {IJsonLdContextNormalized} context A context.
+   * @param {IParseOptions} options Parsing options.
+   * @return {IJsonLdContextNormalized} The mutated input context.
+   */
+  public async parseInnerContexts(context: IJsonLdContextNormalized, options: IParseOptions)
+    : Promise<IJsonLdContextNormalized> {
+    for (const key of Object.keys(context)) {
+      const value = context[key];
+      if (value && typeof value === 'object') {
+        if ('@context' in value && value['@context'] !== null) {
+          value['@context'] = await this.parse(value['@context'], options);
+        }
+      }
+    }
+    return context;
+  }
+
+  /**
    * Parse a JSON-LD context in any form.
    * @param {JsonLdContext} context A context, URL to a context, or an array of contexts/URLs.
    * @param {IParseOptions} options Optional parsing options.
    * @return {Promise<IJsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
-                     {
-                       baseIRI,
-                       parentContext,
-                       external,
-                       processingMode,
-                       normalizeLanguageTags,
-                       ignoreProtection,
-                     }: IParseOptions = {
+                     options: IParseOptions = {
                        processingMode: ContextParser.DEFAULT_PROCESSING_MODE,
                      })
     : Promise<IJsonLdContextNormalized> {
+    const {
+      baseIRI,
+      parentContext,
+      external,
+      processingMode,
+      normalizeLanguageTags,
+      ignoreProtection,
+      minimalProcessing,
+    } = options;
+
     if (context === null || context === undefined) {
       // Don't allow context nullification and there are protected terms
       if (!ignoreProtection && parentContext && ContextParser.hasProtectedTerms(parentContext)) {
@@ -855,40 +905,47 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       }
 
       // Context that are explicitly set to null are empty.
-      return baseIRI ? { '@base': baseIRI } : {};
+      return ContextParser.applyBaseEntry({}, options, false);
     } else if (typeof context === 'string') {
-      return this.parse(await this.load(ContextParser.normalizeContextIri(context, baseIRI)),
-        { baseIRI, parentContext, external: true, processingMode, normalizeLanguageTags, ignoreProtection });
+      const contextIri = ContextParser.normalizeContextIri(context, baseIRI);
+      const parsedStringContext = await this.parse(await this.load(contextIri),
+        { ...options, external: true, baseIRI: contextIri });
+      ContextParser.applyBaseEntry(parsedStringContext, options, true);
+      return parsedStringContext;
     } else if (Array.isArray(context)) {
       // As a performance consideration, first load all external contexts in parallel.
-      const contexts = await Promise.all(context.map((subContext) => {
+      const contextIris: string[] = [];
+      const contexts = await Promise.all(context.map((subContext, i) => {
         if (typeof subContext === 'string') {
-          return this.load(ContextParser.normalizeContextIri(subContext, baseIRI));
+          const contextIri = ContextParser.normalizeContextIri(subContext, baseIRI);
+          contextIris[i] = contextIri;
+          return this.load(contextIri);
         } else {
           return subContext;
         }
       }));
 
-      return contexts.reduce((accContextPromise, contextEntry) => accContextPromise
+      // Don't apply inheritance logic on minimal processing
+      if (minimalProcessing) {
+        return contexts;
+      }
+
+      const reducedContexts = await contexts.reduce((accContextPromise, contextEntry, i) => accContextPromise
           .then((accContext) => this.parse(contextEntry, {
-            baseIRI: accContext && accContext['@base'] || baseIRI,
-            external,
-            ignoreProtection,
-            normalizeLanguageTags,
+            ...options,
+            baseIRI: contextIris[i] || options.baseIRI,
+            external: !!contextIris[i] || options.external,
             parentContext: accContext,
-            processingMode,
           })),
         Promise.resolve(parentContext || {}));
+
+      // Override the base IRI if provided.
+      ContextParser.applyBaseEntry(reducedContexts, options, true);
+
+      return reducedContexts;
     } else if (typeof context === 'object') {
       if ('@context' in context) {
-        return await this.parse(context['@context'], {
-          baseIRI,
-          external,
-          ignoreProtection,
-          normalizeLanguageTags,
-          parentContext,
-          processingMode,
-        });
+        return await this.parse(context['@context'], options);
       }
 
       // Make a deep clone of the given context, to avoid modifying it.
@@ -903,14 +960,14 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       }
 
       // Override the base IRI if provided.
-      if (baseIRI) {
-        if (!('@base' in context)) {
-          // The context base is the document base
-          context['@base'] = baseIRI;
-        } else if (context['@base'] !== null && !ContextParser.isValidIri(<string> context['@base'])) {
-          // The context base is relative to the document base
-          context['@base'] = resolve(<string> context['@base'], baseIRI);
-        }
+      ContextParser.applyBaseEntry(context, options, true);
+
+      // Parse inner contexts with minimal processing
+      await this.parseInnerContexts(context, { ...options, minimalProcessing: true });
+
+      // Don't perform any other modifications if only minimal processing is needed.
+      if (minimalProcessing) {
+        return context;
       }
 
       // Hashify container entries
@@ -1042,6 +1099,15 @@ export interface IParseOptions {
    * If checks for validating term protection should be skipped.
    */
   ignoreProtection?: boolean;
+  /**
+   * If the context should only be parsed and validated,
+   * without performing normalizations and other modifications.
+   *
+   * If true, this *will* dereference external contexts.
+   *
+   * This option is used internally when handling type-scoped and property-scoped contexts.
+   */
+  minimalProcessing?: boolean;
 }
 
 export interface IExpandOptions {

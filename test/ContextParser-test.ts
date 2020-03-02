@@ -2105,6 +2105,18 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
         });
       });
 
+      it('should parse an array with relative string URLs', () => {
+        return expect(parser.parse([
+          'simple.jsonld',
+          'simple2.jsonld',
+        ], { baseIRI: 'http://example.org/mybase.html' })).resolves.toEqual({
+          '@base': 'http://example.org/mybase.html',
+          'name': "http://xmlns.com/foaf/0.1/name",
+          'nickname': "http://xmlns.com/foaf/0.1/nick",
+          'xsd': "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+
       it('should parse an array with an object and a string', () => {
         return expect(parser.parse([
           {
@@ -2142,6 +2154,32 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
           myint: { "@id": "http://www.w3.org/2001/XMLSchema#integer" },
           name: "http://xmlns.com/foaf/0.1/name",
           xsd: "http://www.w3.org/2001/XMLSchema#",
+        });
+      });
+
+      it('should handle @base relative to each other', () => {
+        return expect(parser.parse([
+          {
+            '@base': 'one/',
+          },
+          {
+            '@base': 'two/',
+          },
+        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
+          '@base': 'http://doc.org/one/two/',
+        });
+      });
+
+      it('should handle an array with @base in only first entry', () => {
+        return expect(parser.parse([
+          {
+            '@base': 'one/',
+          },
+          {
+
+          },
+        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
+          '@base': 'http://doc.org/one/',
         });
       });
     });
@@ -2266,6 +2304,16 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
             '@base': 'http://example.org/base/',
             '@vocab': 'http://example.org/ns/',
             'foo': { '@type': 'http://example.org/ns/literal', '@container': { '@set': true } },
+          });
+      });
+
+      it('should revert back to baseIRI from options when context is nullified', () => {
+        return expect(parser.parse(null, {
+          baseIRI: 'http://myexample.org/',
+          parentContext: { '@base': 'http://ignoreMe.com' },
+        }))
+          .resolves.toEqual({
+            '@base': 'http://myexample.org/',
           });
       });
     });
@@ -2810,98 +2858,6 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
       });
     });
 
-    describe('for parsing arrays', () => {
-      it('should parse an empty array to the parent context', () => {
-        const parentContext = { a: 'b' };
-        return expect(parser.parse([], { parentContext })).resolves.toBe(parentContext);
-      });
-
-      it('should parse an array with one string', () => {
-        return expect(parser.parse([
-          'http://example.org/simple.jsonld',
-        ])).resolves.toEqual({
-          name: "http://xmlns.com/foaf/0.1/name",
-          xsd: "http://www.w3.org/2001/XMLSchema#",
-        });
-      });
-
-      it('should parse an array with two strings', () => {
-        return expect(parser.parse([
-          'http://example.org/simple.jsonld',
-          'http://example.org/simple2.jsonld',
-        ])).resolves.toEqual({
-          name: "http://xmlns.com/foaf/0.1/name",
-          nickname: "http://xmlns.com/foaf/0.1/nick",
-          xsd: "http://www.w3.org/2001/XMLSchema#",
-        });
-      });
-
-      it('should parse an array with relative string URLs', () => {
-        return expect(parser.parse([
-          'simple.jsonld',
-          'simple2.jsonld',
-        ], { baseIRI: 'http://example.org/mybase.html' })).resolves.toEqual({
-          '@base': 'http://example.org/mybase.html',
-          'name': "http://xmlns.com/foaf/0.1/name",
-          'nickname': "http://xmlns.com/foaf/0.1/nick",
-          'xsd': "http://www.w3.org/2001/XMLSchema#",
-        });
-      });
-
-      it('should parse an array with an object and a string', () => {
-        return expect(parser.parse([
-          {
-            npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
-          },
-          'http://example.org/simple2.jsonld',
-        ])).resolves.toEqual({
-          nickname: "http://xmlns.com/foaf/0.1/nick",
-          npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
-        });
-      });
-
-      it('should parse an array with an object and a string resolving to an array when cached', () => {
-        parser.documentCache['http://example.org/simplearray.jsonld'] = [{
-          nickname: 'http://xmlns.com/foaf/0.1/nick',
-        }];
-        return expect(parser.parse([
-          {
-            npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
-          },
-          'http://example.org/simplearray.jsonld',
-        ])).resolves.toEqual({
-          nickname: "http://xmlns.com/foaf/0.1/nick",
-          npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
-        });
-      });
-
-      it('should parse and expand prefixes', () => {
-        return expect(parser.parse([
-          'http://example.org/simple.jsonld',
-          {
-            myint: { "@id": "xsd:integer" },
-          },
-        ])).resolves.toEqual({
-          myint: { "@id": "http://www.w3.org/2001/XMLSchema#integer" },
-          name: "http://xmlns.com/foaf/0.1/name",
-          xsd: "http://www.w3.org/2001/XMLSchema#",
-        });
-      });
-
-      it('should handle @base relative to each other', () => {
-        return expect(parser.parse([
-          {
-            '@base': 'one/',
-          },
-          {
-            '@base': 'two/',
-          },
-        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
-          '@base': 'http://doc.org/one/two/',
-        });
-      });
-    });
-
     describe('for parsing invalid values', () => {
       it('should error when parsing true', () => {
         return expect(parser.parse(true)).rejects
@@ -2920,7 +2876,80 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
     });
 
     describe('for scoped contexts', () => {
-      it('should not modify scoped context', () => {
+      it('should preload remote URLs', () => {
+        return expect(parser.parse({
+          prop: {
+            '@context': 'http://example.org/simple.jsonld',
+            '@id': 'http://ex.org/prop',
+          },
+        }, { processingMode: 1.1 })).resolves.toEqual({
+          prop: {
+            '@context': {
+              name: "http://xmlns.com/foaf/0.1/name",
+              xsd: "http://www.w3.org/2001/XMLSchema#",
+            },
+            '@id': 'http://ex.org/prop',
+          },
+        });
+      });
+
+      it('should preload remote URLs in an array', () => {
+        return expect(parser.parse({
+          prop: {
+            '@context': [
+              'http://example.org/simple.jsonld',
+              'http://example.org/simple2.jsonld',
+            ],
+            '@id': 'http://ex.org/prop',
+          },
+        }, { processingMode: 1.1 })).resolves.toEqual({
+          prop: {
+            '@context': [
+              {
+                name: "http://xmlns.com/foaf/0.1/name",
+                xsd: "http://www.w3.org/2001/XMLSchema#",
+              },
+              {
+                nickname: "http://xmlns.com/foaf/0.1/nick",
+              },
+            ],
+            '@id': 'http://ex.org/prop',
+          },
+        });
+      });
+
+      it('should preload a combination of remote URLs and objects in an array', () => {
+        return expect(parser.parse({
+          prop: {
+            '@context': [
+              'http://example.org/simple.jsonld',
+              'http://example.org/simple2.jsonld',
+              {
+                bla: 'http://bla.org/',
+              },
+            ],
+            '@id': 'http://ex.org/prop',
+          },
+        }, { processingMode: 1.1 })).resolves.toEqual({
+          prop: {
+            '@context': [
+              {
+                name: "http://xmlns.com/foaf/0.1/name",
+                xsd: "http://www.w3.org/2001/XMLSchema#",
+              },
+              {
+                nickname: "http://xmlns.com/foaf/0.1/nick",
+              },
+              {
+                bla: 'http://bla.org/',
+              },
+            ],
+            '@id': 'http://ex.org/prop',
+          },
+        });
+      });
+
+      it('should not expand prefixes in scoped contexts', () => {
         return expect(parser.parse({
           prop: {
             '@context': {
@@ -2935,6 +2964,20 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
               prefix: 'http://ex.org/',
               value: 'prefix:value',
             },
+            '@id': 'http://ex.org/prop',
+          },
+        });
+      });
+
+      it('should not modify null inner contexts', () => {
+        return expect(parser.parse({
+          prop: {
+            '@context': null,
+            '@id': 'http://ex.org/prop',
+          },
+        }, { processingMode: 1.1 })).resolves.toEqual({
+          prop: {
+            '@context': null,
             '@id': 'http://ex.org/prop',
           },
         });
