@@ -2982,6 +2982,135 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
           },
         });
       });
+
+      it('should error on invalid scoped contexts', () => {
+        return expect(parser.parse({
+          '@version': 1.1,
+          't1': {
+            '@context': {
+              t2: {
+                // Missing @id here
+                '@context': {
+                  type: null,
+                },
+              },
+            },
+            '@id': 'ex:t1',
+          },
+        }, { processingMode: 1.1 })).rejects.toThrow(new ErrorCoded(
+          'Missing @id in context entry: \'t2\': \'{}\'',
+          ERROR_CODES.INVALID_SCOPED_CONTEXT));
+      });
+
+      it('should not error on invalid scoped contexts if skipValidation is true', () => {
+        parser = new ContextParser({ documentLoader, skipValidation: true });
+        return expect(parser.parse({
+          '@version': 1.1,
+          't1': {
+            '@context': {
+              t2: {
+                // Missing @id here
+                '@context': {
+                  type: null,
+                },
+              },
+            },
+            '@id': 'ex:t1',
+          },
+        }, {processingMode: 1.1})).resolves.toEqual({
+          '@version': 1.1,
+          't1': {
+            '@context': {
+              t2: {
+                // Missing @id here
+                '@context': {
+                  type: null,
+                },
+              },
+            },
+            '@id': 'ex:t1',
+          },
+        });
+      });
+
+      it('should not error on valid scoped contexts that are invalid on their own', () => {
+        return expect(parser.parse({
+          '@vocab': 'http://example/',
+          'foo': {
+            '@context': {
+              baz: {
+                '@type': '@vocab',
+              },
+            },
+          },
+        }, { processingMode: 1.1 })).resolves.toEqual({
+          '@vocab': 'http://example/',
+          'foo': {
+            '@context': {
+              baz: {
+                '@type': '@vocab',
+              },
+            },
+          },
+        });
+      });
+
+      it('should not error on valid scoped contexts with containers that are invalid on their own', () => {
+        return expect(parser.parse({
+          '@vocab': 'http://example/',
+          'foo': {
+            '@context': {
+              baz: 'http://example.org/baz',
+            },
+          },
+          'typemap': {
+            '@container': '@type',
+          },
+        }, { processingMode: 1.1 })).resolves.toEqual({
+          '@vocab': 'http://example/',
+          'foo': {
+            '@context': {
+              baz: 'http://example.org/baz',
+            },
+          },
+          'typemap': {
+            '@container': {
+              '@type': true,
+            },
+          },
+        });
+      });
+
+      it('should not error on valid scoped contexts in arrays that are invalid on their own', () => {
+        return expect(parser.parse([{
+          "@protected": true,
+          "@version": 1.1,
+          "@vocab": "http://example.com/",
+          "Parent": {"@context": {"@protected": true, "foo": {"@type": "@id"}}},
+        }, {
+          "@protected": true,
+          "@version": 1.1,
+          "Child": {"@context": {"@protected": true, "foo": {"@type": "@id"}}},
+        }], { processingMode: 1.1, baseIRI: 'http://base.org/' })).resolves.toEqual({
+          "@base": "http://base.org/",
+          "@version": 1.1,
+          "@vocab": "http://example.com/",
+          "Child": {
+            "@context": {
+              "@base": "http://base.org/",
+              "@protected": true, "foo": {"@type": "@id"},
+            },
+            "@protected": true,
+          },
+          "Parent": {
+            "@context": {
+              "@base": "http://base.org/",
+              "@protected": true, "foo": {"@type": "@id"},
+            },
+            "@protected": true,
+          },
+        });
+      });
     });
 
     describe('for contexts with @import', () => {

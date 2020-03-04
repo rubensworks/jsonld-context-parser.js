@@ -858,7 +858,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
   }
 
   /**
-   * Normalize the @language entries in the given context to lowercase.
+   * Parse scoped contexts in the given context.
    * @param {IJsonLdContextNormalized} context A context.
    * @param {IParseOptions} options Parsing options.
    * @return {IJsonLdContextNormalized} The mutated input context.
@@ -869,7 +869,24 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       const value = context[key];
       if (value && typeof value === 'object') {
         if ('@context' in value && value['@context'] !== null) {
-          value['@context'] = await this.parse(value['@context'], options);
+          // Simulate a processing based on the parent context to check if there are any (potential errors).
+          // Honestly, I find it a bit weird to do this here, as the context may be unused,
+          // and the final effective context may differ based on any other embedded/scoped contexts.
+          // But hey, it's part of the spec, so we have no choice...
+          // https://w3c.github.io/json-ld-api/#h-note-10
+          if (this.validate) {
+            try {
+              const parentContext = {...context};
+              parentContext[key] = {...parentContext[key]};
+              delete parentContext[key]['@context'];
+              await this.parse(value['@context'], {...options, parentContext, ignoreProtection: true});
+            } catch (e) {
+              throw new ErrorCoded(e.message, ERROR_CODES.INVALID_SCOPED_CONTEXT);
+            }
+          }
+
+          value['@context'] = await this.parse(value['@context'],
+            { ...options, minimalProcessing: true, parentContext: context });
         }
       }
     }
@@ -962,14 +979,6 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       // Override the base IRI if provided.
       ContextParser.applyBaseEntry(context, options, true);
 
-      // Parse inner contexts with minimal processing
-      await this.parseInnerContexts(context, { ...options, minimalProcessing: true });
-
-      // Don't perform any other modifications if only minimal processing is needed.
-      if (minimalProcessing) {
-        return context;
-      }
-
       // Hashify container entries
       // Do this before protected term validation as that influences term format
       ContextParser.containersToHash(context);
@@ -977,6 +986,11 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       // In JSON-LD 1.1, check if we are not redefining any protected keywords
       if (!ignoreProtection && parentContext && processingMode && processingMode >= 1.1) {
         ContextParser.validateKeywordRedefinitions(parentContext, context, defaultExpandOptions);
+      }
+
+      // Don't perform any other modifications if only minimal processing is needed.
+      if (minimalProcessing) {
+        return context;
       }
 
       // In JSON-LD 1.1, load @import'ed context prior to processing.
@@ -1001,6 +1015,9 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       // Merge different parts of the final context in order
       newContext = { ...newContext, ...parentContext, ...importContext, ...context };
 
+      // Parse inner contexts with minimal processing
+      await this.parseInnerContexts(newContext, options);
+
       // In JSON-LD 1.1, @vocab can be relative to @vocab in the parent context.
       if ((newContext['@version'] || processingMode) >= 1.1
         && (context['@vocab'] || context['@vocab'] === '')
@@ -1015,6 +1032,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       if (this.validate) {
         ContextParser.validate(newContext, { processingMode });
       }
+
       return newContext;
     } else {
       throw new Error(`Tried parsing a context that is not a string, array or object, but got ${context}`);
