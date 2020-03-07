@@ -1758,6 +1758,16 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
       expect(() => ContextParser.validate(<any> { term: 10 }, parseDefaults))
         .toThrow(new Error('Found an invalid term value: \'term\': \'10\''));
     });
+
+    it('should ignore reserved internal keywords', async () => {
+      expect(() => ContextParser.validate(<any> { '@__': { '@id': '@id', '@type': '_:bnode' } }, parseDefaults))
+        .not.toThrow();
+      expect(() => ContextParser.validate(<any> { '@__ignored': { '@id': '@id', '@type': '_:bnode' } }, parseDefaults))
+        .not.toThrow();
+      expect(() => ContextParser.validate(<any> { '@__propagateFallback': { '@id': '@id', '@type': '_:bnode' } },
+        parseDefaults))
+        .not.toThrow();
+    });
   });
 
   describe('#validateLanguage', () => {

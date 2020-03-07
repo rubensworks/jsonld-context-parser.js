@@ -631,6 +631,11 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
    */
   public static validate(context: IJsonLdContextNormalized, { processingMode }: IParseOptions) {
     for (const key of Object.keys(context)) {
+      // Ignore reserved internal keywords.
+      if (key.startsWith('@__')) {
+        continue;
+      }
+
       const value = context[key];
       const valueType = typeof value;
       // First check if the key is a keyword
