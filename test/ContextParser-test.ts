@@ -842,16 +842,16 @@ describe('ContextParser', () => {
       expect(ContextParser.isPrefixValue('abc')).toBeTruthy();
     });
 
+    it('should be true for empty objects', async () => {
+      expect(ContextParser.isPrefixValue({})).toBeTruthy();
+    });
+
     it('should be true for objects with @id', async () => {
       expect(ContextParser.isPrefixValue({ '@id': 'bla' })).toBeTruthy();
     });
 
     it('should be true for objects with @type', async () => {
       expect(ContextParser.isPrefixValue({ '@type': 'bla' })).toBeTruthy();
-    });
-
-    it('should be false for objects without @id and @type', async () => {
-      expect(ContextParser.isPrefixValue({ '@notid': 'bla' })).toBeFalsy();
     });
   });
 
@@ -1220,6 +1220,108 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
         foo: { '@id': '@type', '@prefix': false },
       }, true)).toEqual({
         foo: { '@id': '@type', '@prefix': false },
+      });
+    });
+
+    it('should expand relative terms in expanded form without @id to @vocab', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@vocab': 'http://vocab.org/',
+        'foo': {},
+      }, true)).toEqual({
+        '@vocab': 'http://vocab.org/',
+        'foo': { '@id': 'http://vocab.org/foo' },
+      });
+    });
+
+    it('should expand relative terms in expanded form with empty @vocab without @id to @base', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@base': 'http://base.org/',
+        '@vocab': '',
+        'foo': {},
+      }, true)).toEqual({
+        '@base': 'http://base.org/',
+        '@vocab': '',
+        'foo': {'@id': 'http://base.org/foo' },
+      });
+    });
+
+    it('should expand relative terms in expanded form with @id to @vocab', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@vocab': 'http://vocab.org/',
+        'foo': { '@id': 'rel' },
+      }, true)).toEqual({
+        '@vocab': 'http://vocab.org/',
+        'foo': { '@id': 'http://vocab.org/rel' },
+      });
+    });
+
+    it('should expand relative terms in expanded form with empty @vocab with @id to @base', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@base': 'http://base.org/',
+        '@vocab': '',
+        'foo': { '@id': 'rel' },
+      }, true)).toEqual({
+        '@base': 'http://base.org/',
+        '@vocab': '',
+        'foo': { '@id': 'http://base.org/rel' },
+      });
+    });
+
+    it('should expand relative terms in compact string form with @id to @vocab', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@vocab': 'http://vocab.org/',
+        'foo': 'rel',
+      }, true)).toEqual({
+        '@vocab': 'http://vocab.org/',
+        'foo': 'http://vocab.org/rel',
+      });
+    });
+
+    it('should not expand keyword terms in expanded form to @vocab', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@id': {},
+        '@vocab': 'http://vocab.org/',
+      }, true)).toEqual({
+        '@id': {},
+        '@vocab': 'http://vocab.org/',
+      });
+    });
+
+    it('should not expand relative terms in expanded form with @id a keyword to @vocab', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@vocab': 'http://vocab.org/',
+        'foo': { '@id': '@keyword' },
+      }, true)).toEqual({
+        '@vocab': 'http://vocab.org/',
+        'foo': { '@id': '@keyword' },
+      });
+    });
+
+    it('should not expand relative terms in expanded form without @id without @vocab', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        foo: {},
+      }, true)).toEqual({
+        foo: {},
+      });
+    });
+
+    it('should not expand relative terms with @id null', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@vocab': 'http://vocab.org/',
+        'foo': { '@id': null },
+      }, true)).toEqual({
+        '@vocab': 'http://vocab.org/',
+        'foo': { '@id': null },
+      });
+    });
+
+    it('should not expand relative terms with @id undefined', async () => {
+      expect(ContextParser.expandPrefixedTerms({
+        '@vocab': 'http://vocab.org/',
+        'foo': { '@id': undefined },
+      }, true)).toEqual({
+        '@vocab': 'http://vocab.org/',
+        'foo': { '@id': undefined },
       });
     });
   });
@@ -2192,6 +2294,54 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
           '@base': 'http://doc.org/one/',
         });
       });
+
+      it('should expand terms when a new conflicting @vocab is introduced', () => {
+        return expect(parser.parse([
+          {
+            "@vocab": "http://vocab.org/",
+            "bar": {},
+          },
+          {
+            "@vocab": "http://vocab.1.org/",
+          },
+        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
+          "@base": "http://doc.org/",
+          "@vocab": "http://vocab.1.org/",
+          "bar": { "@id": "http://vocab.org/bar" },
+        });
+      });
+
+      it('should expand terms with @id when a new conflicting @vocab is introduced', () => {
+        return expect(parser.parse([
+          {
+            "@vocab": "http://vocab.org/",
+            "bar": { "@id": "rel" },
+          },
+          {
+            "@vocab": "http://vocab.1.org/",
+          },
+        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
+          "@base": "http://doc.org/",
+          "@vocab": "http://vocab.1.org/",
+          "bar": { "@id": "http://vocab.org/rel" },
+        });
+      });
+
+      it('should expand string terms when a new conflicting @vocab is introduced', () => {
+        return expect(parser.parse([
+          {
+            "@vocab": "http://vocab.org/",
+            "bar": "rel",
+          },
+          {
+            "@vocab": "http://vocab.1.org/",
+          },
+        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
+          "@base": "http://doc.org/",
+          "@vocab": "http://vocab.1.org/",
+          "bar": "http://vocab.org/rel",
+        });
+      });
     });
 
     describe('for base and vocab', () => {
@@ -2313,7 +2463,11 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
           .resolves.toEqual({
             '@base': 'http://example.org/base/',
             '@vocab': 'http://example.org/ns/',
-            'foo': { '@type': 'http://example.org/ns/literal', '@container': { '@set': true } },
+            'foo': {
+              '@container': { '@set': true },
+              '@id': 'http://example.org/ns/foo',
+              '@type': 'http://example.org/ns/literal',
+            },
           });
       });
 
@@ -3061,6 +3215,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
                 '@type': '@vocab',
               },
             },
+            '@id': 'http://example/foo',
           },
         });
       });
@@ -3082,11 +3237,13 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
             '@context': {
               baz: 'http://example.org/baz',
             },
+            '@id': 'http://example/foo',
           },
           'typemap': {
             '@container': {
               '@type': true,
             },
+            '@id': 'http://example/typemap',
           },
         });
       });
@@ -3110,6 +3267,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
               "@base": "http://base.org/",
               "@protected": true, "foo": {"@type": "@id"},
             },
+            "@id": "http://example.com/Child",
             "@protected": true,
           },
           "Parent": {
@@ -3117,8 +3275,31 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
               "@base": "http://base.org/",
               "@protected": true, "foo": {"@type": "@id"},
             },
+            "@id": "http://example.com/Parent",
             "@protected": true,
           },
+        });
+      });
+
+      it('should expand keys without @id based on the correct @vocab', () => {
+        return expect(parser.parse({
+          '@vocab': 'http://vocab.org/',
+          'Foo': {
+            '@context': {
+              '@vocab': 'http://vocab.1.org/',
+            },
+            '@id': 'http://ex.org/Foo',
+          },
+          'prop': {},
+        }, { processingMode: 1.1 })).resolves.toEqual({
+          '@vocab': 'http://vocab.org/',
+          'Foo': {
+            '@context': {
+              '@vocab': 'http://vocab.1.org/',
+            },
+            '@id': 'http://ex.org/Foo',
+          },
+          'prop': { '@id': 'http://vocab.org/prop' },
         });
       });
     });

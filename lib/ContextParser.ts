@@ -350,7 +350,7 @@ export class ContextParser implements IDocumentLoader {
    * @return {boolean} If it can be a prefix value.
    */
   public static isPrefixValue(value: any): boolean {
-    return value && (typeof value === 'string' || value['@id'] || value['@type']);
+    return value && (typeof value === 'string' || (value && typeof value === 'object'));
   }
 
   /**
@@ -448,9 +448,20 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
           } else {
             const id = value['@id'];
             const type = value['@type'];
-            if (id) {
-              context[key]['@id'] = ContextParser.expandTerm(id, context, true);
-              changed = changed || id !== context[key]['@id'];
+            if ('@id' in value) {
+              // Use @id value for expansion
+              if (id !== undefined && id !== null) {
+                context[key]['@id'] = ContextParser.expandTerm(id, context, true);
+                changed = changed || id !== context[key]['@id'];
+              }
+            } else if (!ContextParser.isPotentialKeyword(key)) {
+              // Add an explicit @id value based on the expanded key value
+              const newId = ContextParser.expandTerm(key, context, true);
+              if (newId !== key) {
+                // Don't set @id if expansion failed
+                context[key]['@id'] = newId;
+                changed = true;
+              }
             }
             if (type && type !== '@vocab' && (!value['@container'] || !(<any> value['@container'])['@type'])) {
               // First check @vocab, then fallback to @base
@@ -911,13 +922,14 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
     : Promise<IJsonLdContextNormalized> {
     const {
       baseIRI,
-      parentContext,
+      parentContext: parentContextInitial,
       external,
       processingMode,
       normalizeLanguageTags,
       ignoreProtection,
       minimalProcessing,
     } = options;
+    let parentContext = parentContextInitial;
 
     if (context === null || context === undefined) {
       // Don't allow context nullification and there are protected terms
@@ -972,6 +984,9 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
 
       // Make a deep clone of the given context, to avoid modifying it.
       context = <IJsonLdContextNormalized> JSON.parse(JSON.stringify(context)); // No better way in JS at the moment...
+      if (parentContext) {
+        parentContext = <IJsonLdContextNormalized> JSON.parse(JSON.stringify(parentContext));
+      }
 
       // We have an actual context object.
       let newContext: any = {};
