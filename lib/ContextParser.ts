@@ -422,7 +422,7 @@ export class ContextParser implements IDocumentLoader {
                                     expandContentTypeToBase: boolean): IJsonLdContextNormalized {
     for (const key of Object.keys(context)) {
       // Only expand allowed keys
-      if (ContextParser.EXPAND_KEYS_BLACKLIST.indexOf(key) < 0) {
+      if (ContextParser.EXPAND_KEYS_BLACKLIST.indexOf(key) < 0 && !ContextParser.isReservedInternalKeyword(key)) {
         // Error if we try to alias a keyword to something else.
         const keyValue = context[key];
         if (ContextParser.getContextValueId(keyValue) && ContextParser.isPotentialKeyword(key)
@@ -636,6 +636,14 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
   }
 
   /**
+   * Check if the given key is an internal reserved keyword.
+   * @param key A context key.
+   */
+  public static isReservedInternalKeyword(key: string) {
+    return key.startsWith('@__');
+  }
+
+  /**
    * Validate the entries of the given context.
    * @param {IJsonLdContextNormalized} context A context.
    * @param {IValidateOptions} options The validation options.
@@ -643,7 +651,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
   public static validate(context: IJsonLdContextNormalized, { processingMode }: IParseOptions) {
     for (const key of Object.keys(context)) {
       // Ignore reserved internal keywords.
-      if (key.startsWith('@__')) {
+      if (ContextParser.isReservedInternalKeyword(key)) {
         continue;
       }
 
