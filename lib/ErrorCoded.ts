@@ -69,7 +69,7 @@ export enum ERROR_CODES {
   LOADING_REMOTE_CONTEXT_FAILED = 'loading remote context failed',
   MULTIPLE_CONTEXT_LINK_HEADERS = 'multiple context link headers',
   PROCESSING_MODE_CONFLICT = 'processing mode conflict',
-  PROTECTED_TERM_REDIFINITION = 'protected term redefinition',
+  PROTECTED_TERM_REDEFINITION = 'protected term redefinition',
   CONTEXT_OVERFLOW = 'context overflow',
   INVALID_BASE_DIRECTION = 'invalid base direction',
 }

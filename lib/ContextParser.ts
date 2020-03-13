@@ -567,6 +567,10 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
     if (processingMode && processingMode >= 1.1) {
       if (context['@protected']) {
         for (const key of Object.keys(context)) {
+          if (ContextParser.isReservedInternalKeyword(key)) {
+            continue;
+          }
+
           if (!ContextParser.isPotentialKeyword(key) && !ContextParser.isTermProtected(context, key)) {
             const value = context[key];
             if (value && typeof value === 'object') {
@@ -629,7 +633,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
           throw new ErrorCoded(`Attempted to override the protected keyword ${key} from ${
             JSON.stringify(ContextParser.getContextValueId(contextBefore[key]))} to ${
             JSON.stringify(ContextParser.getContextValueId(contextAfter[key]))}`,
-            ERROR_CODES.PROTECTED_TERM_REDIFINITION);
+            ERROR_CODES.PROTECTED_TERM_REDEFINITION);
         }
       }
     }
@@ -849,6 +853,9 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
     // Give priority to @base in the parent context
     if (inheritFromParent && !('@base' in context) && options.parentContext && '@base' in options.parentContext) {
       context['@base'] = options.parentContext['@base'];
+      if (options.parentContext['@__baseDocument']) {
+        context['@__baseDocument'] = true;
+      }
     }
 
     // Override the base IRI if provided.
@@ -856,6 +863,7 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       if (!('@base' in context)) {
         // The context base is the document base
         context['@base'] = options.baseIRI;
+        context['@__baseDocument'] = true;
       } else if (context['@base'] !== null && !ContextParser.isValidIri(<string> context['@base'])) {
         // The context base is relative to the document base
         context['@base'] = resolve(<string> context['@base'],
@@ -1011,11 +1019,6 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
       // Do this before protected term validation as that influences term format
       ContextParser.containersToHash(context);
 
-      // In JSON-LD 1.1, check if we are not redefining any protected keywords
-      if (!ignoreProtection && parentContext && processingMode && processingMode >= 1.1) {
-        ContextParser.validateKeywordRedefinitions(parentContext, context, defaultExpandOptions);
-      }
-
       // Don't perform any other modifications if only minimal processing is needed.
       if (minimalProcessing) {
         return context;
@@ -1045,6 +1048,11 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
 
       // Parse inner contexts with minimal processing
       await this.parseInnerContexts(newContext, options);
+
+      // In JSON-LD 1.1, check if we are not redefining any protected keywords
+      if (!ignoreProtection && parentContext && processingMode && processingMode >= 1.1) {
+        ContextParser.validateKeywordRedefinitions(parentContext, newContext, defaultExpandOptions);
+      }
 
       // In JSON-LD 1.1, @vocab can be relative to @vocab in the parent context.
       if ((newContext['@version'] || processingMode) >= 1.1

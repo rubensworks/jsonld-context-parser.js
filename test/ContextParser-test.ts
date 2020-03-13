@@ -2121,6 +2121,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
 
       it('should parse a valid relative context URL', () => {
         return expect(parser.parse('simple.jsonld', { baseIRI: 'http://example.org/mydoc.html' })).resolves.toEqual({
+          '@__baseDocument': true,
           '@base': 'http://example.org/mydoc.html',
           'name': "http://xmlns.com/foaf/0.1/name",
           'xsd': "http://www.w3.org/2001/XMLSchema#",
@@ -2140,6 +2141,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
 
       it('should parse and ignore the @base IRI, but not when a custom base IRI is given', () => {
         return expect(parser.parse('http://example.org/base.jsonld', { baseIRI: 'abc' })).resolves.toEqual({
+          '@__baseDocument': true,
           '@base': 'abc',
           'nickname': 'http://xmlns.com/foaf/0.1/nick',
         });
@@ -2187,7 +2189,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
 
       it('should parse to an empty context, but set @base if needed', () => {
         return expect(parser.parse(null, { baseIRI: 'http://base.org/' })).resolves
-          .toEqual({ '@base': 'http://base.org/' });
+          .toEqual({ '@__baseDocument': true, '@base': 'http://base.org/' });
       });
     });
 
@@ -2222,6 +2224,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
           'simple.jsonld',
           'simple2.jsonld',
         ], { baseIRI: 'http://example.org/mybase.html' })).resolves.toEqual({
+          '@__baseDocument': true,
           '@base': 'http://example.org/mybase.html',
           'name': "http://xmlns.com/foaf/0.1/name",
           'nickname': "http://xmlns.com/foaf/0.1/nick",
@@ -2305,6 +2308,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
             "@vocab": "http://vocab.1.org/",
           },
         ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
+          '@__baseDocument': true,
           "@base": "http://doc.org/",
           "@vocab": "http://vocab.1.org/",
           "bar": { "@id": "http://vocab.org/bar" },
@@ -2321,6 +2325,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
             "@vocab": "http://vocab.1.org/",
           },
         ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
+          '@__baseDocument': true,
           "@base": "http://doc.org/",
           "@vocab": "http://vocab.1.org/",
           "bar": { "@id": "http://vocab.org/rel" },
@@ -2337,6 +2342,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
             "@vocab": "http://vocab.1.org/",
           },
         ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
+          '@__baseDocument': true,
           "@base": "http://doc.org/",
           "@vocab": "http://vocab.1.org/",
           "bar": "http://vocab.org/rel",
@@ -2348,6 +2354,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
       it('should parse with a base IRI', () => {
         return expect(parser.parse('http://example.org/simple.jsonld', { baseIRI: 'http://myexample.org/' }))
           .resolves.toEqual({
+            '@__baseDocument': true,
             '@base': 'http://myexample.org/',
             'name': "http://xmlns.com/foaf/0.1/name",
             'xsd': "http://www.w3.org/2001/XMLSchema#",
@@ -2477,6 +2484,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
           parentContext: { '@base': 'http://ignoreMe.com' },
         }))
           .resolves.toEqual({
+            '@__baseDocument': true,
             '@base': 'http://myexample.org/',
           });
       });
@@ -2576,7 +2584,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
         ], { processingMode: 1.1 })).rejects.toThrow(new ErrorCoded(
           'Attempted to override the protected keyword name from ' +
           '"http://xmlns.com/foaf/0.1/name" to "http://schema.org/name"',
-          ERROR_CODES.PROTECTED_TERM_REDIFINITION));
+          ERROR_CODES.PROTECTED_TERM_REDEFINITION));
       });
 
       it('should not error on a protected term with override if ignoreProtection is true', () => {
@@ -2645,7 +2653,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
           },
         ], { processingMode: 1.1 })).rejects.toThrow(new ErrorCoded(
           'Attempted to override the protected keyword id from "@id" to "http://schema.org/id"',
-          ERROR_CODES.PROTECTED_TERM_REDIFINITION));
+          ERROR_CODES.PROTECTED_TERM_REDEFINITION));
       });
 
       it('should parse a protected term with semantically identical (string-based) override', () => {
@@ -2862,6 +2870,84 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
           },
         });
       });
+
+      it('should parse protected terms with a scoped context', () => {
+        return expect(parser.parse([
+          {
+            "@protected": true,
+            "bar": {
+              "@context": {
+                "bar-1": {
+                  "@id": "http://example/bar-1",
+                },
+              },
+              "@id": "http://example/bar",
+            },
+          },
+          {
+            "@protected": true,
+            "bar": {
+              "@context": {
+                "bar-1": {
+                  "@id": "http://example/bar-1",
+                },
+              },
+              "@id": "http://example/bar",
+            },
+          },
+        ], { processingMode: 1.1 })).resolves.toEqual({
+          bar: {
+            "@context": {
+              "bar-1": {
+                "@id": "http://example/bar-1",
+              },
+            },
+            "@id": "http://example/bar",
+            "@protected": true,
+          },
+        });
+      });
+
+      it('should parse protected terms with a scoped context and document baseIRI', () => {
+        return expect(parser.parse([
+          {
+            "@protected": true,
+            "bar": {
+              "@context": {
+                "bar-1": {
+                  "@id": "http://example/bar-1",
+                },
+              },
+              "@id": "http://example/bar",
+            },
+          },
+          {
+            "@protected": true,
+            "bar": {
+              "@context": {
+                "bar-1": {
+                  "@id": "http://example/bar-1",
+                },
+              },
+              "@id": "http://example/bar",
+            },
+          },
+        ], { processingMode: 1.1, baseIRI: 'http://base.org/' })).resolves.toEqual({
+          '@__baseDocument': true,
+          "@base": "http://base.org/",
+          "bar": {
+            "@context": {
+              '@__baseDocument': true,
+              "@base": "http://base.org/",
+              "bar-1": {
+                "@id": "http://example/bar-1",
+              },
+            },
+            "@id": "http://example/bar",
+            "@protected": true,
+          },
+        });
+      });
     });
 
     it('should parse a complex context', () => {
@@ -3018,7 +3104,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
 
       it('should parse to an empty context, but set @base if needed', () => {
         return expect(parser.parse(null, { baseIRI: 'http://base.org/' })).resolves
-          .toEqual({ '@base': 'http://base.org/' });
+          .toEqual({ '@__baseDocument': true, '@base': 'http://base.org/' });
       });
     });
 
@@ -3259,11 +3345,13 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
           "@version": 1.1,
           "Child": {"@context": {"@protected": true, "foo": {"@type": "@id"}}},
         }], { processingMode: 1.1, baseIRI: 'http://base.org/' })).resolves.toEqual({
+          '@__baseDocument': true,
           "@base": "http://base.org/",
           "@version": 1.1,
           "@vocab": "http://example.com/",
           "Child": {
             "@context": {
+              "@__baseDocument": true,
               "@base": "http://base.org/",
               "@protected": true, "foo": {"@type": "@id"},
             },
@@ -3272,6 +3360,7 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
           },
           "Parent": {
             "@context": {
+              "@__baseDocument": true,
               "@base": "http://base.org/",
               "@protected": true, "foo": {"@type": "@id"},
             },
