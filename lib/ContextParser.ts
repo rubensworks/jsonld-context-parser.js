@@ -61,8 +61,8 @@ export class ContextParser implements IDocumentLoader {
     '@version',
     '@direction',
   ];
-  // Keys in the contexts that may not be aliased
-  private static readonly ALIAS_KEYS_BLACKLIST: string[] = [
+  // Keys in the contexts that may not be aliased from
+  private static readonly ALIAS_DOMAIN_BLACKLIST: string[] = [
     '@container',
     '@graph',
     '@id',
@@ -76,6 +76,11 @@ export class ContextParser implements IDocumentLoader {
     '@type',
     '@value',
     '@version',
+  ];
+  // Keys in the contexts that may not be aliased to
+  private static readonly ALIAS_RANGE_BLACKLIST: string[] = [
+    '@context',
+    '@preserve',
   ];
   // All valid @container values
   private static readonly CONTAINERS: string[] = [
@@ -428,9 +433,17 @@ export class ContextParser implements IDocumentLoader {
       if (ContextParser.EXPAND_KEYS_BLACKLIST.indexOf(key) < 0 && !ContextParser.isReservedInternalKeyword(key)) {
         // Error if we try to alias a keyword to something else.
         const keyValue = context[key];
-        if (ContextParser.getContextValueId(keyValue) && ContextParser.isPotentialKeyword(key)
-          && ContextParser.ALIAS_KEYS_BLACKLIST.indexOf(key) >= 0) {
-          throw new ErrorCoded(`Keywords can not be aliased to something else.
+        if (ContextParser.isPotentialKeyword(key) && ContextParser.ALIAS_DOMAIN_BLACKLIST.indexOf(key) >= 0) {
+          if (key !== '@type' || typeof context[key] === 'object'
+            && !(context[key]['@protected'] || context[key]['@container'] === '@set')) {
+            throw new ErrorCoded(`Keywords can not be aliased to something else.
+Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.KEYWORD_REDEFINITION);
+          }
+        }
+
+        // Error if we try to alias to an illegal keyword
+        if (ContextParser.ALIAS_RANGE_BLACKLIST.indexOf(ContextParser.getContextValueId(keyValue)) >= 0) {
+          throw new ErrorCoded(`Aliasing to certain keywords is not allowed.
 Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWORD_ALIAS);
         }
 

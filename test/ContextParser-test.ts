@@ -1124,18 +1124,39 @@ describe('ContextParser', () => {
       });
     });
 
+    it('should error on aliasing to @context', async () => {
+      expect(() => ContextParser.expandPrefixedTerms({
+        bla: '@context',
+      }, true)).toThrow(new ErrorCoded(`Aliasing to certain keywords is not allowed.
+Tried mapping bla to "@context"`, ERROR_CODES.INVALID_KEYWORD_ALIAS));
+    });
+
+    it('should error on aliasing to @preserve', async () => {
+      expect(() => ContextParser.expandPrefixedTerms({
+        bla: '@preserve',
+      }, true)).toThrow(new ErrorCoded(`Aliasing to certain keywords is not allowed.
+Tried mapping bla to "@preserve"`, ERROR_CODES.INVALID_KEYWORD_ALIAS));
+    });
+
     it('should error on aliasing of keywords', async () => {
       expect(() => ContextParser.expandPrefixedTerms({
         '@id': 'http//ex.org/id',
       }, true)).toThrow(new ErrorCoded(`Keywords can not be aliased to something else.
-Tried mapping @id to "http//ex.org/id"`, ERROR_CODES.INVALID_KEYWORD_ALIAS));
+Tried mapping @id to "http//ex.org/id"`, ERROR_CODES.KEYWORD_REDEFINITION));
     });
 
     it('should error on aliasing of keywords in expanded form', async () => {
       expect(() => ContextParser.expandPrefixedTerms({
         '@id': { '@id': 'http//ex.org/id' },
       }, true)).toThrow(new ErrorCoded(`Keywords can not be aliased to something else.
-Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALIAS));
+Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.KEYWORD_REDEFINITION));
+    });
+
+    it('should error on aliasing of keywords in empty expanded form', async () => {
+      expect(() => ContextParser.expandPrefixedTerms({
+        '@id': {},
+      }, true)).toThrow(new ErrorCoded(`Keywords can not be aliased to something else.
+Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
     });
 
     it('should expand aliases', async () => {
@@ -1158,11 +1179,11 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
       });
     });
 
-    it('should handle @id with @protected: true', async () => {
+    it('should handle @type with @protected: true', async () => {
       expect(ContextParser.expandPrefixedTerms({
-        '@id': { '@protected': true },
+        '@type': { '@protected': true },
       }, true)).toEqual({
-        '@id': { '@protected': true },
+        '@type': { '@protected': true },
       });
     });
 
@@ -1180,6 +1201,13 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
       }, true)).toEqual({
         '@type': { '@container': '@set', '@protected': true },
       });
+    });
+
+    it('error on handle @id with @protected: true', async () => {
+      expect(() => ContextParser.expandPrefixedTerms({
+        '@id': { '@protected': true },
+      }, true)).toThrow(new ErrorCoded('Keywords can not be aliased to something else.' +
+        '\nTried mapping @id to {"@protected":true}', ERROR_CODES.KEYWORD_REDEFINITION));
     });
 
     it('should error on keyword aliasing with @prefix: true', async () => {
@@ -1261,10 +1289,10 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
 
     it('should not expand keyword terms in expanded form to @vocab', async () => {
       expect(ContextParser.expandPrefixedTerms({
-        '@id': {},
+        '@type': { '@protected': true },
         '@vocab': 'http://vocab.org/',
       }, true)).toEqual({
-        '@id': {},
+        '@type': { '@protected': true },
         '@vocab': 'http://vocab.org/',
       });
     });
