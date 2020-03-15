@@ -206,14 +206,13 @@ export class ContextParser implements IDocumentLoader {
     }
 
     // Check the @id
-    const reversed = contextValue && contextValue['@reverse'];
     let validIriMapping = true;
     if (contextValue && expandVocab) {
       const value = this.getContextValueId(contextValue);
       if (value && value !== term) {
         if (typeof value !== 'string' || (!ContextParser.isValidIri(value) && !ContextParser.isValidKeyword(value))) {
           // Don't mark this mapping as invalid if we have an unknown keyword, but of the correct form.
-          if ((reversed && !options.allowReverseRelativeToVocab) || !ContextParser.isPotentialKeyword(value)) {
+          if (!ContextParser.isPotentialKeyword(value)) {
             validIriMapping = false;
           }
         } else {
@@ -252,8 +251,7 @@ export class ContextParser implements IDocumentLoader {
         return value + term.substr(prefix.length + 1);
       }
     } else if (expandVocab && ((vocab || vocab === '') || (options.allowVocabRelativeToBase && (base && vocabRelative)))
-      && !potentialKeyword && !ContextParser.isCompactIri(term)
-      && !(reversed && !options.allowReverseRelativeToVocab)) {
+      && !potentialKeyword && !ContextParser.isCompactIri(term)) {
       if (vocabRelative) {
         if (options.allowVocabRelativeToBase) {
           return resolve(<string> vocab, base) + term;
@@ -399,11 +397,16 @@ export class ContextParser implements IDocumentLoader {
       const value: IPrefixValue = context[key];
       if (value && typeof value === 'object') {
         if (value['@reverse'] && !value['@id']) {
-          if (typeof value['@reverse'] !== 'string') {
-            throw new Error(`Invalid @reverse value: '${value['@reverse']}'`);
+          if (typeof value['@reverse'] !== 'string' || ContextParser.isValidKeyword(value['@reverse'])) {
+            throw new ErrorCoded(`Invalid @reverse value, must be absolute IRI or blank node: '${value['@reverse']}'`,
+              ERROR_CODES.INVALID_IRI_MAPPING);
           }
           value['@id'] = <string> value['@reverse'];
-          value['@reverse'] = <any> true;
+          if (ContextParser.isPotentialKeyword(value['@reverse'])) {
+            delete value['@reverse'];
+          } else {
+            value['@reverse'] = <any> true;
+          }
         }
       }
     }
@@ -1176,10 +1179,6 @@ export interface IExpandOptions {
    */
   allowPrefixForcing: boolean;
   /**
-   * If @reverse values are allowed to be relative to the @vocab.
-   */
-  allowReverseRelativeToVocab: boolean;
-  /**
    * If @vocab values are allowed contain IRIs relative to @base.
    */
   allowVocabRelativeToBase: boolean;
@@ -1187,6 +1186,5 @@ export interface IExpandOptions {
 export const defaultExpandOptions: IExpandOptions = {
   allowPrefixForcing: true,
   allowPrefixNonGenDelims: false,
-  allowReverseRelativeToVocab: false,
   allowVocabRelativeToBase: true,
 };

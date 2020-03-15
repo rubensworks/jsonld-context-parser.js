@@ -577,36 +577,18 @@ describe('ContextParser', () => {
           .toBe('ignoreMe');
       });
 
-      it('to error on invalid keyword-like alias with @reverse', async () => {
-        expect(() => ContextParser.expandTerm('ignoreMe', { ignoreMe: { "@id": "@ignoreMe", "@reverse": true } }, true))
-          .toThrow(new ErrorCoded('Invalid IRI mapping found for context entry \'ignoreMe\': ' +
-            '\'{"@id":"@ignoreMe","@reverse":true}\'', ERROR_CODES.INVALID_IRI_MAPPING));
-      });
-
-      it('to ignore invalid keyword-like alias with @reverse when allowReverseRelativeToVocab is true', async () => {
-        expect(ContextParser.expandTerm('ignoreMe', { ignoreMe: { "@id": "@ignoreMe", "@reverse": true } }, true,
-          { ...defaultExpandOptions, allowReverseRelativeToVocab: true }))
+      it('to ignore invalid keyword-like alias with @reverse', async () => {
+        expect(ContextParser.expandTerm('ignoreMe', { ignoreMe: { "@id": "@ignoreMe", "@reverse": true } }, true))
           .toBe('ignoreMe');
       });
 
-      it('to error on invalid keyword-like alias with @reverse and @vocab', async () => {
-        expect(() => ContextParser.expandTerm('ignoreMe', {
+      it('to handle invalid keyword-like alias with @reverse and @vocab', async () => {
+        expect(ContextParser.expandTerm('ignoreMe', {
           "@vocab": "http://example.org/",
           "ignoreMe": { "@id": "@ignoreMe", "@reverse": true },
         }, true))
-          .toThrow(new ErrorCoded('Invalid IRI mapping found for context entry \'ignoreMe\': ' +
-            '\'{"@id":"@ignoreMe","@reverse":true}\'', ERROR_CODES.INVALID_IRI_MAPPING));
+          .toBe('http://example.org/ignoreMe');
       });
-
-      it('to return on invalid keyword-like alias with @reverse and @vocab when allowReverseRelativeToVocab is true',
-        async () => {
-          expect(ContextParser.expandTerm('ignoreMe', {
-            "@vocab": "http://example.org/",
-            "ignoreMe": { "@id": "@ignoreMe", "@reverse": true },
-          }, true,
-            { ...defaultExpandOptions, allowReverseRelativeToVocab: true }))
-            .toBe('http://example.org/ignoreMe');
-        });
 
       it('to return on a term starting with a colon with @vocab', async () => {
         expect(ContextParser.expandTerm(':b', {':b': {'@type': '@id'}, '@vocab': 'http://ex.org/'},
@@ -1465,11 +1447,30 @@ Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.INVALID_KEYWORD_ALI
       });
     });
 
-    it('should error on an invalid @reverse @reverse', async () => {
+    it('should error on an invalid @reverse', async () => {
       expect(() => ContextParser.idifyReverseTerms({
         Example: { '@reverse': 10 },
         ex: 'http://example.org/',
-      })).toThrow(new Error('Invalid @reverse value: \'10\''));
+      })).toThrow(new ErrorCoded('Invalid @reverse value, must be absolute IRI or blank node: \'10\'',
+        ERROR_CODES.INVALID_IRI_MAPPING));
+    });
+
+    it('should error on @reverse for a valid keyword', async () => {
+      expect(() => ContextParser.idifyReverseTerms({
+        Example: { '@reverse': '@type' },
+        ex: 'http://example.org/',
+      })).toThrow(new ErrorCoded('Invalid @reverse value, must be absolute IRI or blank node: \'@type\'',
+        ERROR_CODES.INVALID_IRI_MAPPING));
+    });
+
+    it('should ignore @reverse for an invalid keyword', async () => {
+      expect(ContextParser.idifyReverseTerms({
+        Example: { '@reverse': '@ignoreMe' },
+        ex: 'http://example.org/',
+      })).toEqual({
+        Example: { '@id': '@ignoreMe' },
+        ex: 'http://example.org/',
+      });
     });
   });
 
