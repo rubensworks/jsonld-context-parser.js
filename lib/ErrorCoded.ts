@@ -11,6 +11,7 @@ export class ErrorCoded extends Error {
    */
   public readonly code: string;
 
+  /* istanbul ignore next */
   constructor(message: string, code: string) {
     super(message);
     this.code = code;
