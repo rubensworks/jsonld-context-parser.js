@@ -835,18 +835,18 @@ must be one of ${ContextParser.CONTAINERS.join(', ')}`);
    * Validate the given @direction value.
    * An error will be thrown if it is invalid.
    * @param value An @direction value.
-   * @param {boolean} strictRange If the string value should be strictly checked against a regex.
+   * @param {boolean} strictValues If the string value should be strictly checked against a regex.
    * @return {boolean} If validation passed.
    *                   Can only be false if strictRange is false and the string value did not pass the regex.
    */
-  public static validateDirection(value: any, strictRange: boolean) {
+  public static validateDirection(value: any, strictValues: boolean) {
     if (typeof value !== 'string') {
       throw new ErrorCoded(`The value of an '@direction' must be a string, got '${JSON.stringify(value)}'`,
         ERROR_CODES.INVALID_BASE_DIRECTION);
     }
 
     if (!ContextParser.REGEX_DIRECTION_TAG.test(value)) {
-      if (strictRange) {
+      if (strictValues) {
         throw new ErrorCoded(`The value of an '@direction' must be 'ltr' or 'rtl', got '${
           JSON.stringify(value)}'`, ERROR_CODES.INVALID_BASE_DIRECTION);
       } else {
