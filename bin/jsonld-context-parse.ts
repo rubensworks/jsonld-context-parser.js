@@ -43,7 +43,7 @@ default:
 
 new ContextParser().parse(input, { external, baseIRI })
   .then((context) => {
-    process.stdout.write(JSON.stringify(context, null, '  '));
+    process.stdout.write(JSON.stringify(context.getContextRaw(), null, '  '));
     process.stdout.write('\n');
   })
   .catch((err) => {
