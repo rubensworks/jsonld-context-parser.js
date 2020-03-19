@@ -15,8 +15,8 @@ This parser has the following functionality:
 * Convert `@container` string and array values to a hash-based value.
 * Expand prefixes and `@vocab` in string values, `@id`, `@type` and `@reverse`.
 * Context validation according to the [JSON-LD](https://json-ld.org/) specification while parsing (_can be disabled_).
-* Term expansion with the `ContextParser.expandTerm` helper function.
-* IRI compacting with the `ContextParser.compactIri` helper function.
+* Term expansion with the `context.expandTerm`.
+* IRI compacting with the `context.compactIri`.
 
 Example input (with base IRI set to `http://example.org/base`):
 ```jsonld
@@ -124,8 +124,6 @@ const myContext = await myParser.parse({ ... }, {
 
 Based on a context, terms can be expanded in vocab or base-mode.
 
-**Note that you should run the context through `ContextParser.parse()` before calling this function!**
-
 ##### Base expansion
 
 Base expansion is done based on the `@base` context entry.
@@ -133,13 +131,13 @@ This should typically be used for expanding terms in the subject or object posit
 
 ```
 // Expands `person` based on the @base IRI. Will throw an error if the final IRI is invalid.
-ContextParser.expandTerm('person', context);
+myContext.expandTerm('person');
 
 // Expands if `foaf` is present in the context
-ContextParser.expandTerm('foaf:name', context);
+myContext.expandTerm('foaf:name');
 
 // Returns the URI as-is
-ContextParser.expandTerm('http://xmlns.com/foaf/0.1/name', context);
+myContext.expandTerm('http://xmlns.com/foaf/0.1/name');
 ```
 
 ##### Vocab expansion
@@ -149,20 +147,18 @@ This should typically be used for expanding terms in the predicate position.
 
 ```
 // Expands `name` based on the @vocab IRI.
-ContextParser.expandTerm('name', context, true);
+myContext.expandTerm('name', true);
 
 // Expands if `foaf` is present in the context
-ContextParser.expandTerm('foaf:name', context, true);
+myContext.expandTerm('foaf:name', true);
 
 // Returns the URI as-is
-ContextParser.expandTerm('http://xmlns.com/foaf/0.1/name', context, true);
+myContext.expandTerm('http://xmlns.com/foaf/0.1/name', true);
 ```
 
 #### Compact an IRI
 
 Based on a context, IRIs can be compacted in vocab or base-mode.
-
-**Note that you should run the context through `ContextParser.parse()` before calling this function!**
 
 ##### Base compacting
 
@@ -171,13 +167,13 @@ This should typically be used for compacting terms in the subject or object posi
 
 ```
 // Compacts to `something` if @base is `http://base.org/`.
-ContextParser.compactIri('http://base.org/something', context);
+myContext.compactIri('http://base.org/something');
 
 // Compacts to `prefix:name` if `"prefix": "http://prefix.org/"` is in the context
-ContextParser.compactIri('http://prefix.org/name', context);
+myContext.compactIri('http://prefix.org/name');
 
 // Returns the URI as-is if it is not present in the context in any way
-ContextParser.compactIri('http://xmlns.com/foaf/0.1/name', context);
+myContext.compactIri('http://xmlns.com/foaf/0.1/name');
 ```
 
 ##### Vocab compacting
@@ -187,16 +183,16 @@ This should typically be used for compacting terms in the predicate position.
 
 ```
 // Compacts to `something` if @vocab is `http://vocab.org/`.
-ContextParser.compactIri('http://vocab.org/something', context, true);
+myContext.compactIri('http://vocab.org/something', true);
 
 // Compacts to `prefix:name` if `"prefix": "http://prefix.org/"` is in the context
-ContextParser.compactIri('http://prefix.org/name', context, true);
+myContext.compactIri('http://prefix.org/name', true);
 
 // Compacts to `term` if `"term": "http://term.org/"` is in the context
-ContextParser.compactIri('http://term.org/', context, true);
+myContext.compactIri('http://term.org/', true);
 
 // Returns the URI as-is if it is not present in the context in any way
-ContextParser.compactIri('http://xmlns.com/foaf/0.1/name', context, true);
+myContext.compactIri('http://xmlns.com/foaf/0.1/name', true);
 ```
 
 ### Command-line
