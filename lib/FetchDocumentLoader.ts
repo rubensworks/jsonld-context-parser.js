@@ -1,13 +1,13 @@
 import 'isomorphic-fetch';
 import {IDocumentLoader} from "./IDocumentLoader";
-import {IJsonLdContextNormalized} from "./JsonLdContext";
+import {IJsonLdContextNormalizedRaw} from "./JsonLdContext";
 
 /**
  * Loads documents via the fetch API.
  */
 export class FetchDocumentLoader implements IDocumentLoader {
 
-  public async load(url: string): Promise<IJsonLdContextNormalized> {
+  public async load(url: string): Promise<IJsonLdContextNormalizedRaw> {
     const response: Response = await fetch(url, { headers: { accept: 'application/ld+json' } });
     if (response.ok) {
       return (await response.json());

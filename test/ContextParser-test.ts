@@ -1,1907 +1,14 @@
-import {ContextParser, defaultExpandOptions, ERROR_CODES, ErrorCoded, FetchDocumentLoader} from "../index";
+import {
+  ContextParser,
+  defaultExpandOptions,
+  ERROR_CODES,
+  ErrorCoded,
+  FetchDocumentLoader,
+  JsonLdContextNormalized,
+} from "../index";
 
 describe('ContextParser', () => {
-  describe('#isCompactIri', () => {
-    it('to be true for a simple compact IRI', async () => {
-      expect(ContextParser.isCompactIri('a:b')).toBeTruthy();
-    });
-
-    it('to be false for a term', async () => {
-      expect(ContextParser.isCompactIri('a')).toBeFalsy();
-    });
-
-    it('to be false for a hash that looks like a compact IRI', async () => {
-      expect(ContextParser.isCompactIri('#a:b')).toBeFalsy();
-    });
-
-    it('to be false for terms starting with a colon', async () => {
-      expect(ContextParser.isCompactIri(':b')).toBeFalsy();
-    });
-  });
-
-  describe('#isTermProtected', () => {
-    it('to be false when a term is not present', async () => {
-      expect(ContextParser.isTermProtected({}, 'a')).toBeFalsy();
-    });
-
-    it('to be false on a string-based term', async () => {
-      expect(ContextParser.isTermProtected({ a: 'b' }, 'a')).toBeFalsy();
-    });
-
-    it('to be false on an object-based term', async () => {
-      expect(ContextParser.isTermProtected({ a: { '@id': 'b' } }, 'a')).toBeFalsy();
-    });
-
-    it('to be false on an object-based term with @protected: false', async () => {
-      expect(ContextParser.isTermProtected({ a: { '@id': 'b', '@protected': false } }, 'a')).toBeFalsy();
-    });
-
-    it('to be true on an object-based term with @protected: true', async () => {
-      expect(ContextParser.isTermProtected({ a: { '@id': 'b', '@protected': true } }, 'a')).toBeTruthy();
-    });
-  });
-
-  describe('#getPrefix', () => {
-    it('to return a null when no colon exists', async () => {
-      expect(ContextParser.getPrefix('abc', { '//': 'abc' })).toBe(null);
-    });
-
-    it('to return a null for just a colon', async () => {
-      expect(ContextParser.getPrefix(':', { '//': 'abc' })).toBe(null);
-    });
-
-    it('to return a null for double slashed suffixes', async () => {
-      expect(ContextParser.getPrefix('http://abc', { '//': 'abc' })).toBe(null);
-    });
-
-    it('to return a null for blank nodes', async () => {
-      expect(ContextParser.getPrefix('_:abc', { _: 'abc' })).toBe(null);
-    });
-
-    it('to return a null for a non-existing term', async () => {
-      expect(ContextParser.getPrefix('abc:def', { def: 'abc' })).toBe(null);
-    });
-
-    it('to return a null for a non-existing term', async () => {
-      expect(ContextParser.getPrefix('abc:def', { abc: 'ABC' })).toBe('abc');
-    });
-
-    it('to return a null for terms starting with a hash', async () => {
-      expect(ContextParser.getPrefix('#abc:def', { abc: 'ABC' })).toBe(null);
-    });
-  });
-
-  describe('#expandTerm', () => {
-    describe('in vocab-mode', () => {
-      it('should throw on a non-normalized context', async () => {
-        expect(() => ContextParser.expandTerm('abc:123', <any> 'string', true))
-          .toThrow(new Error('The given context is not normalized. Make sure to call ContextParser.parse() first.'));
-      });
-
-      it('to return when no prefix applies', async () => {
-        expect(ContextParser.expandTerm('abc:123', {def: 'DEF/'}, true)).toBe('abc:123');
-      });
-
-      it('to return when no prefix applies without @id', async () => {
-        expect(ContextParser.expandTerm('def:123', {def: {}}, true)).toBe('def:123');
-      });
-
-      it('to return when no term applies without @id', async () => {
-        expect(ContextParser.expandTerm('def', {def: {}}, true)).toBe('def');
-      });
-
-      it('to return when a prefix applies', async () => {
-        expect(ContextParser.expandTerm('def:123', {def: 'DEF/'}, true)).toBe('DEF/123');
-      });
-
-      it('to return when a prefix applies with @id', async () => {
-        expect(ContextParser.expandTerm('def:123', {def: { '@id': 'DEF/' }}, true)).toBe('def:123');
-      });
-
-      it('to return when a direct value applies', async () => {
-        expect(ContextParser.expandTerm('abc', {abc: 'http://DEF'}, true)).toBe('http://DEF');
-      });
-
-      it('to return when @vocab exists but not applies', async () => {
-        expect(ContextParser.expandTerm('def:123', {'@vocab': 'bbb/'}, true)).toBe('def:123');
-      });
-
-      it('to return when @vocab exists and applies', async () => {
-        expect(ContextParser.expandTerm('def', {'@vocab': 'http://bbb/'}, true))
-          .toBe('http://bbb/def');
-      });
-
-      it('to return when @vocab exists and applies, but the context key references itself', async () => {
-        expect(ContextParser.expandTerm('def', {'@vocab': 'http://bbb/', 'def': 'def'}, true)).
-        toBe('http://bbb/def');
-      });
-
-      it('to return when @vocab exists and applies, but is disabled', async () => {
-        expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/', 'def': null}, true)).toBe(null);
-      });
-
-      it('to return when @vocab exists and applies, but is disabled via @id', async () => {
-        expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/', 'def': { '@id': null }}, true)).toBe(null);
-      });
-
-      it('to return when @base exists but not applies', async () => {
-        expect(ContextParser.expandTerm('def:123', {'@base': 'bbb/'}, true)).toBe('def:123');
-      });
-
-      it('to return when @base exists and applies', async () => {
-        expect(ContextParser.expandTerm('def', {'@base': 'bbb/'}, true)).toBe('def');
-      });
-
-      it('to return when @base exists and applies, but is disabled', async () => {
-        expect(ContextParser.expandTerm('def', {'@base': 'bbb/', 'def': null}, true)).toBe(null);
-      });
-
-      it('to return when @base exists and applies, but is disabled via @id', async () => {
-        expect(ContextParser.expandTerm('def', {'@base': 'bbb/', 'def': { '@id': null }}, true)).toBe(null);
-      });
-
-      it('to return when a term and prefix applies', async () => {
-        expect(ContextParser.expandTerm('bla', {
-          bla: 'http://DEF/123',
-          def: 'http://DEF/',
-        }, true)).toBe('http://DEF/123');
-      });
-
-      it('to throw for not allowed relative @vocab', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowVocabRelativeToBase: false,
-        };
-        expect(() => ContextParser.expandTerm('bla', {
-          '@vocab': 'relative/',
-        }, true, opts)).toThrow(new Error(
-          'Relative vocab expansion for term \'bla\' with vocab \'relative/\' is not allowed.'));
-      });
-
-      it('to throw for unsupported relative empty @vocab', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowVocabRelativeToBase: false,
-        };
-        expect(() => ContextParser.expandTerm('bla', {
-          '@vocab': '',
-        }, true, opts)).toThrow(new Error(
-          'Relative vocab expansion for term \'bla\' with vocab \'\' is not allowed.'));
-      });
-
-      it('to return when @vocab is empty string and @base does not exist', async () => {
-        expect(ContextParser.expandTerm('def', {'@vocab': ''}, true)).toBe('def');
-      });
-
-      it('to return when @vocab is empty string and @base exists', async () => {
-        expect(ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true))
-          .toBe('http://ex.org/def');
-      });
-
-      it('to return when @vocab is empty string and @base exists if allowVocabRelativeToBase is true', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowVocabRelativeToBase: true,
-        };
-        expect(ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true,
-          opts)).toBe('http://ex.org/def');
-      });
-
-      it('to throw when @vocab is empty string and @base exists if allowVocabRelativeToBase is false', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowVocabRelativeToBase: false,
-        };
-        expect(() => ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, true,
-          opts)).toThrow(new Error(
-            'Relative vocab expansion for term \'def\' with vocab \'\' is not allowed.'));
-      });
-
-      it('to return when @vocab is "#" and @base exists if allowVocabRelativeToBase is true', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowVocabRelativeToBase: true,
-        };
-        expect(ContextParser.expandTerm('def', {'@vocab': '#', '@base': 'http://ex.org/'}, true,
-          opts)).toBe('http://ex.org/#def');
-      });
-
-      it('to throw when @vocab is "#" string and @base exists if allowVocabRelativeToBase is false', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowVocabRelativeToBase: false,
-        };
-        expect(() => ContextParser.expandTerm('def', {'@vocab': '#', '@base': 'http://ex.org/'}, true,
-          opts)).toThrow(new Error(
-            'Relative vocab expansion for term \'def\' with vocab \'#\' is not allowed.'));
-      });
-
-      it('to return when @vocab is "../#" and @base exists if allowVocabRelativeToBase is true', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowVocabRelativeToBase: true,
-        };
-        expect(ContextParser.expandTerm('def', {'@vocab': '../#', '@base': 'http://ex.org/abc/'}, true,
-          opts)).toBe('http://ex.org/#def');
-      });
-
-      it('to throw when @vocab is "../#" string and @base exists if allowVocabRelativeToBase is false', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowVocabRelativeToBase: false,
-        };
-        expect(() => ContextParser.expandTerm('def', {'@vocab': '../#', '@base': 'http://ex.org/abc/'}, true,
-          opts)).toThrow(new Error(
-            'Relative vocab expansion for term \'def\' with vocab \'../#\' is not allowed.'));
-      });
-
-      it('to return when @vocab is absolute and @base exists if allowVocabRelativeToBase is true', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowVocabRelativeToBase: true,
-        };
-        expect(ContextParser.expandTerm('def', {'@vocab': 'http://abc.org/', '@base': 'http://ex.org/abc/'}, true,
-          opts)).toBe('http://abc.org/def');
-      });
-
-      it('to return when @vocab is absolute string and @base exists if allowVocabRelativeToBase is false', async () => {
-        const opts = {
-          ...defaultExpandOptions,
-          allowVocabRelativeToBase: false,
-        };
-        expect(ContextParser.expandTerm('def', {'@vocab': 'http://abc.org/', '@base': 'http://ex.org/abc/'}, true,
-          opts)).toBe('http://abc.org/def');
-      });
-
-      describe('prefix handling', () => {
-        describe('for allowPrefixForcing true', () => {
-          describe('for allowPrefixNonGenDelims false', () => {
-            const opts = {
-              ...defaultExpandOptions,
-              allowPrefixForcing: true,
-              allowPrefixNonGenDelims: false,
-            };
-
-            describe('for simple term definitions', () => {
-              it('not to expand with non-gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact-' }, true,
-                  opts)).toBe('abc:def');
-              });
-
-              it('to expand with gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact/' }, true,
-                  opts)).toBe('http://ex.org/compact/def');
-              });
-
-              it('to expand for a blank node', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: '_:b' }, true,
-                  opts)).toBe('_:bdef');
-              });
-            });
-
-            describe('for expanded term definitions', () => {
-              it('not to expand with non-gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-' } }, true,
-                  opts)).toBe('abc:def');
-              });
-
-              it('not to expand with non-gen-delim with @prefix false', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': false } },
-                  true, opts)).toBe('abc:def');
-              });
-
-              it('to expand with non-gen-delim with @prefix true', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } }, true, opts))
-                  .toBe('http://ex.org/compact-def');
-              });
-
-              it('not to expand with gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact/' } }, true,
-                  opts)).toBe('abc:def');
-              });
-
-              it('not to expand with gen-delim with @prefix false', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': false } },
-                  true, opts)).toBe('abc:def');
-              });
-
-              it('to expand with gen-delim with @prefix true', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': true } }, true, opts))
-                  .toBe('http://ex.org/compact/def');
-              });
-
-              it('to expand for a blank node', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': '_:b' } }, true,
-                  opts)).toBe('_:bdef');
-              });
-
-              it('to expand with gen-delim without @prefix but with a dedicated term entry', async () => {
-                expect(ContextParser.expandTerm('abc:def', {
-                  'abc': { '@id': 'http://ex.org/compact/' },
-                  'abc:def': {},
-                }, true,
-                  opts)).toBe('http://ex.org/compact/def');
-              });
-            });
-          });
-
-          describe('for allowPrefixNonGenDelims true', () => {
-            const opts = {
-              ...defaultExpandOptions,
-              allowPrefixForcing: true,
-              allowPrefixNonGenDelims: true,
-            };
-
-            describe('for simple term definitions', () => {
-              it('to expand with non-gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact-' }, true,
-                  opts)).toBe('http://ex.org/compact-def');
-              });
-
-              it('to expand with gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact/' }, true,
-                  opts)).toBe('http://ex.org/compact/def');
-              });
-
-              it('to expand for a blank node', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: '_:b' }, true,
-                  opts)).toBe('_:bdef');
-              });
-            });
-
-            describe('for expanded term definitions', () => {
-              it('not to expand with non-gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-' } }, true,
-                  opts)).toBe('abc:def');
-              });
-
-              it('not to expand with non-gen-delim with @prefix false', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': false } },
-                  true, opts)).toBe('abc:def');
-              });
-
-              it('to expand with non-gen-delim with @prefix true', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } }, true, opts))
-                  .toBe('http://ex.org/compact-def');
-              });
-
-              it('not to expand with gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact/' } }, true,
-                  opts)).toBe('abc:def');
-              });
-
-              it('not to expand with gen-delim with @prefix false', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': false } },
-                  true, opts)).toBe('abc:def');
-              });
-
-              it('to expand with gen-delim with @prefix true', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': true } }, true, opts))
-                  .toBe('http://ex.org/compact/def');
-              });
-
-              it('to expand for a blank node', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': '_:b' } }, true,
-                  opts)).toBe('_:bdef');
-              });
-
-              it('to expand with gen-delim without @prefix but with a dedicated term entry', async () => {
-                expect(ContextParser.expandTerm('abc:def', {
-                  'abc': { '@id': 'http://ex.org/compact/' },
-                  'abc:def': {},
-                }, true,
-                  opts)).toBe('http://ex.org/compact/def');
-              });
-            });
-          });
-        });
-
-        describe('for allowPrefixForcing false', () => {
-          describe('for allowPrefixNonGenDelims false', () => {
-            const opts = {
-              ...defaultExpandOptions,
-              allowPrefixForcing: false,
-              allowPrefixNonGenDelims: false,
-            };
-
-            describe('for simple term definitions', () => {
-              it('not to expand with non-gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact-' }, true,
-                  opts)).toBe('abc:def');
-              });
-
-              it('to expand with gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact/' }, true,
-                  opts)).toBe('http://ex.org/compact/def');
-              });
-
-              it('to expand for a blank node', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: '_:b' }, true,
-                  opts)).toBe('_:bdef');
-              });
-            });
-
-            describe('for expanded term definitions', () => {
-              it('not to expand with non-gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-' } }, true,
-                  opts)).toBe('abc:def');
-              });
-
-              it('not to expand with non-gen-delim with @prefix false', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': false } },
-                  true, opts)).toBe('abc:def');
-              });
-
-              it('not to expand with non-gen-delim with @prefix true', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } }, true, opts))
-                  .toBe('abc:def');
-              });
-
-              it('to expand with gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact/' } }, true,
-                  opts)).toBe('http://ex.org/compact/def');
-              });
-
-              it('to expand with gen-delim with @prefix false', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': false } },
-                  true, opts)).toBe('http://ex.org/compact/def');
-              });
-
-              it('to expand with gen-delim with @prefix true', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': true } }, true, opts))
-                  .toBe('http://ex.org/compact/def');
-              });
-
-              it('to expand for a blank node', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': '_:b' } }, true,
-                  opts)).toBe('_:bdef');
-              });
-
-              it('to expand with gen-delim without @prefix but with a dedicated term entry', async () => {
-                expect(ContextParser.expandTerm('abc:def', {
-                  'abc': { '@id': 'http://ex.org/compact/' },
-                  'abc:def': {},
-                }, true,
-                  opts)).toBe('http://ex.org/compact/def');
-              });
-            });
-          });
-
-          describe('for allowPrefixNonGenDelims true', () => {
-            const opts = {
-              ...defaultExpandOptions,
-              allowPrefixForcing: false,
-              allowPrefixNonGenDelims: true,
-            };
-
-            describe('for simple term definitions', () => {
-              it('to expand with non-gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact-' }, true,
-                  opts)).toBe('http://ex.org/compact-def');
-              });
-
-              it('to expand with gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: 'http://ex.org/compact/' }, true,
-                  opts)).toBe('http://ex.org/compact/def');
-              });
-
-              it('to expand for a blank node', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: '_:b' }, true,
-                  opts)).toBe('_:bdef');
-              });
-            });
-
-            describe('for expanded term definitions', () => {
-              it('to expand with non-gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact-' } }, true,
-                  opts)).toBe('http://ex.org/compact-def');
-              });
-
-              it('to expand with non-gen-delim with @prefix false', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': false } },
-                  true, opts)).toBe('http://ex.org/compact-def');
-              });
-
-              it('to expand with non-gen-delim with @prefix true', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact-', '@prefix': true } }, true, opts))
-                  .toBe('http://ex.org/compact-def');
-              });
-
-              it('to expand with gen-delim without @prefix', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': 'http://ex.org/compact/' } }, true,
-                  opts)).toBe('http://ex.org/compact/def');
-              });
-
-              it('to expand with gen-delim with @prefix false', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': false } },
-                  true, opts)).toBe('http://ex.org/compact/def');
-              });
-
-              it('to expand with gen-delim with @prefix true', async () => {
-                expect(ContextParser.expandTerm('abc:def',
-                  { abc: { '@id': 'http://ex.org/compact/', '@prefix': true } }, true, opts))
-                  .toBe('http://ex.org/compact/def');
-              });
-
-              it('to expand for a blank node', async () => {
-                expect(ContextParser.expandTerm('abc:def', { abc: { '@id': '_:b' } }, true,
-                  opts)).toBe('_:bdef');
-              });
-
-              it('to expand with gen-delim without @prefix but with a dedicated term entry', async () => {
-                expect(ContextParser.expandTerm('abc:def', {
-                  'abc': { '@id': 'http://ex.org/compact/' },
-                  'abc:def': {},
-                }, true,
-                  opts)).toBe('http://ex.org/compact/def');
-              });
-            });
-          });
-        });
-      });
-
-      it('to throw when context alias value is not a string', async () => {
-        expect(() => ContextParser.expandTerm('k', { k: { '@id': 3 } }, true))
-          .toThrow(new Error('Invalid IRI mapping found for context entry \'k\': \'{"@id":3}\''));
-      });
-
-      it('to throw when context alias value is not an IRI', async () => {
-        expect(() => ContextParser.expandTerm('k', { k: { '@id': 'not an IRI' } }, true))
-          .toThrow(new Error('Invalid IRI mapping found for context entry \'k\': \'{"@id":"not an IRI"}\''));
-      });
-
-      it('to ignore invalid aliases and fallback to vocab', async () => {
-        expect(ContextParser.expandTerm('ignoreMe', {
-          "@vocab": "http://example.org/",
-          "ignoreMe": "@ignoreMe",
-        }, true)).toBe('http://example.org/ignoreMe');
-      });
-
-      it('to ignore invalid keyword-like alias without vocab', async () => {
-        expect(ContextParser.expandTerm('ignoreMe', { ignoreMe: "@ignoreMe" }, true))
-          .toBe('ignoreMe');
-      });
-
-      it('to ignore invalid keyword-like alias with @reverse', async () => {
-        expect(ContextParser.expandTerm('ignoreMe', { ignoreMe: { "@id": "@ignoreMe", "@reverse": true } }, true))
-          .toBe('ignoreMe');
-      });
-
-      it('to handle invalid keyword-like alias with @reverse and @vocab', async () => {
-        expect(ContextParser.expandTerm('ignoreMe', {
-          "@vocab": "http://example.org/",
-          "ignoreMe": { "@id": "@ignoreMe", "@reverse": true },
-        }, true))
-          .toBe('http://example.org/ignoreMe');
-      });
-
-      it('to return on a term starting with a colon with @vocab', async () => {
-        expect(ContextParser.expandTerm(':b', {':b': {'@type': '@id'}, '@vocab': 'http://ex.org/'},
-          true)).toBe('http://ex.org/:b');
-      });
-
-      it('to return on a term starting with a colon without @vocab', async () => {
-        expect(ContextParser.expandTerm(':b', {':b': {'@type': '@id'}},
-          true)).toBe(':b');
-      });
-    });
-
-    describe('in base-mode', () => {
-      it('to return when no prefix applies', async () => {
-        expect(ContextParser.expandTerm('abc:123', {def: 'DEF/'}, false)).toBe('abc:123');
-      });
-
-      it('to return when no prefix applies with @id', async () => {
-        expect(ContextParser.expandTerm('def:123', {def: {}}, false)).toBe('def:123');
-      });
-
-      it('to return when no term applies with @id', async () => {
-        expect(ContextParser.expandTerm('def', {def: {}}, false)).toBe('def');
-      });
-
-      it('to return when a prefix applies', async () => {
-        expect(ContextParser.expandTerm('def:123', {def: 'DEF/'}, false)).toBe('DEF/123');
-      });
-
-      it('to return when a prefix applies with @id', async () => {
-        expect(ContextParser.expandTerm('def:123', {def: { '@id': 'DEF/'} }, false)).toBe('def:123');
-      });
-
-      it('to return when a direct value applies, but ignore it in base-mode', async () => {
-        expect(ContextParser.expandTerm('abc', {abc: 'DEF'}, false)).toBe('abc');
-      });
-
-      it('to return when @vocab exists but not applies', async () => {
-        expect(ContextParser.expandTerm('def:123', {'@vocab': 'bbb/'}, false)).toBe('def:123');
-      });
-
-      it('to return when @vocab exists and applies', async () => {
-        expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/'}, false)).toBe('def');
-      });
-
-      it('to return when @vocab exists and applies, but is disabled', async () => {
-        expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/', 'def': null}, false)).toBe(null);
-      });
-
-      it('to return when @vocab exists and applies, but is disabled via @id', async () => {
-        expect(ContextParser.expandTerm('def', {'@vocab': 'bbb/', 'def': { '@id': null }}, false)).toBe(null);
-      });
-
-      it('to return when @base exists but not applies', async () => {
-        expect(ContextParser.expandTerm('def:123', {'@base': 'bbb/'}, false)).toBe('def:123');
-      });
-
-      it('to return when @base exists and applies', async () => {
-        expect(ContextParser.expandTerm('def', {'@base': 'http://bbb/'}, false))
-          .toBe('http://bbb/def');
-      });
-
-      it('to return when @base exists and applies, but is disabled', async () => {
-        expect(ContextParser.expandTerm('def', {'@base': 'bbb/', 'def': null}, false)).toBe(null);
-      });
-
-      it('to return when @base exists and applies, but is disabled via @id', async () => {
-        expect(ContextParser.expandTerm('def', {'@base': 'bbb/', 'def': { '@id': null }}, false)).toBe(null);
-      });
-
-      it('to return when @base exists and applies, and a relative hash with a semicolon', async () => {
-        expect(ContextParser.expandTerm('#abc:def', {'@base': 'http://ex.org/'}, false))
-          .toBe('http://ex.org/#abc:def');
-      });
-
-      it('to return when @vocab is empty string and @base does not exist', async () => {
-        expect(ContextParser.expandTerm('def', {'@vocab': ''}, false)).toBe('def');
-      });
-
-      it('to return when @vocab is empty string and @base exists', async () => {
-        expect(ContextParser.expandTerm('def', {'@vocab': '', '@base': 'http://ex.org/'}, false))
-          .toBe('http://ex.org/def');
-      });
-
-      it('to return when a term and prefix applies', async () => {
-        expect(ContextParser.expandTerm('bla', {
-          bla: 'DEF/123',
-          def: 'DEF/',
-        }, false)).toBe('bla');
-      });
-
-      it('to return when a prefix and prefix applies', async () => {
-        expect(ContextParser.expandTerm('a:123', {
-          a: 'DEF/A/',
-          def: 'DEF/',
-        }, false)).toBe('DEF/A/123');
-      });
-
-      it('to return identity when context alias value is not a string', async () => {
-        expect(ContextParser.expandTerm('k', { k: { '@id': 3 } }, false)).toBe('k');
-      });
-
-      it('to return identity when context alias value is not an IRI', async () => {
-        expect(ContextParser.expandTerm('k', { k: { '@id': 'not an IRI' } }, false)).toBe('k');
-      });
-    });
-  });
-
-  describe('#compactIri', () => {
-    describe('in vocab-mode', () => {
-      it('should throw on a non-normalized context', async () => {
-        expect(() => ContextParser.compactIri('http://ex.org/abc', <any> 'string', true))
-          .toThrow(new Error('The given context is not normalized. Make sure to call ContextParser.parse() first.'));
-      });
-
-      it('when no prefix applies', async () => {
-        expect(ContextParser.compactIri('http://ex.org/abc', {}, true)).toBe('http://ex.org/abc');
-      });
-
-      it('when @vocab applies', async () => {
-        expect(ContextParser.compactIri('http://ex.org/abc', {
-          '@vocab': 'http://ex.org/',
-        }, true)).toBe('abc');
-      });
-
-      it('when @base applies', async () => {
-        expect(ContextParser.compactIri('http://ex.org/abc', {
-          '@base': 'http://ex.org/',
-        }, true)).toBe('http://ex.org/abc');
-      });
-
-      it('when a term alias applies', async () => {
-        expect(ContextParser.compactIri('http://ex.org/abc', {
-          myterm: 'http://ex.org/abc',
-        }, true)).toBe('myterm');
-      });
-
-      it('when a term prefix applies', async () => {
-        expect(ContextParser.compactIri('http://ex.org/abc', {
-          ex: 'http://ex.org/',
-        }, true)).toBe('ex:abc');
-      });
-
-      it('when a term prefix and term alias applies', async () => {
-        expect(ContextParser.compactIri('http://ex.org/abc', {
-          ex: 'http://ex.org/',
-          thing: 'http://ex.org/abc',
-        }, true)).toBe('thing');
-      });
-
-      it('when multiple prefixes apply', async () => {
-        expect(ContextParser.compactIri('http://ex.org/a/b/c/suffix', {
-          a: 'http://ex.org/a/',
-          b: 'http://ex.org/a/b/',
-          c: 'http://ex.org/a/b/c/',
-        }, true)).toBe('c:suffix');
-      });
-
-      it('when multiple prefixes apply in different order', async () => {
-        expect(ContextParser.compactIri('http://ex.org/a/b/c/suffix', {
-          0: 'http://ex.org/a/b/c/',
-          1: 'http://ex.org/a/b/',
-          2: 'http://ex.org/a/',
-        }, true)).toBe('0:suffix');
-      });
-    });
-
-    describe('in base-mode', () => {
-      it('when no prefix applies', async () => {
-        expect(ContextParser.compactIri('http://ex.org/abc', {}, false)).toBe('http://ex.org/abc');
-      });
-
-      it('when @vocab applies', async () => {
-        expect(ContextParser.compactIri('http://ex.org/abc', {
-          '@vocab': 'http://ex.org/',
-        }, false)).toBe('http://ex.org/abc');
-      });
-
-      it('when @base applies', async () => {
-        expect(ContextParser.compactIri('http://ex.org/abc', {
-          '@base': 'http://ex.org/',
-        }, false)).toBe('abc');
-      });
-
-      it('when a term alias applies', async () => {
-        expect(ContextParser.compactIri('http://ex.org/abc', {
-          myterm: 'http://ex.org/abc',
-        }, false)).toBe('http://ex.org/abc');
-      });
-
-      it('when a term prefix applies', async () => {
-        expect(ContextParser.compactIri('http://ex.org/abc', {
-          ex: 'http://ex.org/',
-        }, false)).toBe('ex:abc');
-      });
-
-      it('when a term prefix and term alias applies', async () => {
-        expect(ContextParser.compactIri('http://ex.org/abc', {
-          ex: 'http://ex.org/',
-          thing: 'http://ex.org/abc',
-        }, false)).toBe('ex:abc');
-      });
-    });
-  });
-
-  describe('#assertNormalized', () => {
-    it('should throw on a string', async () => {
-      expect(() => ContextParser.assertNormalized('string'))
-        .toThrow(new Error('The given context is not normalized. Make sure to call ContextParser.parse() first.'));
-    });
-
-    it('should throw on an array', async () => {
-      expect(() => ContextParser.assertNormalized([]))
-        .toThrow(new Error('The given context is not normalized. Make sure to call ContextParser.parse() first.'));
-    });
-
-    it('should throw on a non-normalized context', async () => {
-      expect(() => ContextParser.assertNormalized({ "@context": {} }))
-        .toThrow(new Error('The given context is not normalized. Make sure to call ContextParser.parse() first.'));
-    });
-
-    it('should not throw on a normalized context', async () => {
-      expect(() => ContextParser.assertNormalized({})).not.toThrow();
-    });
-  });
-
-  describe('#isPrefixValue', () => {
-    it('should be false for null', async () => {
-      expect(ContextParser.isPrefixValue(null)).toBeFalsy();
-    });
-
-    it('should be true for strings', async () => {
-      expect(ContextParser.isPrefixValue('abc')).toBeTruthy();
-    });
-
-    it('should be true for empty objects', async () => {
-      expect(ContextParser.isPrefixValue({})).toBeTruthy();
-    });
-
-    it('should be true for objects with @id', async () => {
-      expect(ContextParser.isPrefixValue({ '@id': 'bla' })).toBeTruthy();
-    });
-
-    it('should be true for objects with @type', async () => {
-      expect(ContextParser.isPrefixValue({ '@type': 'bla' })).toBeTruthy();
-    });
-  });
-
-  describe('#isValidIri', () => {
-    it('should be false for null', async () => {
-      expect(ContextParser.isValidIri(null)).toBeFalsy();
-    });
-
-    it('should be false for an empty string', async () => {
-      expect(ContextParser.isValidIri('')).toBeFalsy();
-    });
-
-    it('should be false for an abc', async () => {
-      expect(ContextParser.isValidIri('abc')).toBeFalsy();
-    });
-
-    it('should be true for an abc:def', async () => {
-      expect(ContextParser.isValidIri('abc:def')).toBeTruthy();
-    });
-
-    it('should be true for an http://google.com', async () => {
-      expect(ContextParser.isValidIri('http://google.com')).toBeTruthy();
-    });
-
-    it('should be false for an http://google.com<', async () => {
-      expect(ContextParser.isValidIri('http://google.com<')).toBeFalsy();
-    });
-
-    it('should be false for an http://google .com', async () => {
-      expect(ContextParser.isValidIri('http://google .com')).toBeFalsy();
-    });
-
-    it('should be true for an http://google.com/#abc', async () => {
-      expect(ContextParser.isValidIri('http://google.com/#abc')).toBeTruthy();
-    });
-
-    it('should be false for an http://google.com/#ab#c', async () => {
-      expect(ContextParser.isValidIri('http://google.com/#ab#c')).toBeFalsy();
-    });
-  });
-
-  describe('#isValidKeyword', () => {
-    it('should be true for valid keywords', async () => {
-      expect(ContextParser.isValidKeyword('@id')).toBeTruthy();
-      expect(ContextParser.isValidKeyword('@container')).toBeTruthy();
-      expect(ContextParser.isValidKeyword('@nest')).toBeTruthy();
-    });
-
-    it('should be false for invalid keywords', async () => {
-      expect(ContextParser.isValidKeyword(null)).toBeFalsy();
-      expect(ContextParser.isValidKeyword(3)).toBeFalsy();
-      expect(ContextParser.isValidKeyword('@')).toBeFalsy();
-      expect(ContextParser.isValidKeyword('@!')).toBeFalsy();
-      expect(ContextParser.isValidKeyword('@3')).toBeFalsy();
-      expect(ContextParser.isValidKeyword('@ignore')).toBeFalsy();
-      expect(ContextParser.isValidKeyword('@ignoreMe')).toBeFalsy();
-    });
-  });
-
-  describe('#isPotentialKeyword', () => {
-    it('should be true for potential keywords', async () => {
-      expect(ContextParser.isPotentialKeyword('@id')).toBeTruthy();
-      expect(ContextParser.isPotentialKeyword('@container')).toBeTruthy();
-      expect(ContextParser.isPotentialKeyword('@nest')).toBeTruthy();
-      expect(ContextParser.isPotentialKeyword('@ignore')).toBeTruthy();
-      expect(ContextParser.isPotentialKeyword('@ignoreMe')).toBeTruthy();
-    });
-
-    it('should be false for invalid keywords', async () => {
-      expect(ContextParser.isPotentialKeyword(null)).toBeFalsy();
-      expect(ContextParser.isPotentialKeyword(3)).toBeFalsy();
-      expect(ContextParser.isPotentialKeyword('@')).toBeFalsy();
-      expect(ContextParser.isPotentialKeyword('@!')).toBeFalsy();
-      expect(ContextParser.isPotentialKeyword('@3')).toBeFalsy();
-    });
-  });
-
-  describe('#expandPrefixedTerms with expandContentTypeToBase true', () => {
-    it('should not modify an empty context', async () => {
-      expect(ContextParser.expandPrefixedTerms({}, true)).toEqual({});
-    });
-
-    it('should not modify a context without prefixes', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        abc: 'def',
-      }, true)).toEqual({
-        abc: 'def',
-      });
-    });
-
-    it('should expand a context with string prefixes', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        Example: 'ex:Example',
-        ex: 'http://example.org/',
-      }, true)).toEqual({
-        Example: 'http://example.org/Example',
-        ex: 'http://example.org/',
-      });
-    });
-
-    it('should expand a context with nested string prefixes', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        Example: 'exabc:Example',
-        ex: 'http://example.org/',
-        exabc: 'ex:abc/',
-      }, true)).toEqual({
-        Example: 'http://example.org/abc/Example',
-        ex: 'http://example.org/',
-        exabc: 'http://example.org/abc/',
-      });
-    });
-
-    it('should expand a context with object @id prefixes', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        Example: { '@id': 'ex:Example' },
-        ex: 'http://example.org/',
-      }, true)).toEqual({
-        Example: { '@id': 'http://example.org/Example' },
-        ex: 'http://example.org/',
-      });
-    });
-
-    it('should expand a context with nested object @id prefixes', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        Example: { '@id': 'exabc:Example' },
-        ex: 'http://example.org/',
-        exabc: 'ex:abc/',
-      }, true)).toEqual({
-        Example: { '@id': 'http://example.org/abc/Example' },
-        ex: 'http://example.org/',
-        exabc: 'http://example.org/abc/',
-      });
-    });
-
-    it('should expand a context with object @type prefixes', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        Example: { '@type': 'ex:Example' },
-        ex: 'http://example.org/',
-      }, true)).toEqual({
-        Example: { '@type': 'http://example.org/Example' },
-        ex: 'http://example.org/',
-      });
-    });
-
-    it('should expand a context with nested object @type prefixes', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        Example: { '@type': 'exabc:Example' },
-        ex: 'http://example.org/',
-        exabc: 'ex:abc/',
-      }, true)).toEqual({
-        Example: { '@type': 'http://example.org/abc/Example' },
-        ex: 'http://example.org/',
-        exabc: 'http://example.org/abc/',
-      });
-    });
-
-    it('should expand a context with object prefixes with @id and @type', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        Example: { '@id': 'ex:Example', '@type': 'ex:ExampleType' },
-        ex: 'http://example.org/',
-      }, true)).toEqual({
-        Example: { '@id': 'http://example.org/Example', '@type': 'http://example.org/ExampleType' },
-        ex: 'http://example.org/',
-      });
-    });
-
-    it('should not expand object prefixes that are not @id or @type', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        Example: { '@id': 'ex:Example', '@bla': 'ex:Example' },
-        ex: 'http://example.org/',
-      }, true)).toEqual({
-        Example: { '@id': 'http://example.org/Example', '@bla': 'ex:Example' },
-        ex: 'http://example.org/',
-      });
-    });
-
-    it('should not expand object prefixes without @id and @type', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        Example: { '@bla': 'ex:Example' },
-        ex: 'http://example.org/',
-      }, true)).toEqual({
-        Example: { '@bla': 'ex:Example' },
-        ex: 'http://example.org/',
-      });
-    });
-
-    it('should expand a context with object prefixes without @id and with @type', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        ex: 'http://ex.org/',
-        p: { '@id': 'http://ex.org/pred1', '@type': 'ex:mytype' },
-      }, true)).toEqual({
-        ex: 'http://ex.org/',
-        p: { '@id': 'http://ex.org/pred1', '@type': 'http://ex.org/mytype' },
-      });
-    });
-
-    it('should expand a context with object prefixes with @id and without @type', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        ex: 'http://ex.org/',
-        p: { '@id': 'ex:pred1', '@type': 'http://ex.org/mytype' },
-      }, true)).toEqual({
-        ex: 'http://ex.org/',
-        p: { '@id': 'http://ex.org/pred1', '@type': 'http://ex.org/mytype' },
-      });
-    });
-
-    it('should not expand @language', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@base': 'http://base.org/',
-        '@language': 'en',
-        '@vocab': 'http://vocab.org/',
-        'p': { '@id': 'pred1', '@language': 'nl' },
-      }, true)).toEqual({
-        '@base': 'http://base.org/',
-        '@language': 'en',
-        '@vocab': 'http://vocab.org/',
-        'p': { '@id': 'http://vocab.org/pred1', '@language': 'nl' },
-      });
-    });
-
-    it('should not expand @direction', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@base': 'http://base.org/',
-        '@direction': 'ltr',
-        '@vocab': 'http://vocab.org/',
-        'p': { '@id': 'pred1', '@direction': 'rtl' },
-      }, true)).toEqual({
-        '@base': 'http://base.org/',
-        '@direction': 'ltr',
-        '@vocab': 'http://vocab.org/',
-        'p': { '@id': 'http://vocab.org/pred1', '@direction': 'rtl' },
-      });
-    });
-
-    it('should expand terms based on the vocab IRI', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@base': 'http://base.org/',
-        '@vocab': 'http://vocab.org/',
-        'p': 'p',
-      }, true)).toEqual({
-        '@base': 'http://base.org/',
-        '@vocab': 'http://vocab.org/',
-        'p': 'http://vocab.org/p',
-      });
-    });
-
-    it('should expand nested terms based on the vocab IRI', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@base': 'http://base.org/',
-        '@vocab': 'http://vocab.org/',
-        'p': { '@id': 'p', '@type': 'type' },
-      }, true)).toEqual({
-        '@base': 'http://base.org/',
-        '@vocab': 'http://vocab.org/',
-        'p': { '@id': 'http://vocab.org/p', '@type': 'http://vocab.org/type' },
-      });
-    });
-
-    it('should let @type fallback to base when when vocab is disabled', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@base': 'http://base.org/',
-        '@vocab': null,
-        'p': { '@id': 'p', '@type': 'type' },
-      }, true)).toEqual({
-        '@base': 'http://base.org/',
-        '@vocab': null,
-        'p': { '@id': 'p', '@type': 'http://base.org/type' },
-      });
-    });
-
-    it('should let @type fallback to base when when vocab is not present', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@base': 'http://base.org/',
-        'p': { '@id': 'p', '@type': 'type' },
-      }, true)).toEqual({
-        '@base': 'http://base.org/',
-        'p': { '@id': 'p', '@type': 'http://base.org/type' },
-      });
-    });
-
-    it('should not expand @type: @vocab', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@vocab': 'http://vocab.org/',
-        'p': { '@id': 'p', '@type': '@vocab' },
-      }, true)).toEqual({
-        '@vocab': 'http://vocab.org/',
-        'p': { '@id': 'http://vocab.org/p', '@type': '@vocab' },
-      });
-    });
-
-    it('should error on aliasing to @context', async () => {
-      expect(() => ContextParser.expandPrefixedTerms({
-        bla: '@context',
-      }, true)).toThrow(new ErrorCoded(`Aliasing to certain keywords is not allowed.
-Tried mapping bla to "@context"`, ERROR_CODES.INVALID_KEYWORD_ALIAS));
-    });
-
-    it('should error on aliasing to @preserve', async () => {
-      expect(() => ContextParser.expandPrefixedTerms({
-        bla: '@preserve',
-      }, true)).toThrow(new ErrorCoded(`Aliasing to certain keywords is not allowed.
-Tried mapping bla to "@preserve"`, ERROR_CODES.INVALID_KEYWORD_ALIAS));
-    });
-
-    it('should error on aliasing of keywords', async () => {
-      expect(() => ContextParser.expandPrefixedTerms({
-        '@id': 'http//ex.org/id',
-      }, true)).toThrow(new ErrorCoded(`Keywords can not be aliased to something else.
-Tried mapping @id to "http//ex.org/id"`, ERROR_CODES.KEYWORD_REDEFINITION));
-    });
-
-    it('should error on aliasing of keywords in expanded form', async () => {
-      expect(() => ContextParser.expandPrefixedTerms({
-        '@id': { '@id': 'http//ex.org/id' },
-      }, true)).toThrow(new ErrorCoded(`Keywords can not be aliased to something else.
-Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.KEYWORD_REDEFINITION));
-    });
-
-    it('should error on aliasing of keywords in empty expanded form', async () => {
-      expect(() => ContextParser.expandPrefixedTerms({
-        '@id': {},
-      }, true)).toThrow(new ErrorCoded(`Keywords can not be aliased to something else.
-Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
-    });
-
-    it('should expand aliases', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        id: '@id',
-        url: 'id',
-      }, true)).toEqual({
-        id: '@id',
-        url: '@id',
-      });
-    });
-
-    it('should not expand unknown keywords', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@vocab': 'http://example.org/',
-        'ignoreMe': '@ignoreMe',
-      }, true)).toEqual({
-        '@vocab': 'http://example.org/',
-        'ignoreMe': '@ignoreMe',
-      });
-    });
-
-    it('should handle @type with @protected: true', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@type': { '@protected': true },
-      }, true)).toEqual({
-        '@type': { '@protected': true },
-      });
-    });
-
-    it('should handle @type with @container: @set', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@type': { '@container': '@set' },
-      }, true)).toEqual({
-        '@type': { '@container': '@set' },
-      });
-    });
-
-    it('should handle @type with @container: @set and @protected: true', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@type': { '@container': '@set', '@protected': true },
-      }, true)).toEqual({
-        '@type': { '@container': '@set', '@protected': true },
-      });
-    });
-
-    it('error on handle @id with @protected: true', async () => {
-      expect(() => ContextParser.expandPrefixedTerms({
-        '@id': { '@protected': true },
-      }, true)).toThrow(new ErrorCoded('Keywords can not be aliased to something else.' +
-        '\nTried mapping @id to {"@protected":true}', ERROR_CODES.KEYWORD_REDEFINITION));
-    });
-
-    it('should error on keyword aliasing with @prefix: true', async () => {
-      expect(() => ContextParser.expandPrefixedTerms({
-        foo: { '@id': '@type', '@prefix': true },
-      }, true)).toThrow(new ErrorCoded('Tried to use keyword aliases as prefix: ' +
-        '\'foo\': \'{"@id":"@type","@prefix":true}\'', ERROR_CODES.INVALID_TERM_DEFINITION));
-    });
-
-    it('should not error on regular prefix definitions', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        foo: { '@id': 'http://foo.org/', '@prefix': true },
-      }, true)).toEqual({
-        foo: { '@id': 'http://foo.org/', '@prefix': true },
-      });
-    });
-
-    it('should handle keyword aliasing with @prefix: false', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        foo: { '@id': '@type', '@prefix': false },
-      }, true)).toEqual({
-        foo: { '@id': '@type', '@prefix': false },
-      });
-    });
-
-    it('should expand relative terms in expanded form without @id to @vocab', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@vocab': 'http://vocab.org/',
-        'foo': {},
-      }, true)).toEqual({
-        '@vocab': 'http://vocab.org/',
-        'foo': { '@id': 'http://vocab.org/foo' },
-      });
-    });
-
-    it('should expand relative terms in expanded form with empty @vocab without @id to @base', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@base': 'http://base.org/',
-        '@vocab': '',
-        'foo': {},
-      }, true)).toEqual({
-        '@base': 'http://base.org/',
-        '@vocab': '',
-        'foo': {'@id': 'http://base.org/foo' },
-      });
-    });
-
-    it('should expand relative terms in expanded form with @id to @vocab', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@vocab': 'http://vocab.org/',
-        'foo': { '@id': 'rel' },
-      }, true)).toEqual({
-        '@vocab': 'http://vocab.org/',
-        'foo': { '@id': 'http://vocab.org/rel' },
-      });
-    });
-
-    it('should expand relative terms in expanded form with empty @vocab with @id to @base', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@base': 'http://base.org/',
-        '@vocab': '',
-        'foo': { '@id': 'rel' },
-      }, true)).toEqual({
-        '@base': 'http://base.org/',
-        '@vocab': '',
-        'foo': { '@id': 'http://base.org/rel' },
-      });
-    });
-
-    it('should expand relative terms in compact string form with @id to @vocab', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@vocab': 'http://vocab.org/',
-        'foo': 'rel',
-      }, true)).toEqual({
-        '@vocab': 'http://vocab.org/',
-        'foo': 'http://vocab.org/rel',
-      });
-    });
-
-    it('should not expand keyword terms in expanded form to @vocab', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@type': { '@protected': true },
-        '@vocab': 'http://vocab.org/',
-      }, true)).toEqual({
-        '@type': { '@protected': true },
-        '@vocab': 'http://vocab.org/',
-      });
-    });
-
-    it('should not expand relative terms in expanded form with @id a keyword to @vocab', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@vocab': 'http://vocab.org/',
-        'foo': { '@id': '@keyword' },
-      }, true)).toEqual({
-        '@vocab': 'http://vocab.org/',
-        'foo': { '@id': '@keyword' },
-      });
-    });
-
-    it('should not expand relative terms in expanded form without @id without @vocab', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        foo: {},
-      }, true)).toEqual({
-        foo: {},
-      });
-    });
-
-    it('should not expand relative terms with @id null', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@vocab': 'http://vocab.org/',
-        'foo': { '@id': null },
-      }, true)).toEqual({
-        '@vocab': 'http://vocab.org/',
-        'foo': { '@id': null },
-      });
-    });
-
-    it('should not expand relative terms with @id undefined', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@vocab': 'http://vocab.org/',
-        'foo': { '@id': undefined },
-      }, true)).toEqual({
-        '@vocab': 'http://vocab.org/',
-        'foo': { '@id': undefined },
-      });
-    });
-  });
-
-  describe('#normalize', () => {
-    it('should lowercase @language in 1.0', async () => {
-      expect(ContextParser.normalize({
-        '@language': 'EN',
-        'p': { '@id': 'pred1', '@language': 'NL' },
-      }, { processingMode: 1.0 })).toEqual({
-        '@language': 'en',
-        'p': { '@id': 'pred1', '@language': 'nl' },
-      });
-    });
-
-    it('should lowercase @language if normalizeLanguageTags is true', async () => {
-      expect(ContextParser.normalize({
-        '@language': 'EN',
-        'p': { '@id': 'pred1', '@language': 'NL' },
-      }, { normalizeLanguageTags: true })).toEqual({
-        '@language': 'en',
-        'p': { '@id': 'pred1', '@language': 'nl' },
-      });
-    });
-
-    it('should not lowercase @language in 1.1', async () => {
-      expect(ContextParser.normalize({
-        '@language': 'EN',
-        'p': { '@id': 'pred1', '@language': 'NL' },
-      }, { processingMode: 1.1 })).toEqual({
-        '@language': 'EN',
-        'p': { '@id': 'pred1', '@language': 'NL' },
-      });
-    });
-
-    it('should not fail on null @language', async () => {
-      expect(ContextParser.normalize({
-        '@language': null,
-        'p': { '@id': 'pred1', '@language': null },
-      }, { processingMode: 1.0 })).toEqual({
-        '@language': null,
-        'p': { '@id': 'pred1', '@language': null },
-      });
-    });
-
-    it('should not fail on invalid @language', async () => {
-      expect(ContextParser.normalize({
-        '@language': <any> {},
-        'p': { '@id': 'pred1', '@language': {} },
-      }, { processingMode: 1.0 })).toEqual({
-        '@language': {},
-        'p': { '@id': 'pred1', '@language': {} },
-      });
-    });
-  });
-
-  describe('#containersToHash', () => {
-    it('should not modify an empty context', async () => {
-      expect(ContextParser.containersToHash({})).toEqual({});
-    });
-
-    it('should not modify a context with @non-container', async () => {
-      expect(ContextParser.containersToHash({
-        term: { '@non-container': 'bla' },
-      })).toEqual({
-        term: { '@non-container': 'bla' },
-      });
-    });
-
-    it('should not modify @container with a hash', async () => {
-      expect(ContextParser.containersToHash({
-        term: { '@container': { 1: true, 2: true } },
-      })).toEqual({
-        term: { '@container': { 1: true, 2: true } },
-      });
-    });
-
-    it('should modify @container with an array', async () => {
-      expect(ContextParser.containersToHash({
-        term: { '@container': [ '1', '2', '2' ] },
-      })).toEqual({
-        term: { '@container': { 1: true, 2: true } },
-      });
-    });
-
-    it('should arrayify @container with a string', async () => {
-      expect(ContextParser.containersToHash({
-        term: { '@container': '1' },
-      })).toEqual({
-        term: { '@container': { 1: true } },
-      });
-    });
-  });
-
-  describe('#expandPrefixedTerms with expandContentTypeToBase false', () => {
-    it('should not let @type fallback to base when when vocab is disabled', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@base': 'http://base.org/',
-        '@vocab': null,
-        'p': { '@id': 'p', '@type': 'type' },
-      }, false)).toEqual({
-        '@base': 'http://base.org/',
-        '@vocab': null,
-        'p': { '@id': 'p', '@type': 'type' },
-      });
-    });
-
-    it('should not let @type fallback to base when when vocab is not present', async () => {
-      expect(ContextParser.expandPrefixedTerms({
-        '@base': 'http://base.org/',
-        'p': { '@id': 'p', '@type': 'type' },
-      }, false)).toEqual({
-        '@base': 'http://base.org/',
-        'p': { '@id': 'p', '@type': 'type' },
-      });
-    });
-  });
-
-  describe('#idifyReverseTerms', () => {
-    it('should not modify an empty context', async () => {
-      expect(ContextParser.idifyReverseTerms({})).toEqual({});
-    });
-
-    it('should add an @id for a @reverse', async () => {
-      expect(ContextParser.idifyReverseTerms({
-        Example: { '@reverse': 'ex:Example' },
-        ex: 'http://example.org/',
-      })).toEqual({
-        Example: { '@reverse': true, '@id': 'ex:Example' },
-        ex: 'http://example.org/',
-      });
-    });
-
-    it('should not add an @id for a @reverse that already has an @id', async () => {
-      expect(ContextParser.idifyReverseTerms({
-        Example: { '@reverse': 'ex:Example', '@id': 'ex:AnotherExample' },
-        ex: 'http://example.org/',
-      })).toEqual({
-        Example: { '@reverse': 'ex:Example', '@id': 'ex:AnotherExample' },
-        ex: 'http://example.org/',
-      });
-    });
-
-    it('should error on an invalid @reverse', async () => {
-      expect(() => ContextParser.idifyReverseTerms({
-        Example: { '@reverse': 10 },
-        ex: 'http://example.org/',
-      })).toThrow(new ErrorCoded('Invalid @reverse value, must be absolute IRI or blank node: \'10\'',
-        ERROR_CODES.INVALID_IRI_MAPPING));
-    });
-
-    it('should error on @reverse for a valid keyword', async () => {
-      expect(() => ContextParser.idifyReverseTerms({
-        Example: { '@reverse': '@type' },
-        ex: 'http://example.org/',
-      })).toThrow(new ErrorCoded('Invalid @reverse value, must be absolute IRI or blank node: \'@type\'',
-        ERROR_CODES.INVALID_IRI_MAPPING));
-    });
-
-    it('should ignore @reverse for an invalid keyword', async () => {
-      expect(ContextParser.idifyReverseTerms({
-        Example: { '@reverse': '@ignoreMe' },
-        ex: 'http://example.org/',
-      })).toEqual({
-        Example: { '@id': '@ignoreMe' },
-        ex: 'http://example.org/',
-      });
-    });
-  });
-
-  describe('#validate', () => {
-    const parseDefaults = { processingMode: 1.1 };
-
-    it('should error on an invalid @vocab', async () => {
-      expect(() => ContextParser.validate(<any> { '@vocab': true }, parseDefaults))
-        .toThrow(new Error('Found an invalid @vocab IRI: true'));
-    });
-
-    it('should error on an invalid @base', async () => {
-      expect(() => ContextParser.validate(<any> { '@base': true }, parseDefaults))
-        .toThrow(new Error('Found an invalid @base IRI: true'));
-    });
-
-    it('should error on an invalid @language', async () => {
-      expect(() => ContextParser.validate(<any> { '@language': true }, parseDefaults))
-        .toThrow(new Error('The value of an \'@language\' must be a string, got \'true\''));
-    });
-
-    it('should error on an invalid @direction', async () => {
-      expect(() => ContextParser.validate(<any> { '@direction': true }, parseDefaults))
-        .toThrow(new Error('The value of an \'@direction\' must be a string, got \'true\''));
-    });
-
-    it('should error on an invalid @version', async () => {
-      expect(() => ContextParser.validate(<any> { '@version': true }, parseDefaults))
-        .toThrow(new Error('Found an invalid @version number: true'));
-    });
-
-    it('should not error on a null @language', async () => {
-      expect(() => ContextParser.validate(<any> { '@language': null }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a null @direction', async () => {
-      expect(() => ContextParser.validate(<any> { '@direction': null }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a null @version', async () => {
-      expect(() => ContextParser.validate(<any> { '@version': null }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a number @version', async () => {
-      expect(() => ContextParser.validate(<any> { '@version': 1.1 }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should error on a valid @propagate in 1.0', async () => {
-      expect(() => ContextParser.validate(<any> { '@propagate': true }, { processingMode: 1.0 }))
-        .toThrow(new ErrorCoded('Found an illegal @propagate keyword: true', ERROR_CODES.INVALID_CONTEXT_ENTRY));
-    });
-
-    it('should not error on a valid @propagate in 1.1', async () => {
-      expect(() => ContextParser.validate(<any> { '@propagate': true }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should error on an invalid @propagate', async () => {
-      expect(() => ContextParser.validate(<any> { '@propagate': 'a' }, parseDefaults))
-        .toThrow(new ErrorCoded('Found an invalid @propagate value: a', ERROR_CODES.INVALID_PROPAGATE_VALUE));
-    });
-
-    it('should not error on an invalid @unknown', async () => {
-      expect(() => ContextParser.validate(<any> { '@unknown': 'true' }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should error on term without @id and @type : @id', async () => {
-      expect(() => ContextParser.validate(<any> { term: {} }, parseDefaults))
-        .toThrow(new Error('Missing @id in context entry: \'term\': \'{}\''));
-    });
-
-    it('should error on term without @id, but with @type : @id', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@type': '@id' } }, parseDefaults))
-        .toThrow(new Error('Missing @id in context entry: \'term\': \'{"@type":"@id"}\''));
-    });
-
-    it('should not error on term without @id, but with @type : @id and @base', async () => {
-      expect(() => ContextParser.validate(<any> { 'term': { '@type': '@id' }, '@base': 'abc' }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on term without @id and @type : @id and @base', async () => {
-      expect(() => ContextParser.validate(<any> { 'term': {}, '@base': 'abc' }, parseDefaults))
-        .toThrow(new Error('Missing @id in context entry: \'term\': \'{}\''));
-    });
-
-    it('should error on term without @id, but with @type : @id and @vocab', async () => {
-      expect(() => ContextParser.validate(<any> { 'term': { '@type': '@id' }, '@vocab': 'abc' }, parseDefaults))
-        .toThrow(new Error('Missing @id in context entry: \'term\': \'{"@type":"@id"}\''));
-    });
-
-    it('should not error on term without @id and @type : @id and @vocab', async () => {
-      expect(() => ContextParser.validate(<any> { 'term': {}, '@vocab': 'abc' }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should error on term with @id: @container', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@container' } }, parseDefaults))
-        .toThrow(new Error('Illegal keyword alias in term value, found: \'term\': \'{"@id":"@container"}\''));
-    });
-
-    it('should not error on term with @id: @type', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@type' } }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on term with @id: @id', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id' } }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on term with @type: @id', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@id' } }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on term with @type: @vocab', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@vocab' } }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on term with @type: @json', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@json' } }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should error on term with @type: @json in 1.0', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@json' } }, { processingMode: 1.0 }))
-        .toThrow(new ErrorCoded(`A context @type must be an absolute IRI, found: 'term': '@json'`,
-          ERROR_CODES.INVALID_TYPE_MAPPING));
-    });
-
-    it('should not error on term with @type: @none', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@none' } }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should error on term with @type: @none in 1.0', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@none' } }, { processingMode: 1.0 }))
-        .toThrow(new ErrorCoded(`A context @type must be an absolute IRI, found: 'term': '@none'`,
-          ERROR_CODES.INVALID_TYPE_MAPPING));
-    });
-
-    it('should not error on term with @type: @id with @container: @type', async () => {
-      expect(() => ContextParser.validate(
-        <any> { term: { '@id': '@id', '@type': '@id', '@container': { '@type': true } } },
-        parseDefaults)).not.toThrow();
-    });
-
-    it('should not error on term with @type: @vocab with @container: @type', async () => {
-      expect(() => ContextParser.validate(
-        <any> { term: { '@id': '@id', '@type': '@vocab', '@container': { '@type': true } } },
-        parseDefaults)).not.toThrow();
-    });
-
-    it('should error on term with @type: @none with @container: @type', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '@none', '@container': '@type' } },
-        parseDefaults))
-        .toThrow(new ErrorCoded(`@container: @type only allows @type: @id or @vocab, but got: 'term': '@none'`,
-          ERROR_CODES.INVALID_TYPE_MAPPING));
-    });
-
-    it('should error on term with @type: bla with @container: @type', async () => {
-      expect(() => ContextParser.validate(<any> {
-        '@base': 'http://example.org/base/',
-        '@vocab': 'http://example.org/ns/',
-        'term': { '@type': 'bla', '@container': '@type' },
-      },
-        parseDefaults))
-        .toThrow(new ErrorCoded(`@container: @type only allows @type: @id or @vocab, but got: 'term': 'bla'`,
-          ERROR_CODES.INVALID_TYPE_MAPPING));
-    });
-
-    it('should error on term with @type: _:bnode', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': '_:bnode' } }, parseDefaults))
-        .toThrow(new Error('A context @type must be an absolute IRI, found: \'term\': \'_:bnode\''));
-    });
-
-    it('should error on term with @type: invalid-iri', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': '@id', '@type': 'invalid-iri' } }, parseDefaults))
-        .toThrow(new Error('A context @type must be an absolute IRI, found: \'term\': \'invalid-iri\''));
-    });
-
-    it('should not error on term with @reverse: true', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@reverse': true } }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should error on term with different @reverse and @id', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@reverse': 'abc' } },
-        parseDefaults))
-        .toThrow(
-          new Error('Found non-matching @id and @reverse term values in \'term\':\'abc\' and \'http://ex.org/\''));
-    });
-
-    it('should not error on an @container: {}', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': {} } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @container: @list', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@list': true } } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @container: @set', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@set': true } } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on @type with @container: @set', async () => {
-      expect(() => ContextParser.validate(<any> { '@type': { '@container': { '@set': true } } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on @type with @container: @set and @protected: true', async () => {
-      expect(() => ContextParser.validate(<any> { '@type': { '@container': { '@set': true }, '@protected': true } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @container: @index', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@index': true } } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @container: @index, @set', async () => {
-      expect(() => ContextParser.validate(<any>
-          { term: { '@id': 'http://ex.org/', '@container': { '@index': true, '@set': true } } }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @container: @index with an @index', async () => {
-      expect(() => ContextParser.validate(
-        <any> { term: { '@id': 'http://ex.org/', '@container': { '@index': true }, '@index': 'prop' } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should error on a term with @container: @index with an @index in 1.0', async () => {
-      expect(() => ContextParser.validate(
-        <any> { term: { '@id': 'http://ex.org/', '@container': { '@index': true }, '@index': 'prop' } },
-        { processingMode: 1.0 }))
-        .toThrow(new ErrorCoded('Attempt to add illegal key to value object: ' +
-          '\'term\': \'{"@id":"http://ex.org/","@container":{"@index":true},"@index":"prop"}\'',
-          ERROR_CODES.INVALID_TERM_DEFINITION));
-    });
-
-    it('should error on a term without @container: @index with an @index in 1.0', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@index': 'prop' } },
-        { processingMode: 1.0 }))
-        .toThrow(new ErrorCoded('Attempt to add illegal key to value object: ' +
-          '\'term\': \'{"@id":"http://ex.org/","@index":"prop"}\'', ERROR_CODES.INVALID_TERM_DEFINITION));
-    });
-
-    it('should error on a term without @container: @index with an @index', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@index': 'prop' } },
-        parseDefaults))
-        .toThrow(new ErrorCoded('Attempt to add illegal key to value object: ' +
-          '\'term\': \'{"@id":"http://ex.org/","@index":"prop"}\'', ERROR_CODES.INVALID_TERM_DEFINITION));
-    });
-
-    it('should not error on a term with @container: @language', async () => {
-      expect(() => ContextParser.validate(
-        <any> { term: { '@id': 'http://ex.org/', '@container': { '@language': true } } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @container: @language, @set', async () => {
-      expect(() => ContextParser.validate(<any>
-          { term: { '@id': 'http://ex.org/', '@container': { '@language': true, '@set': true } } }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @container: @id', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@id': true } } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @container: @id, @set', async () => {
-      expect(() => ContextParser.validate(
-        <any> { term: { '@id': 'http://ex.org/', '@container': { '@id': true, '@set': true } } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @container: @graph', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@graph': true } } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @container: @graph, @set', async () => {
-      expect(() => ContextParser.validate(<any>
-          { term: { '@id': 'http://ex.org/', '@container': { '@graph': true, '@set': true } } }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @container: @type', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@type': true } } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @container: @type, @set', async () => {
-      expect(() => ContextParser.validate(<any>
-          { term: { '@id': 'http://ex.org/', '@container': { '@type': true, '@set': true } } }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should error on a term with @container: @unknown', async () => {
-      expect(() => ContextParser.validate(
-        <any> { term: { '@id': 'http://ex.org/', '@container': { '@unknown': true } } },
-        parseDefaults))
-        .toThrow(new Error('Invalid term @container for \'term\' (\'@unknown\'), ' +
-          'must be one of @list, @set, @index, @language, @graph, @id, @type'));
-    });
-
-    it('should error on a term with @container: @list and @reverse', async () => {
-      expect(() => ContextParser.validate(<any>
-        { term: { '@id': 'http://ex.org/', '@container': { '@list': true }, '@reverse': true } }, parseDefaults))
-        .toThrow(new Error('Term value can not be @container: @list and @reverse at the same time on \'term\''));
-    });
-
-    it('should not error on a term with @language: en', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 'en' } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term with @direction: rtl', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@direction': 'rtl' } },
-        parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should error on a term with @language: 10', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 10 } }, parseDefaults))
-        .toThrow(new Error('The value of an \'@language\' must be a string, got \'10\''));
-    });
-
-    it('should error on a term with @language: en us', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 'en us' } },
-        parseDefaults))
-        .toThrow(new Error('The value of an \'@language\' must be a valid language tag, got \'"en us"\''));
-    });
-
-    it('should error on a term with @direction: abc', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@direction': 'abc' } },
-        parseDefaults))
-        .toThrow(new Error('The value of an \'@direction\' must be \'ltr\' or \'rtl\', got \'"abc"\''));
-    });
-
-    it('should error on a term with @prefix: true', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@prefix': true } }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should error on a term with @prefix: 10', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': 'http://ex.org/', '@prefix': 10 } }, parseDefaults))
-        .toThrow(new Error('Found an invalid term @prefix boolean in: \'term\': ' +
-          '\'{"@id":"http://ex.org/","@prefix":10}\''));
-    });
-
-    it('should not error on a term set to null', async () => {
-      expect(() => ContextParser.validate(<any> { term: null }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should not error on a term @id set to null', async () => {
-      expect(() => ContextParser.validate(<any> { term: { '@id': null } }, parseDefaults))
-        .not.toThrow();
-    });
-
-    it('should error on a term set to a number', async () => {
-      expect(() => ContextParser.validate(<any> { term: 10 }, parseDefaults))
-        .toThrow(new Error('Found an invalid term value: \'term\': \'10\''));
-    });
-
-    it('should ignore reserved internal keywords', async () => {
-      expect(() => ContextParser.validate(<any> { '@__': { '@id': '@id', '@type': '_:bnode' } }, parseDefaults))
-        .not.toThrow();
-      expect(() => ContextParser.validate(<any> { '@__ignored': { '@id': '@id', '@type': '_:bnode' } }, parseDefaults))
-        .not.toThrow();
-      expect(() => ContextParser.validate(<any> { '@__propagateFallback': { '@id': '@id', '@type': '_:bnode' } },
-        parseDefaults))
-        .not.toThrow();
-    });
-  });
-
-  describe('#validateLanguage', () => {
+  describe('validateLanguage', () => {
     describe('with strictRange', () => {
       it('should pass on valid languages', () => {
         expect(ContextParser.validateLanguage('en-us', true)).toBeTruthy();
@@ -1941,7 +48,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
     });
   });
 
-  describe('#validateDirection', () => {
+  describe('validateDirection', () => {
     describe('with strictRange', () => {
       it('should pass on valid directions', () => {
         expect(ContextParser.validateDirection('rtl', true)).toBeTruthy();
@@ -2011,7 +118,8 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
     });
 
     it('should parse with an invalid context entry', () => {
-      return expect(parser.parse({ '@base': true })).resolves.toEqual({ '@base': true });
+      return expect(parser.parse(<any> { '@base': true })).resolves
+        .toEqual(new JsonLdContextNormalized(<any> { '@base': true }));
     });
   });
 
@@ -2028,36 +136,1127 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
       expect(parser.documentLoader).toBe(documentLoader);
     });
 
-    describe('for parsing objects', () => {
+    describe('expandPrefixedTerms with expandContentTypeToBase true', () => {
+      it('should not modify an empty context', async () => {
+        const context = new JsonLdContextNormalized({});
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({});
+      });
+
+      it('should not modify a context without prefixes', async () => {
+        const context = new JsonLdContextNormalized({
+          abc: 'def',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          abc: 'def',
+        });
+      });
+
+      it('should expand a context with string prefixes', async () => {
+        const context = new JsonLdContextNormalized({
+          Example: 'ex:Example',
+          ex: 'http://example.org/',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          Example: 'http://example.org/Example',
+          ex: 'http://example.org/',
+        });
+      });
+
+      it('should expand a context with nested string prefixes', async () => {
+        const context = new JsonLdContextNormalized({
+          Example: 'exabc:Example',
+          ex: 'http://example.org/',
+          exabc: 'ex:abc/',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          Example: 'http://example.org/abc/Example',
+          ex: 'http://example.org/',
+          exabc: 'http://example.org/abc/',
+        });
+      });
+
+      it('should expand a context with object @id prefixes', async () => {
+        const context = new JsonLdContextNormalized({
+          Example: { '@id': 'ex:Example' },
+          ex: 'http://example.org/',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          Example: { '@id': 'http://example.org/Example' },
+          ex: 'http://example.org/',
+        });
+      });
+
+      it('should expand a context with nested object @id prefixes', async () => {
+        const context = new JsonLdContextNormalized({
+          Example: { '@id': 'exabc:Example' },
+          ex: 'http://example.org/',
+          exabc: 'ex:abc/',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          Example: { '@id': 'http://example.org/abc/Example' },
+          ex: 'http://example.org/',
+          exabc: 'http://example.org/abc/',
+        });
+      });
+
+      it('should expand a context with object @type prefixes', async () => {
+        const context = new JsonLdContextNormalized({
+          Example: { '@type': 'ex:Example' },
+          ex: 'http://example.org/',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          Example: { '@type': 'http://example.org/Example' },
+          ex: 'http://example.org/',
+        });
+      });
+
+      it('should expand a context with nested object @type prefixes', async () => {
+        const context = new JsonLdContextNormalized({
+          Example: { '@type': 'exabc:Example' },
+          ex: 'http://example.org/',
+          exabc: 'ex:abc/',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          Example: { '@type': 'http://example.org/abc/Example' },
+          ex: 'http://example.org/',
+          exabc: 'http://example.org/abc/',
+        });
+      });
+
+      it('should expand a context with object prefixes with @id and @type', async () => {
+        const context = new JsonLdContextNormalized({
+          Example: { '@id': 'ex:Example', '@type': 'ex:ExampleType' },
+          ex: 'http://example.org/',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          Example: { '@id': 'http://example.org/Example', '@type': 'http://example.org/ExampleType' },
+          ex: 'http://example.org/',
+        });
+      });
+
+      it('should not expand object prefixes that are not @id or @type', async () => {
+        const context = new JsonLdContextNormalized({
+          Example: { '@id': 'ex:Example', '@bla': 'ex:Example' },
+          ex: 'http://example.org/',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          Example: { '@id': 'http://example.org/Example', '@bla': 'ex:Example' },
+          ex: 'http://example.org/',
+        });
+      });
+
+      it('should not expand object prefixes without @id and @type', async () => {
+        const context = new JsonLdContextNormalized({
+          Example: { '@bla': 'ex:Example' },
+          ex: 'http://example.org/',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          Example: { '@bla': 'ex:Example' },
+          ex: 'http://example.org/',
+        });
+      });
+
+      it('should expand a context with object prefixes without @id and with @type', async () => {
+        const context = new JsonLdContextNormalized({
+          ex: 'http://ex.org/',
+          p: { '@id': 'http://ex.org/pred1', '@type': 'ex:mytype' },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          ex: 'http://ex.org/',
+          p: { '@id': 'http://ex.org/pred1', '@type': 'http://ex.org/mytype' },
+        });
+      });
+
+      it('should expand a context with object prefixes with @id and without @type', async () => {
+        const context = new JsonLdContextNormalized({
+          ex: 'http://ex.org/',
+          p: { '@id': 'ex:pred1', '@type': 'http://ex.org/mytype' },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          ex: 'http://ex.org/',
+          p: { '@id': 'http://ex.org/pred1', '@type': 'http://ex.org/mytype' },
+        });
+      });
+
+      it('should not expand @language', async () => {
+        const context = new JsonLdContextNormalized({
+          '@base': 'http://base.org/',
+          '@language': 'en',
+          '@vocab': 'http://vocab.org/',
+          'p': { '@id': 'pred1', '@language': 'nl' },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@base': 'http://base.org/',
+          '@language': 'en',
+          '@vocab': 'http://vocab.org/',
+          'p': { '@id': 'http://vocab.org/pred1', '@language': 'nl' },
+        });
+      });
+
+      it('should not expand @direction', async () => {
+        const context = new JsonLdContextNormalized({
+          '@base': 'http://base.org/',
+          '@direction': 'ltr',
+          '@vocab': 'http://vocab.org/',
+          'p': { '@id': 'pred1', '@direction': 'rtl' },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@base': 'http://base.org/',
+          '@direction': 'ltr',
+          '@vocab': 'http://vocab.org/',
+          'p': { '@id': 'http://vocab.org/pred1', '@direction': 'rtl' },
+        });
+      });
+
+      it('should expand terms based on the vocab IRI', async () => {
+        const context = new JsonLdContextNormalized({
+          '@base': 'http://base.org/',
+          '@vocab': 'http://vocab.org/',
+          'p': 'p',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@base': 'http://base.org/',
+          '@vocab': 'http://vocab.org/',
+          'p': 'http://vocab.org/p',
+        });
+      });
+
+      it('should expand nested terms based on the vocab IRI', async () => {
+        const context = new JsonLdContextNormalized({
+          '@base': 'http://base.org/',
+          '@vocab': 'http://vocab.org/',
+          'p': { '@id': 'p', '@type': 'type' },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@base': 'http://base.org/',
+          '@vocab': 'http://vocab.org/',
+          'p': { '@id': 'http://vocab.org/p', '@type': 'http://vocab.org/type' },
+        });
+      });
+
+      it('should let @type fallback to base when when vocab is disabled', async () => {
+        const context = new JsonLdContextNormalized({
+          '@base': 'http://base.org/',
+          '@vocab': null,
+          'p': { '@id': 'p', '@type': 'type' },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@base': 'http://base.org/',
+          '@vocab': null,
+          'p': { '@id': 'p', '@type': 'http://base.org/type' },
+        });
+      });
+
+      it('should let @type fallback to base when when vocab is not present', async () => {
+        const context = new JsonLdContextNormalized({
+          '@base': 'http://base.org/',
+          'p': { '@id': 'p', '@type': 'type' },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@base': 'http://base.org/',
+          'p': { '@id': 'p', '@type': 'http://base.org/type' },
+        });
+      });
+
+      it('should not expand @type: @vocab', async () => {
+        const context = new JsonLdContextNormalized({
+          '@vocab': 'http://vocab.org/',
+          'p': { '@id': 'p', '@type': '@vocab' },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@vocab': 'http://vocab.org/',
+          'p': { '@id': 'http://vocab.org/p', '@type': '@vocab' },
+        });
+      });
+
+      it('should error on aliasing to @context', async () => {
+        expect(() => parser.expandPrefixedTerms(new JsonLdContextNormalized({
+          bla: '@context',
+        }), true)).toThrow(new ErrorCoded(`Aliasing to certain keywords is not allowed.
+Tried mapping bla to "@context"`, ERROR_CODES.INVALID_KEYWORD_ALIAS));
+      });
+
+      it('should error on aliasing to @preserve', async () => {
+        expect(() => parser.expandPrefixedTerms(new JsonLdContextNormalized({
+          bla: '@preserve',
+        }), true)).toThrow(new ErrorCoded(`Aliasing to certain keywords is not allowed.
+Tried mapping bla to "@preserve"`, ERROR_CODES.INVALID_KEYWORD_ALIAS));
+      });
+
+      it('should error on aliasing of keywords', async () => {
+        expect(() => parser.expandPrefixedTerms(new JsonLdContextNormalized({
+          '@id': 'http//ex.org/id',
+        }), true)).toThrow(new ErrorCoded(`Keywords can not be aliased to something else.
+Tried mapping @id to "http//ex.org/id"`, ERROR_CODES.KEYWORD_REDEFINITION));
+      });
+
+      it('should error on aliasing of keywords in expanded form', async () => {
+        expect(() => parser.expandPrefixedTerms(new JsonLdContextNormalized({
+          '@id': { '@id': 'http//ex.org/id' },
+        }), true)).toThrow(new ErrorCoded(`Keywords can not be aliased to something else.
+Tried mapping @id to {"@id":"http//ex.org/id"}`, ERROR_CODES.KEYWORD_REDEFINITION));
+      });
+
+      it('should error on aliasing of keywords in empty expanded form', async () => {
+        expect(() => parser.expandPrefixedTerms(new JsonLdContextNormalized({
+          '@id': {},
+        }), true)).toThrow(new ErrorCoded(`Keywords can not be aliased to something else.
+Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
+      });
+
+      it('should expand aliases', async () => {
+        const context = new JsonLdContextNormalized({
+          id: '@id',
+          url: 'id',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          id: '@id',
+          url: '@id',
+        });
+      });
+
+      it('should not expand unknown keywords', async () => {
+        const context = new JsonLdContextNormalized({
+          '@vocab': 'http://example.org/',
+          'ignoreMe': '@ignoreMe',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@vocab': 'http://example.org/',
+          'ignoreMe': '@ignoreMe',
+        });
+      });
+
+      it('should handle @type with @protected: true', async () => {
+        const context = new JsonLdContextNormalized({
+          '@type': { '@protected': true },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@type': { '@protected': true },
+        });
+      });
+
+      it('should handle @type with @container: @set', async () => {
+        const context = new JsonLdContextNormalized({
+          '@type': { '@container': '@set' },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@type': { '@container': '@set' },
+        });
+      });
+
+      it('should handle @type with @container: @set and @protected: true', async () => {
+        const context = new JsonLdContextNormalized({
+          '@type': { '@container': '@set', '@protected': true },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@type': { '@container': '@set', '@protected': true },
+        });
+      });
+
+      it('error on handle @id with @protected: true', async () => {
+        expect(() => parser.expandPrefixedTerms(new JsonLdContextNormalized({
+          '@id': { '@protected': true },
+        }), true)).toThrow(new ErrorCoded('Keywords can not be aliased to something else.' +
+          '\nTried mapping @id to {"@protected":true}', ERROR_CODES.KEYWORD_REDEFINITION));
+      });
+
+      it('should error on keyword aliasing with @prefix: true', async () => {
+        expect(() => parser.expandPrefixedTerms(new JsonLdContextNormalized({
+          foo: { '@id': '@type', '@prefix': true },
+        }), true)).toThrow(new ErrorCoded('Tried to use keyword aliases as prefix: ' +
+          '\'foo\': \'{"@id":"@type","@prefix":true}\'', ERROR_CODES.INVALID_TERM_DEFINITION));
+      });
+
+      it('should not error on regular prefix definitions', async () => {
+        const context = new JsonLdContextNormalized({
+          foo: { '@id': 'http://foo.org/', '@prefix': true },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          foo: { '@id': 'http://foo.org/', '@prefix': true },
+        });
+      });
+
+      it('should handle keyword aliasing with @prefix: false', async () => {
+        const context = new JsonLdContextNormalized({
+          foo: { '@id': '@type', '@prefix': false },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          foo: { '@id': '@type', '@prefix': false },
+        });
+      });
+
+      it('should expand relative terms in expanded form without @id to @vocab', async () => {
+        const context = new JsonLdContextNormalized({
+          '@vocab': 'http://vocab.org/',
+          'foo': {},
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@vocab': 'http://vocab.org/',
+          'foo': { '@id': 'http://vocab.org/foo' },
+        });
+      });
+
+      it('should expand relative terms in expanded form with empty @vocab without @id to @base', async () => {
+        const context = new JsonLdContextNormalized({
+          '@base': 'http://base.org/',
+          '@vocab': '',
+          'foo': {},
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@base': 'http://base.org/',
+          '@vocab': '',
+          'foo': {'@id': 'http://base.org/foo' },
+        });
+      });
+
+      it('should expand relative terms in expanded form with @id to @vocab', async () => {
+        const context = new JsonLdContextNormalized({
+          '@vocab': 'http://vocab.org/',
+          'foo': { '@id': 'rel' },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@vocab': 'http://vocab.org/',
+          'foo': { '@id': 'http://vocab.org/rel' },
+        });
+      });
+
+      it('should expand relative terms in expanded form with empty @vocab with @id to @base', async () => {
+        const context = new JsonLdContextNormalized({
+          '@base': 'http://base.org/',
+          '@vocab': '',
+          'foo': { '@id': 'rel' },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@base': 'http://base.org/',
+          '@vocab': '',
+          'foo': { '@id': 'http://base.org/rel' },
+        });
+      });
+
+      it('should expand relative terms in compact string form with @id to @vocab', async () => {
+        const context = new JsonLdContextNormalized({
+          '@vocab': 'http://vocab.org/',
+          'foo': 'rel',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@vocab': 'http://vocab.org/',
+          'foo': 'http://vocab.org/rel',
+        });
+      });
+
+      it('should not expand keyword terms in expanded form to @vocab', async () => {
+        const context = new JsonLdContextNormalized({
+          '@type': { '@protected': true },
+          '@vocab': 'http://vocab.org/',
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@type': { '@protected': true },
+          '@vocab': 'http://vocab.org/',
+        });
+      });
+
+      it('should not expand relative terms in expanded form with @id a keyword to @vocab', async () => {
+        const context = new JsonLdContextNormalized({
+          '@vocab': 'http://vocab.org/',
+          'foo': { '@id': '@keyword' },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@vocab': 'http://vocab.org/',
+          'foo': { '@id': '@keyword' },
+        });
+      });
+
+      it('should not expand relative terms in expanded form without @id without @vocab', async () => {
+        const context = new JsonLdContextNormalized({
+          foo: {},
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          foo: {},
+        });
+      });
+
+      it('should not expand relative terms with @id null', async () => {
+        const context = new JsonLdContextNormalized({
+          '@vocab': 'http://vocab.org/',
+          'foo': { '@id': null },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@vocab': 'http://vocab.org/',
+          'foo': { '@id': null },
+        });
+      });
+
+      it('should not expand relative terms with @id undefined', async () => {
+        const context = new JsonLdContextNormalized({
+          '@vocab': 'http://vocab.org/',
+          'foo': { '@id': undefined },
+        });
+        parser.expandPrefixedTerms(context, true);
+        expect(context.getContextRaw()).toEqual({
+          '@vocab': 'http://vocab.org/',
+          'foo': { '@id': undefined },
+        });
+      });
+    });
+
+    describe('normalize', () => {
+      it('should lowercase @language in 1.0', async () => {
+        const context = {
+          '@language': 'EN',
+          'p': { '@id': 'pred1', '@language': 'NL' },
+        };
+        parser.normalize(context, { processingMode: 1.0 });
+        expect(context).toEqual({
+          '@language': 'en',
+          'p': { '@id': 'pred1', '@language': 'nl' },
+        });
+      });
+
+      it('should lowercase @language if normalizeLanguageTags is true', async () => {
+        const context = {
+          '@language': 'EN',
+          'p': { '@id': 'pred1', '@language': 'NL' },
+        };
+        parser.normalize(context, { normalizeLanguageTags: true });
+        expect(context).toEqual({
+          '@language': 'en',
+          'p': { '@id': 'pred1', '@language': 'nl' },
+        });
+      });
+
+      it('should not lowercase @language in 1.1', async () => {
+        const context = {
+          '@language': 'EN',
+          'p': { '@id': 'pred1', '@language': 'NL' },
+        };
+        parser.normalize(context, { processingMode: 1.1 });
+        expect(context).toEqual({
+          '@language': 'EN',
+          'p': { '@id': 'pred1', '@language': 'NL' },
+        });
+      });
+
+      it('should not fail on null @language', async () => {
+        const context = {
+          '@language': null,
+          'p': { '@id': 'pred1', '@language': null },
+        };
+        parser.normalize(context, { processingMode: 1.0 });
+        expect(context).toEqual({
+          '@language': null,
+          'p': { '@id': 'pred1', '@language': null },
+        });
+      });
+
+      it('should not fail on invalid @language', async () => {
+        const context = {
+          '@language': <any> {},
+          'p': { '@id': 'pred1', '@language': {} },
+        };
+        parser.normalize(context, { processingMode: 1.0 });
+        expect(context).toEqual({
+          '@language': {},
+          'p': { '@id': 'pred1', '@language': {} },
+        });
+      });
+    });
+
+    describe('containersToHash', () => {
+      it('should not modify an empty context', async () => {
+        const context = {};
+        parser.containersToHash(context);
+        expect(context).toEqual({});
+      });
+
+      it('should not modify a context with @non-container', async () => {
+        const context = {
+          term: { '@non-container': 'bla' },
+        };
+        parser.containersToHash(context);
+        expect(context).toEqual({
+          term: { '@non-container': 'bla' },
+        });
+      });
+
+      it('should not modify @container with a hash', async () => {
+        const context = {
+          term: { '@container': { 1: true, 2: true } },
+        };
+        parser.containersToHash(context);
+        expect(context).toEqual({
+          term: { '@container': { 1: true, 2: true } },
+        });
+      });
+
+      it('should modify @container with an array', async () => {
+        const context = {
+          term: { '@container': [ '1', '2', '2' ] },
+        };
+        parser.containersToHash(context);
+        expect(context).toEqual({
+          term: { '@container': { 1: true, 2: true } },
+        });
+      });
+
+      it('should arrayify @container with a string', async () => {
+        const context = {
+          term: { '@container': '1' },
+        };
+        parser.containersToHash(context);
+        expect(context).toEqual({
+          term: { '@container': { 1: true } },
+        });
+      });
+    });
+
+    describe('expandPrefixedTerms with expandContentTypeToBase false', () => {
+      it('should not let @type fallback to base when when vocab is disabled', async () => {
+        const context = new JsonLdContextNormalized({
+          '@base': 'http://base.org/',
+          '@vocab': null,
+          'p': { '@id': 'p', '@type': 'type' },
+        });
+        parser.expandPrefixedTerms(context, false);
+        expect(context.getContextRaw()).toEqual({
+          '@base': 'http://base.org/',
+          '@vocab': null,
+          'p': { '@id': 'p', '@type': 'type' },
+        });
+      });
+
+      it('should not let @type fallback to base when when vocab is not present', async () => {
+        const context = new JsonLdContextNormalized({
+          '@base': 'http://base.org/',
+          'p': { '@id': 'p', '@type': 'type' },
+        });
+        parser.expandPrefixedTerms(context, false);
+        expect(context.getContextRaw()).toEqual({
+          '@base': 'http://base.org/',
+          'p': { '@id': 'p', '@type': 'type' },
+        });
+      });
+    });
+
+    describe('idifyReverseTerms', () => {
+      it('should not modify an empty context', async () => {
+        expect(parser.idifyReverseTerms({})).toEqual({});
+      });
+
+      it('should add an @id for a @reverse', async () => {
+        expect(parser.idifyReverseTerms({
+          Example: { '@reverse': 'ex:Example' },
+          ex: 'http://example.org/',
+        })).toEqual({
+          Example: { '@reverse': true, '@id': 'ex:Example' },
+          ex: 'http://example.org/',
+        });
+      });
+
+      it('should not add an @id for a @reverse that already has an @id', async () => {
+        expect(parser.idifyReverseTerms({
+          Example: { '@reverse': 'ex:Example', '@id': 'ex:AnotherExample' },
+          ex: 'http://example.org/',
+        })).toEqual({
+          Example: { '@reverse': 'ex:Example', '@id': 'ex:AnotherExample' },
+          ex: 'http://example.org/',
+        });
+      });
+
+      it('should error on an invalid @reverse', async () => {
+        expect(() => parser.idifyReverseTerms({
+          Example: { '@reverse': 10 },
+          ex: 'http://example.org/',
+        })).toThrow(new ErrorCoded('Invalid @reverse value, must be absolute IRI or blank node: \'10\'',
+          ERROR_CODES.INVALID_IRI_MAPPING));
+      });
+
+      it('should error on @reverse for a valid keyword', async () => {
+        expect(() => parser.idifyReverseTerms({
+          Example: { '@reverse': '@type' },
+          ex: 'http://example.org/',
+        })).toThrow(new ErrorCoded('Invalid @reverse value, must be absolute IRI or blank node: \'@type\'',
+          ERROR_CODES.INVALID_IRI_MAPPING));
+      });
+
+      it('should ignore @reverse for an invalid keyword', async () => {
+        expect(parser.idifyReverseTerms({
+          Example: { '@reverse': '@ignoreMe' },
+          ex: 'http://example.org/',
+        })).toEqual({
+          Example: { '@id': '@ignoreMe' },
+          ex: 'http://example.org/',
+        });
+      });
+    });
+
+    describe('validate', () => {
+      const parseDefaults = { processingMode: 1.1 };
+
+      it('should error on an invalid @vocab', async () => {
+        expect(() => parser.validate(<any> { '@vocab': true }, parseDefaults))
+          .toThrow(new Error('Found an invalid @vocab IRI: true'));
+      });
+
+      it('should error on an invalid @base', async () => {
+        expect(() => parser.validate(<any> { '@base': true }, parseDefaults))
+          .toThrow(new Error('Found an invalid @base IRI: true'));
+      });
+
+      it('should error on an invalid @language', async () => {
+        expect(() => parser.validate(<any> { '@language': true }, parseDefaults))
+          .toThrow(new Error('The value of an \'@language\' must be a string, got \'true\''));
+      });
+
+      it('should error on an invalid @direction', async () => {
+        expect(() => parser.validate(<any> { '@direction': true }, parseDefaults))
+          .toThrow(new Error('The value of an \'@direction\' must be a string, got \'true\''));
+      });
+
+      it('should error on an invalid @version', async () => {
+        expect(() => parser.validate(<any> { '@version': true }, parseDefaults))
+          .toThrow(new Error('Found an invalid @version number: true'));
+      });
+
+      it('should not error on a null @language', async () => {
+        expect(() => parser.validate(<any> { '@language': null }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a null @direction', async () => {
+        expect(() => parser.validate(<any> { '@direction': null }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a null @version', async () => {
+        expect(() => parser.validate(<any> { '@version': null }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a number @version', async () => {
+        expect(() => parser.validate(<any> { '@version': 1.1 }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on a valid @propagate in 1.0', async () => {
+        expect(() => parser.validate(<any> { '@propagate': true }, { processingMode: 1.0 }))
+          .toThrow(new ErrorCoded('Found an illegal @propagate keyword: true', ERROR_CODES.INVALID_CONTEXT_ENTRY));
+      });
+
+      it('should not error on a valid @propagate in 1.1', async () => {
+        expect(() => parser.validate(<any> { '@propagate': true }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on an invalid @propagate', async () => {
+        expect(() => parser.validate(<any> { '@propagate': 'a' }, parseDefaults))
+          .toThrow(new ErrorCoded('Found an invalid @propagate value: a', ERROR_CODES.INVALID_PROPAGATE_VALUE));
+      });
+
+      it('should not error on an invalid @unknown', async () => {
+        expect(() => parser.validate(<any> { '@unknown': 'true' }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on term without @id and @type : @id', async () => {
+        expect(() => parser.validate(<any> { term: {} }, parseDefaults))
+          .toThrow(new Error('Missing @id in context entry: \'term\': \'{}\''));
+      });
+
+      it('should error on term without @id, but with @type : @id', async () => {
+        expect(() => parser.validate(<any> { term: { '@type': '@id' } }, parseDefaults))
+          .toThrow(new Error('Missing @id in context entry: \'term\': \'{"@type":"@id"}\''));
+      });
+
+      it('should not error on term without @id, but with @type : @id and @base', async () => {
+        expect(() => parser.validate(<any> { 'term': { '@type': '@id' }, '@base': 'abc' }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on term without @id and @type : @id and @base', async () => {
+        expect(() => parser.validate(<any> { 'term': {}, '@base': 'abc' }, parseDefaults))
+          .toThrow(new Error('Missing @id in context entry: \'term\': \'{}\''));
+      });
+
+      it('should error on term without @id, but with @type : @id and @vocab', async () => {
+        expect(() => parser.validate(<any> { 'term': { '@type': '@id' }, '@vocab': 'abc' }, parseDefaults))
+          .toThrow(new Error('Missing @id in context entry: \'term\': \'{"@type":"@id"}\''));
+      });
+
+      it('should not error on term without @id and @type : @id and @vocab', async () => {
+        expect(() => parser.validate(<any> { 'term': {}, '@vocab': 'abc' }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on term with @id: @container', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@container' } }, parseDefaults))
+          .toThrow(new Error('Illegal keyword alias in term value, found: \'term\': \'{"@id":"@container"}\''));
+      });
+
+      it('should not error on term with @id: @type', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@type' } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on term with @id: @id', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@id' } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on term with @type: @id', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': '@id' } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on term with @type: @vocab', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': '@vocab' } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on term with @type: @json', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': '@json' } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on term with @type: @json in 1.0', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': '@json' } }, { processingMode: 1.0 }))
+          .toThrow(new ErrorCoded(`A context @type must be an absolute IRI, found: 'term': '@json'`,
+            ERROR_CODES.INVALID_TYPE_MAPPING));
+      });
+
+      it('should not error on term with @type: @none', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': '@none' } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on term with @type: @none in 1.0', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': '@none' } }, { processingMode: 1.0 }))
+          .toThrow(new ErrorCoded(`A context @type must be an absolute IRI, found: 'term': '@none'`,
+            ERROR_CODES.INVALID_TYPE_MAPPING));
+      });
+
+      it('should not error on term with @type: @id with @container: @type', async () => {
+        expect(() => parser.validate(
+          <any> { term: { '@id': '@id', '@type': '@id', '@container': { '@type': true } } },
+          parseDefaults)).not.toThrow();
+      });
+
+      it('should not error on term with @type: @vocab with @container: @type', async () => {
+        expect(() => parser.validate(
+          <any> { term: { '@id': '@id', '@type': '@vocab', '@container': { '@type': true } } },
+          parseDefaults)).not.toThrow();
+      });
+
+      it('should error on term with @type: @none with @container: @type', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': '@none', '@container': '@type' } },
+          parseDefaults))
+          .toThrow(new ErrorCoded(`@container: @type only allows @type: @id or @vocab, but got: 'term': '@none'`,
+            ERROR_CODES.INVALID_TYPE_MAPPING));
+      });
+
+      it('should error on term with @type: bla with @container: @type', async () => {
+        expect(() => parser.validate(<any> {
+          '@base': 'http://example.org/base/',
+          '@vocab': 'http://example.org/ns/',
+          'term': { '@type': 'bla', '@container': '@type' },
+        },
+          parseDefaults))
+          .toThrow(new ErrorCoded(`@container: @type only allows @type: @id or @vocab, but got: 'term': 'bla'`,
+            ERROR_CODES.INVALID_TYPE_MAPPING));
+      });
+
+      it('should error on term with @type: _:bnode', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': '_:bnode' } }, parseDefaults))
+          .toThrow(new Error('A context @type must be an absolute IRI, found: \'term\': \'_:bnode\''));
+      });
+
+      it('should error on term with @type: invalid-iri', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': 'invalid-iri' } }, parseDefaults))
+          .toThrow(new Error('A context @type must be an absolute IRI, found: \'term\': \'invalid-iri\''));
+      });
+
+      it('should not error on term with @reverse: true', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@reverse': true } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on term with different @reverse and @id', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@reverse': 'abc' } },
+          parseDefaults))
+          .toThrow(
+            new Error('Found non-matching @id and @reverse term values in \'term\':\'abc\' and \'http://ex.org/\''));
+      });
+
+      it('should not error on an @container: {}', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': {} } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term with @container: @list', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@list': true } } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term with @container: @set', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@set': true } } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on @type with @container: @set', async () => {
+        expect(() => parser.validate(<any> { '@type': { '@container': { '@set': true } } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on @type with @container: @set and @protected: true', async () => {
+        expect(() => parser.validate(<any> { '@type': { '@container': { '@set': true }, '@protected': true } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term with @container: @index', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@index': true } } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term with @container: @index, @set', async () => {
+        expect(() => parser.validate(<any>
+          { term: { '@id': 'http://ex.org/', '@container': { '@index': true, '@set': true } } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term with @container: @index with an @index', async () => {
+        expect(() => parser.validate(
+          <any> { term: { '@id': 'http://ex.org/', '@container': { '@index': true }, '@index': 'prop' } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on a term with @container: @index with an @index in 1.0', async () => {
+        expect(() => parser.validate(
+          <any> { term: { '@id': 'http://ex.org/', '@container': { '@index': true }, '@index': 'prop' } },
+          { processingMode: 1.0 }))
+          .toThrow(new ErrorCoded('Attempt to add illegal key to value object: ' +
+            '\'term\': \'{"@id":"http://ex.org/","@container":{"@index":true},"@index":"prop"}\'',
+            ERROR_CODES.INVALID_TERM_DEFINITION));
+      });
+
+      it('should error on a term without @container: @index with an @index in 1.0', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@index': 'prop' } },
+          { processingMode: 1.0 }))
+          .toThrow(new ErrorCoded('Attempt to add illegal key to value object: ' +
+            '\'term\': \'{"@id":"http://ex.org/","@index":"prop"}\'', ERROR_CODES.INVALID_TERM_DEFINITION));
+      });
+
+      it('should error on a term without @container: @index with an @index', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@index': 'prop' } },
+          parseDefaults))
+          .toThrow(new ErrorCoded('Attempt to add illegal key to value object: ' +
+            '\'term\': \'{"@id":"http://ex.org/","@index":"prop"}\'', ERROR_CODES.INVALID_TERM_DEFINITION));
+      });
+
+      it('should not error on a term with @container: @language', async () => {
+        expect(() => parser.validate(
+          <any> { term: { '@id': 'http://ex.org/', '@container': { '@language': true } } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term with @container: @language, @set', async () => {
+        expect(() => parser.validate(<any>
+          { term: { '@id': 'http://ex.org/', '@container': { '@language': true, '@set': true } } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term with @container: @id', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@id': true } } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term with @container: @id, @set', async () => {
+        expect(() => parser.validate(
+          <any> { term: { '@id': 'http://ex.org/', '@container': { '@id': true, '@set': true } } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term with @container: @graph', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@graph': true } } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term with @container: @graph, @set', async () => {
+        expect(() => parser.validate(<any>
+          { term: { '@id': 'http://ex.org/', '@container': { '@graph': true, '@set': true } } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term with @container: @type', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@container': { '@type': true } } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term with @container: @type, @set', async () => {
+        expect(() => parser.validate(<any>
+          { term: { '@id': 'http://ex.org/', '@container': { '@type': true, '@set': true } } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on a term with @container: @unknown', async () => {
+        expect(() => parser.validate(
+          <any> { term: { '@id': 'http://ex.org/', '@container': { '@unknown': true } } },
+          parseDefaults))
+          .toThrow(new Error('Invalid term @container for \'term\' (\'@unknown\'), ' +
+            'must be one of @list, @set, @index, @language, @graph, @id, @type'));
+      });
+
+      it('should error on a term with @container: @list and @reverse', async () => {
+        expect(() => parser.validate(<any>
+          { term: { '@id': 'http://ex.org/', '@container': { '@list': true }, '@reverse': true } }, parseDefaults))
+          .toThrow(new Error('Term value can not be @container: @list and @reverse at the same time on \'term\''));
+      });
+
+      it('should not error on a term with @language: en', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 'en' } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term with @direction: rtl', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@direction': 'rtl' } },
+          parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on a term with @language: 10', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 10 } }, parseDefaults))
+          .toThrow(new Error('The value of an \'@language\' must be a string, got \'10\''));
+      });
+
+      it('should error on a term with @language: en us', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 'en us' } },
+          parseDefaults))
+          .toThrow(new Error('The value of an \'@language\' must be a valid language tag, got \'"en us"\''));
+      });
+
+      it('should error on a term with @direction: abc', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@direction': 'abc' } },
+          parseDefaults))
+          .toThrow(new Error('The value of an \'@direction\' must be \'ltr\' or \'rtl\', got \'"abc"\''));
+      });
+
+      it('should error on a term with @prefix: true', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@prefix': true } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on a term with @prefix: 10', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@prefix': 10 } }, parseDefaults))
+          .toThrow(new Error('Found an invalid term @prefix boolean in: \'term\': ' +
+            '\'{"@id":"http://ex.org/","@prefix":10}\''));
+      });
+
+      it('should not error on a term set to null', async () => {
+        expect(() => parser.validate(<any> { term: null }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on a term @id set to null', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': null } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on a term set to a number', async () => {
+        expect(() => parser.validate(<any> { term: 10 }, parseDefaults))
+          .toThrow(new Error('Found an invalid term value: \'term\': \'10\''));
+      });
+
+      it('should ignore reserved internal keywords', async () => {
+        expect(() => parser.validate(<any> { '@__': { '@id': '@id', '@type': '_:bnode' } }, parseDefaults))
+          .not.toThrow();
+        expect(() => parser.validate(<any> { '@__ignored': { '@id': '@id', '@type': '_:bnode' } }, parseDefaults))
+          .not.toThrow();
+        expect(() => parser.validate(<any> { '@__propagateFallback': { '@id': '@id', '@type': '_:bnode' } },
+          parseDefaults))
+          .not.toThrow();
+      });
+    });
+
+    describe('parse', () => {
       it('should error when parsing a context with an invalid context entry', () => {
         return expect(parser.parse({ '@base': true })).rejects
           .toEqual(new Error('Found an invalid @base IRI: true'));
       });
 
       it('should parse an object with direct context values', () => {
-        return expect(parser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves.toEqual({
-          name: "http://xmlns.com/foaf/0.1/name",
-        });
+        return expect(parser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
+          .toEqual(new JsonLdContextNormalized({
+            name: "http://xmlns.com/foaf/0.1/name",
+          }));
       });
 
       it('should parse an object with indirect context values', () => {
-        return expect(parser.parse({ "@context": { name: "http://xmlns.com/foaf/0.1/name" } })).resolves.toEqual({
-          name: "http://xmlns.com/foaf/0.1/name",
-        });
+        return expect(parser.parse({ "@context": { name: "http://xmlns.com/foaf/0.1/name" } })).resolves
+          .toEqual(new JsonLdContextNormalized({
+            name: "http://xmlns.com/foaf/0.1/name",
+          }));
       });
 
       it('should parse an object with indirect null context', () => {
-        return expect(parser.parse({ "@context": null })).resolves.toEqual({});
+        return expect(parser.parse({ "@context": null })).resolves
+          .toEqual(new JsonLdContextNormalized({}));
       });
 
       it('should parse without modifying the original context', async () => {
         const contextIn = { "@context": { rev: { "@reverse": "http://example.com/" } } };
-        await expect(parser.parse(contextIn)).resolves.toEqual({
+        await expect(parser.parse(contextIn)).resolves.toEqual(new JsonLdContextNormalized({
           rev: {
             "@id": "http://example.com/",
             "@reverse": true,
           },
-        });
+        }));
         expect(contextIn).toEqual({ "@context": { rev: { "@reverse": "http://example.com/" } } });
       });
 
@@ -2066,10 +1265,11 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           '@language': 'EN',
           'p': { '@id': 'pred1', '@language': 'NL' },
         };
-        await expect(parser.parse(contextIn, { processingMode: 1.0 })).resolves.toEqual({
-          '@language': 'en',
-          'p': { '@id': 'pred1', '@language': 'nl' },
-        });
+        await expect(parser.parse(contextIn, { processingMode: 1.0 })).resolves
+          .toEqual(new JsonLdContextNormalized({
+            '@language': 'en',
+            'p': { '@id': 'pred1', '@language': 'nl' },
+          }));
       });
 
       it('should parse and not normalize language tags in 1.1', async () => {
@@ -2077,10 +1277,11 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           '@language': 'EN',
           'p': { '@id': 'pred1', '@language': 'NL' },
         };
-        await expect(parser.parse(contextIn, { processingMode: 1.1 })).resolves.toEqual({
-          '@language': 'EN',
-          'p': { '@id': 'pred1', '@language': 'NL' },
-        });
+        await expect(parser.parse(contextIn, { processingMode: 1.1 })).resolves
+          .toEqual(new JsonLdContextNormalized({
+            '@language': 'EN',
+            'p': { '@id': 'pred1', '@language': 'NL' },
+          }));
       });
 
       it('should parse and use a relative @base IRI, when a document base IRI is given', () => {
@@ -2090,10 +1291,10 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
           },
         }, { baseIRI: 'http://doc.org/' }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@base': 'http://doc.org/sub',
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
-          });
+          }));
       });
 
       it('should parse and not modify an absolute @base IRI, when a document base IRI is also given', () => {
@@ -2103,10 +1304,10 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
           },
         }, { baseIRI: 'http://doc.org/' }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@base': 'http://a/bb/ccc/./d;p?q',
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
-          });
+          }));
       });
 
       it('should parse and not modify a null @base, when a document base IRI is also given', () => {
@@ -2116,45 +1317,47 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
           },
         }, { baseIRI: 'http://doc.org/' }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@base': null,
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
-          });
+          }));
       });
 
       it('should parse with a base IRI and not override the inner @base', () => {
         return expect(parser.parse({ '@base': 'http://myotherexample.org/' }, 'http://myexample.org/'))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@base': 'http://myotherexample.org/',
-          });
+          }));
       });
 
       it('should parse contexts with unknown keywords', () => {
         return expect(parser.parse({
           '@vocab': 'http://example.org/',
           'ignoreMe': '@ignoreMe',
-        })).resolves.toEqual({
+        })).resolves.toEqual(new JsonLdContextNormalized({
           '@vocab': 'http://example.org/',
           'ignoreMe': '@ignoreMe',
-        });
+        }));
       });
     });
 
     describe('for parsing URLs', () => {
       it('should parse a valid context URL', () => {
-        return expect(parser.parse('http://example.org/simple.jsonld')).resolves.toEqual({
-          name: "http://xmlns.com/foaf/0.1/name",
-          xsd: "http://www.w3.org/2001/XMLSchema#",
-        });
+        return expect(parser.parse('http://example.org/simple.jsonld'))
+          .resolves.toEqual(new JsonLdContextNormalized({
+            name: "http://xmlns.com/foaf/0.1/name",
+            xsd: "http://www.w3.org/2001/XMLSchema#",
+          }));
       });
 
       it('should parse a valid relative context URL', () => {
-        return expect(parser.parse('simple.jsonld', { baseIRI: 'http://example.org/mydoc.html' })).resolves.toEqual({
-          '@__baseDocument': true,
-          '@base': 'http://example.org/mydoc.html',
-          'name': "http://xmlns.com/foaf/0.1/name",
-          'xsd': "http://www.w3.org/2001/XMLSchema#",
-        });
+        return expect(parser.parse('simple.jsonld', { baseIRI: 'http://example.org/mydoc.html' }))
+          .resolves.toEqual(new JsonLdContextNormalized({
+            '@__baseDocument': true,
+            '@base': 'http://example.org/mydoc.html',
+            'name': "http://xmlns.com/foaf/0.1/name",
+            'xsd': "http://www.w3.org/2001/XMLSchema#",
+          }));
       });
 
       it('should fail to parse a relative context URL without baseIRI', () => {
@@ -2163,25 +1366,27 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
       });
 
       it('should parse and ignore the @base IRI', () => {
-        return expect(parser.parse('http://example.org/base.jsonld')).resolves.toEqual({
-          nickname: 'http://xmlns.com/foaf/0.1/nick',
-        });
+        return expect(parser.parse('http://example.org/base.jsonld')).resolves
+          .toEqual(new JsonLdContextNormalized({
+            nickname: 'http://xmlns.com/foaf/0.1/nick',
+          }));
       });
 
       it('should parse and ignore the @base IRI, but not when a custom base IRI is given', () => {
-        return expect(parser.parse('http://example.org/base.jsonld', { baseIRI: 'abc' })).resolves.toEqual({
-          '@__baseDocument': true,
-          '@base': 'abc',
-          'nickname': 'http://xmlns.com/foaf/0.1/nick',
-        });
+        return expect(parser.parse('http://example.org/base.jsonld', { baseIRI: 'abc' })).resolves
+          .toEqual(new JsonLdContextNormalized({
+            '@__baseDocument': true,
+            '@base': 'abc',
+            'nickname': 'http://xmlns.com/foaf/0.1/nick',
+          }));
       });
 
       it('should parse and ignore the @base IRI, but not from the parent context', () => {
         return expect(parser.parse('http://example.org/base.jsonld', { parentContext: { '@base': 'abc' } }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@base': 'abc',
             'nickname': 'http://xmlns.com/foaf/0.1/nick',
-          });
+          }));
       });
 
       it('should cache documents', async () => {
@@ -2194,10 +1399,11 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           xsd: "http://www.w3.org/2001/XMLSchema#",
         });
 
-        await expect(parser.parse('http://example.org/simple.jsonld')).resolves.toEqual({
-          name: "http://xmlns.com/foaf/0.1/name",
-          xsd: "http://www.w3.org/2001/XMLSchema#",
-        });
+        await expect(parser.parse('http://example.org/simple.jsonld')).resolves
+          .toEqual(new JsonLdContextNormalized({
+            name: "http://xmlns.com/foaf/0.1/name",
+            xsd: "http://www.w3.org/2001/XMLSchema#",
+          }));
 
         expect(spy).toHaveBeenCalledTimes(1);
       });
@@ -2209,56 +1415,58 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
     describe('for parsing null', () => {
       it('should parse to an empty context', () => {
-        return expect(parser.parse(null)).resolves.toEqual({});
+        return expect(parser.parse(null)).resolves.toEqual(new JsonLdContextNormalized({}));
       });
 
       it('should parse to an empty context, even when a parent context is given', () => {
-        return expect(parser.parse(null, { parentContext: { a: 'b' } })).resolves.toEqual({});
+        return expect(parser.parse(null, { parentContext: { a: 'b' } })).resolves
+          .toEqual(new JsonLdContextNormalized({}));
       });
 
       it('should parse to an empty context, but set @base if needed', () => {
         return expect(parser.parse(null, { baseIRI: 'http://base.org/' })).resolves
-          .toEqual({ '@__baseDocument': true, '@base': 'http://base.org/' });
+          .toEqual(new JsonLdContextNormalized({ '@__baseDocument': true, '@base': 'http://base.org/' }));
       });
     });
 
     describe('for parsing arrays', () => {
       it('should parse an empty array to the parent context', () => {
         const parentContext = { a: 'b' };
-        return expect(parser.parse([], { parentContext })).resolves.toBe(parentContext);
+        return expect(parser.parse([], { parentContext })).resolves
+          .toEqual(new JsonLdContextNormalized(parentContext));
       });
 
       it('should parse an array with one string', () => {
         return expect(parser.parse([
           'http://example.org/simple.jsonld',
-        ])).resolves.toEqual({
+        ])).resolves.toEqual(new JsonLdContextNormalized({
           name: "http://xmlns.com/foaf/0.1/name",
           xsd: "http://www.w3.org/2001/XMLSchema#",
-        });
+        }));
       });
 
       it('should parse an array with two strings', () => {
         return expect(parser.parse([
           'http://example.org/simple.jsonld',
           'http://example.org/simple2.jsonld',
-        ])).resolves.toEqual({
+        ])).resolves.toEqual(new JsonLdContextNormalized({
           name: "http://xmlns.com/foaf/0.1/name",
           nickname: "http://xmlns.com/foaf/0.1/nick",
           xsd: "http://www.w3.org/2001/XMLSchema#",
-        });
+        }));
       });
 
       it('should parse an array with relative string URLs', () => {
         return expect(parser.parse([
           'simple.jsonld',
           'simple2.jsonld',
-        ], { baseIRI: 'http://example.org/mybase.html' })).resolves.toEqual({
+        ], { baseIRI: 'http://example.org/mybase.html' })).resolves.toEqual(new JsonLdContextNormalized({
           '@__baseDocument': true,
           '@base': 'http://example.org/mybase.html',
           'name': "http://xmlns.com/foaf/0.1/name",
           'nickname': "http://xmlns.com/foaf/0.1/nick",
           'xsd': "http://www.w3.org/2001/XMLSchema#",
-        });
+        }));
       });
 
       it('should parse an array with an object and a string', () => {
@@ -2267,10 +1475,10 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
           },
           'http://example.org/simple2.jsonld',
-        ])).resolves.toEqual({
+        ])).resolves.toEqual(new JsonLdContextNormalized({
           nickname: "http://xmlns.com/foaf/0.1/nick",
           npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
-        });
+        }));
       });
 
       it('should parse an array with an object and a string resolving to an array when cached', () => {
@@ -2282,10 +1490,10 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
           },
           'http://example.org/simplearray.jsonld',
-        ])).resolves.toEqual({
+        ])).resolves.toEqual(new JsonLdContextNormalized({
           nickname: "http://xmlns.com/foaf/0.1/nick",
           npmd: "https://linkedsoftwaredependencies.org/bundles/npm/",
-        });
+        }));
       });
 
       it('should parse and expand prefixes', () => {
@@ -2294,11 +1502,11 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           {
             myint: { "@id": "xsd:integer" },
           },
-        ])).resolves.toEqual({
+        ])).resolves.toEqual(new JsonLdContextNormalized({
           myint: { "@id": "http://www.w3.org/2001/XMLSchema#integer" },
           name: "http://xmlns.com/foaf/0.1/name",
           xsd: "http://www.w3.org/2001/XMLSchema#",
-        });
+        }));
       });
 
       it('should handle @base relative to each other', () => {
@@ -2309,9 +1517,9 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           {
             '@base': 'two/',
           },
-        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
+        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual(new JsonLdContextNormalized({
           '@base': 'http://doc.org/one/two/',
-        });
+        }));
       });
 
       it('should handle an array with @base in only first entry', () => {
@@ -2322,9 +1530,9 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           {
 
           },
-        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
+        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual(new JsonLdContextNormalized({
           '@base': 'http://doc.org/one/',
-        });
+        }));
       });
 
       it('should expand terms when a new conflicting @vocab is introduced', () => {
@@ -2336,12 +1544,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           {
             "@vocab": "http://vocab.1.org/",
           },
-        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
+        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual(new JsonLdContextNormalized({
           '@__baseDocument': true,
           "@base": "http://doc.org/",
           "@vocab": "http://vocab.1.org/",
           "bar": { "@id": "http://vocab.org/bar" },
-        });
+        }));
       });
 
       it('should expand terms with @id when a new conflicting @vocab is introduced', () => {
@@ -2353,12 +1561,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           {
             "@vocab": "http://vocab.1.org/",
           },
-        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
+        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual(new JsonLdContextNormalized({
           '@__baseDocument': true,
           "@base": "http://doc.org/",
           "@vocab": "http://vocab.1.org/",
           "bar": { "@id": "http://vocab.org/rel" },
-        });
+        }));
       });
 
       it('should expand string terms when a new conflicting @vocab is introduced', () => {
@@ -2370,114 +1578,114 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           {
             "@vocab": "http://vocab.1.org/",
           },
-        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual({
+        ], { baseIRI: 'http://doc.org/' })).resolves.toEqual(new JsonLdContextNormalized({
           '@__baseDocument': true,
           "@base": "http://doc.org/",
           "@vocab": "http://vocab.1.org/",
           "bar": "http://vocab.org/rel",
-        });
+        }));
       });
     });
 
     describe('for base and vocab', () => {
       it('should parse with a base IRI', () => {
         return expect(parser.parse('http://example.org/simple.jsonld', { baseIRI: 'http://myexample.org/' }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@__baseDocument': true,
             '@base': 'http://myexample.org/',
             'name': "http://xmlns.com/foaf/0.1/name",
             'xsd': "http://www.w3.org/2001/XMLSchema#",
-          });
+          }));
       });
 
       it('should parse with a base IRI and not override the inner @base', () => {
         return expect(parser.parse({ '@base': 'http://myotherexample.org/' }, { baseIRI: 'http://myexample.org/' }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@base': 'http://myotherexample.org/',
-          });
+          }));
       });
 
       it('should parse relative @vocab with parent context @vocab in active 1.1', () => {
         const parentContext = { '@vocab': 'http://example.org/' };
         return expect(parser.parse({ '@vocab': 'vocab/' }, { parentContext, processingMode: 1.1 }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@vocab': 'http://example.org/vocab/',
-          });
+          }));
       });
 
       it('should parse relative (empty) @vocab with parent context @vocab in active 1.1', () => {
         const parentContext = { '@vocab': 'http://example.org/' };
         return expect(parser.parse({ '@vocab': '' }, { parentContext, processingMode: 1.1 }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@vocab': 'http://example.org/',
-          });
+          }));
       });
 
       it('should not see null @vocab as relative @vocab', () => {
         const parentContext = { '@vocab': 'http://example.org/' };
         return expect(parser.parse({ '@vocab': null }, { parentContext, processingMode: 1.1 }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@vocab': null,
-          });
+          }));
       });
 
       it('should parse relative @vocab without parent context @vocab in active 1.1', () => {
         return expect(parser.parse({ '@vocab': 'vocab/' }, { parentContext: {}, processingMode: 1.1 }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@vocab': 'vocab/',
-          });
+          }));
       });
 
       it('should not parse relative @vocab with parent context @vocab in 1.0', () => {
         const parentContext = { '@vocab': 'http://example.org/' };
         return expect(parser.parse({ '@vocab': 'vocab/', '@version': 1.0 }, { parentContext }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@version': 1.0,
             '@vocab': 'vocab/',
-          });
+          }));
       });
 
       it('should not parse relative (empty) @vocab with parent context @vocab in 1.0', () => {
         const parentContext = { '@vocab': 'http://example.org/' };
         return expect(parser.parse({ '@vocab': '', '@version': 1.0 }, { parentContext }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@version': 1.0,
             '@vocab': '',
-          });
+          }));
       });
 
       it('should not parse relative @vocab without parent context @vocab in 1.0', () => {
         return expect(parser.parse({ '@vocab': 'vocab/', '@version': 1.0 }, { parentContext: {} }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@version': 1.0,
             '@vocab': 'vocab/',
-          });
+          }));
       });
 
       it('should parse relative @vocab with parent context @vocab in 1.1', () => {
         const parentContext = { '@vocab': 'http://example.org/' };
         return expect(parser.parse({ '@vocab': 'vocab/', '@version': 1.1 }, { parentContext }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@version': 1.1,
             '@vocab': 'http://example.org/vocab/',
-          });
+          }));
       });
 
       it('should parse relative (empty) @vocab with parent context @vocab in 1.1', () => {
         const parentContext = { '@vocab': 'http://example.org/' };
         return expect(parser.parse({ '@vocab': '', '@version': 1.1 }, { parentContext }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@version': 1.1,
             '@vocab': 'http://example.org/',
-          });
+          }));
       });
 
       it('should parse relative @vocab without parent context @vocab in 1.1', () => {
         return expect(parser.parse({ '@vocab': 'vocab/', '@version': 1.1 }, { parentContext: {} }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@version': 1.1,
             '@vocab': 'vocab/',
-          });
+          }));
       });
 
       it('should not expand @type in @container: @type', () => {
@@ -2496,7 +1704,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           '@vocab': 'http://example.org/ns/',
           'foo': { '@type': 'literal', '@container': '@set' },
         }, { parentContext: {} }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@base': 'http://example.org/base/',
             '@vocab': 'http://example.org/ns/',
             'foo': {
@@ -2504,7 +1712,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
               '@id': 'http://example.org/ns/foo',
               '@type': 'http://example.org/ns/literal',
             },
-          });
+          }));
       });
 
       it('should revert back to baseIRI from options when context is nullified', () => {
@@ -2512,10 +1720,10 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           baseIRI: 'http://myexample.org/',
           parentContext: { '@base': 'http://ignoreMe.com' },
         }))
-          .resolves.toEqual({
+          .resolves.toEqual(new JsonLdContextNormalized({
             '@__baseDocument': true,
             '@base': 'http://myexample.org/',
-          });
+          }));
       });
     });
 
@@ -2526,12 +1734,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@id': 'http://xmlns.com/foaf/0.1/name',
             '@protected': true,
           },
-        }, { processingMode: 1.1 })).resolves.toEqual({
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           name: {
             '@id': 'http://xmlns.com/foaf/0.1/name',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse a single keyword alias', () => {
@@ -2540,12 +1748,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@id': '@id',
             '@protected': true,
           },
-        }, { processingMode: 1.1 })).resolves.toEqual({
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           id: {
             '@id': '@id',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse context-level @protected', () => {
@@ -2553,7 +1761,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           '@protected': true,
           'knows': 'http://xmlns.com/foaf/0.1/knows',
           'name': 'http://xmlns.com/foaf/0.1/name',
-        }, { processingMode: 1.1 })).resolves.toEqual({
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           knows: {
             '@id': 'http://xmlns.com/foaf/0.1/knows',
             '@protected': true,
@@ -2562,7 +1770,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@id': 'http://xmlns.com/foaf/0.1/name',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse context-level @protected with local overrides', () => {
@@ -2575,7 +1783,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           'name': {
             '@id': 'http://xmlns.com/foaf/0.1/name',
           },
-        }, { processingMode: 1.1 })).resolves.toEqual({
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           knows: {
             '@id': 'http://xmlns.com/foaf/0.1/knows',
             '@protected': false,
@@ -2584,19 +1792,19 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@id': 'http://xmlns.com/foaf/0.1/name',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse context-level @protected with a keyword alias', () => {
         return expect(parser.parse({
           '@protected': true,
           'id': '@id',
-        }, { processingMode: 1.1 })).resolves.toEqual({
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           id: {
             '@id': '@id',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should error on a protected term with override', () => {
@@ -2627,9 +1835,9 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           {
             name: 'http://schema.org/name',
           },
-        ], { processingMode: 1.1, ignoreProtection: true })).resolves.toEqual({
+        ], { processingMode: 1.1, ignoreProtection: true })).resolves.toEqual(new JsonLdContextNormalized({
           name: 'http://schema.org/name',
-        });
+        }));
       });
 
       it('should not error on a protected term with nullification if ignoreProtection is true', () => {
@@ -2641,7 +1849,8 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             },
           },
           null,
-        ], { processingMode: 1.1, ignoreProtection: true })).resolves.toEqual({});
+        ], { processingMode: 1.1, ignoreProtection: true })).resolves
+          .toEqual(new JsonLdContextNormalized({}));
       });
 
       it('should error on a protected term with nullification if ignoreProtection is false', () => {
@@ -2666,7 +1875,8 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             },
           },
           null,
-        ], { processingMode: 1.1, ignoreProtection: true })).resolves.toEqual({});
+        ], { processingMode: 1.1, ignoreProtection: true })).resolves
+          .toEqual(new JsonLdContextNormalized({}));
       });
 
       it('should error on a protected keyword alias with override', () => {
@@ -2696,12 +1906,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           {
             name: 'http://xmlns.com/foaf/0.1/name',
           },
-        ], { processingMode: 1.1 })).resolves.toEqual({
+        ], { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           name: {
             '@id': 'http://xmlns.com/foaf/0.1/name',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse a protected term with identical (object-based) override (mod @protected)', () => {
@@ -2717,12 +1927,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
               '@id': 'http://xmlns.com/foaf/0.1/name',
             },
           },
-        ], { processingMode: 1.1 })).resolves.toEqual({
+        ], { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           name: {
             '@id': 'http://xmlns.com/foaf/0.1/name',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse a protected term with identical (object-based) override', () => {
@@ -2739,12 +1949,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
               '@protected': true,
             },
           },
-        ], { processingMode: 1.1 })).resolves.toEqual({
+        ], { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           name: {
             '@id': 'http://xmlns.com/foaf/0.1/name',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse a protected keyword alias with identical (object-based) override (mod @protected)', () => {
@@ -2760,12 +1970,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
               '@id': '@id',
             },
           },
-        ], { processingMode: 1.1 })).resolves.toEqual({
+        ], { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           id: {
             '@id': '@id',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse a protected keyword alias with identical (object-based) override', () => {
@@ -2782,12 +1992,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
               '@protected': true,
             },
           },
-        ], { processingMode: 1.1 })).resolves.toEqual({
+        ], { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           id: {
             '@id': '@id',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse a term that becomes protected later on', () => {
@@ -2801,12 +2011,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
               '@protected': true,
             },
           },
-        ], { processingMode: 1.1 })).resolves.toEqual({
+        ], { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           name: {
             '@id': 'http://xmlns.com/foaf/0.1/name',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse a global protected keyword alias with identical (object-based) override (mod @protected)',
@@ -2819,12 +2029,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             {
               id: '@id',
             },
-          ], { processingMode: 1.1 })).resolves.toEqual({
+          ], { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
             id: {
               '@id': '@id',
               '@protected': true,
             },
-          });
+          }));
         });
 
       it('should parse a global protected keyword alias with identical (object-based) override', () => {
@@ -2837,12 +2047,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@protected': true,
             'id': '@id',
           },
-        ], { processingMode: 1.1 })).resolves.toEqual({
+        ], { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           id: {
             '@id': '@id',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse a globally protected string term with identical override', () => {
@@ -2855,12 +2065,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@protected': true,
             'name': 'http://xmlns.com/foaf/0.1/name',
           },
-        ], { processingMode: 1.1 })).resolves.toEqual({
+        ], { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           name: {
             '@id': 'http://xmlns.com/foaf/0.1/name',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse a globally protected string term ending in gen-delim with identical override', () => {
@@ -2873,13 +2083,13 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@protected': true,
             'foo': 'http://example/foo#',
           },
-        ], { processingMode: 1.1 })).resolves.toEqual({
+        ], { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           foo: {
             '@id': 'http://example/foo#',
             '@prefix': true,
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse a globally protected string term ending in non-gen-delim with identical override', () => {
@@ -2892,12 +2102,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@protected': true,
             'foo': 'http://example/foo',
           },
-        ], { processingMode: 1.1 })).resolves.toEqual({
+        ], { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           foo: {
             '@id': 'http://example/foo',
             '@protected': true,
           },
-        });
+        }));
       });
 
       it('should parse protected terms with a scoped context', () => {
@@ -2924,7 +2134,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
               "@id": "http://example/bar",
             },
           },
-        ], { processingMode: 1.1 })).resolves.toEqual({
+        ], { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           bar: {
             "@context": {
               "bar-1": {
@@ -2934,7 +2144,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             "@id": "http://example/bar",
             "@protected": true,
           },
-        });
+        }));
       });
 
       it('should parse protected terms with a scoped context and document baseIRI', () => {
@@ -2961,7 +2171,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
               "@id": "http://example/bar",
             },
           },
-        ], { processingMode: 1.1, baseIRI: 'http://base.org/' })).resolves.toEqual({
+        ], { processingMode: 1.1, baseIRI: 'http://base.org/' })).resolves.toEqual(new JsonLdContextNormalized({
           '@__baseDocument': true,
           "@base": "http://base.org/",
           "bar": {
@@ -2975,14 +2185,14 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             "@id": "http://example/bar",
             "@protected": true,
           },
-        });
+        }));
       });
     });
 
     it('should parse a complex context', () => {
       // tslint:disable:object-literal-sort-keys
       // tslint:disable:max-line-length
-      return expect(parser.parse('http://example.org/complex.jsonld')).resolves.toEqual({
+      return expect(parser.parse('http://example.org/complex.jsonld')).resolves.toEqual(new JsonLdContextNormalized({
         "@vocab": "unknown://",
         "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
         "xsd": "http://www.w3.org/2001/XMLSchema#",
@@ -3117,24 +2327,9 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
         "mediatorSparqlSerialize": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorSparqlSerialize",
         "mediatorSparqlSerializeMediaTypeCombiner": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorSparqlSerializeMediaTypeCombiner",
         "mediatorContextPreprocess": "https://linkedsoftwaredependencies.org/bundles/npm/@comunica/actor-init-sparql/mediatorContextPreprocess",
-      });
+      }));
       // tslint:enable:object-literal-sort-keys
       // tslint:enable:max-line-length
-    });
-
-    describe('for parsing null', () => {
-      it('should parse to an empty context', () => {
-        return expect(parser.parse(null)).resolves.toEqual({});
-      });
-
-      it('should parse to an empty context, even when a parent context is given', () => {
-        return expect(parser.parse(null, { parentContext: { a: 'b' } })).resolves.toEqual({});
-      });
-
-      it('should parse to an empty context, but set @base if needed', () => {
-        return expect(parser.parse(null, { baseIRI: 'http://base.org/' })).resolves
-          .toEqual({ '@__baseDocument': true, '@base': 'http://base.org/' });
-      });
     });
 
     describe('for parsing invalid values', () => {
@@ -3161,7 +2356,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@context': 'http://example.org/simple.jsonld',
             '@id': 'http://ex.org/prop',
           },
-        }, { processingMode: 1.1 })).resolves.toEqual({
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           prop: {
             '@context': {
               name: "http://xmlns.com/foaf/0.1/name",
@@ -3169,7 +2364,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             },
             '@id': 'http://ex.org/prop',
           },
-        });
+        }));
       });
 
       it('should preload remote URLs in an array', () => {
@@ -3181,7 +2376,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             ],
             '@id': 'http://ex.org/prop',
           },
-        }, { processingMode: 1.1 })).resolves.toEqual({
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           prop: {
             '@context': [
               {
@@ -3194,7 +2389,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             ],
             '@id': 'http://ex.org/prop',
           },
-        });
+        }));
       });
 
       it('should preload a combination of remote URLs and objects in an array', () => {
@@ -3209,7 +2404,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             ],
             '@id': 'http://ex.org/prop',
           },
-        }, { processingMode: 1.1 })).resolves.toEqual({
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           prop: {
             '@context': [
               {
@@ -3225,7 +2420,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             ],
             '@id': 'http://ex.org/prop',
           },
-        });
+        }));
       });
 
       it('should not expand prefixes in scoped contexts', () => {
@@ -3237,7 +2432,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             },
             '@id': 'http://ex.org/prop',
           },
-        }, { processingMode: 1.1 })).resolves.toEqual({
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           prop: {
             '@context': {
               prefix: 'http://ex.org/',
@@ -3245,7 +2440,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             },
             '@id': 'http://ex.org/prop',
           },
-        });
+        }));
       });
 
       it('should not modify null inner contexts', () => {
@@ -3254,12 +2449,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@context': null,
             '@id': 'http://ex.org/prop',
           },
-        }, { processingMode: 1.1 })).resolves.toEqual({
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           prop: {
             '@context': null,
             '@id': 'http://ex.org/prop',
           },
-        });
+        }));
       });
 
       it('should error on invalid scoped contexts', () => {
@@ -3296,7 +2491,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             },
             '@id': 'ex:t1',
           },
-        }, {processingMode: 1.1})).resolves.toEqual({
+        }, {processingMode: 1.1})).resolves.toEqual(new JsonLdContextNormalized({
           '@version': 1.1,
           't1': {
             '@context': {
@@ -3309,7 +2504,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             },
             '@id': 'ex:t1',
           },
-        });
+        }));
       });
 
       it('should not error on valid scoped contexts that are invalid on their own', () => {
@@ -3322,7 +2517,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
               },
             },
           },
-        }, { processingMode: 1.1 })).resolves.toEqual({
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           '@vocab': 'http://example/',
           'foo': {
             '@context': {
@@ -3332,7 +2527,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             },
             '@id': 'http://example/foo',
           },
-        });
+        }));
       });
 
       it('should not error on valid scoped contexts with containers that are invalid on their own', () => {
@@ -3346,7 +2541,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           'typemap': {
             '@container': '@type',
           },
-        }, { processingMode: 1.1 })).resolves.toEqual({
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           '@vocab': 'http://example/',
           'foo': {
             '@context': {
@@ -3360,7 +2555,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             },
             '@id': 'http://example/typemap',
           },
-        });
+        }));
       });
 
       it('should not error on valid scoped contexts in arrays that are invalid on their own', () => {
@@ -3373,7 +2568,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           "@protected": true,
           "@version": 1.1,
           "Child": {"@context": {"@protected": true, "foo": {"@type": "@id"}}},
-        }], { processingMode: 1.1, baseIRI: 'http://base.org/' })).resolves.toEqual({
+        }], { processingMode: 1.1, baseIRI: 'http://base.org/' })).resolves.toEqual(new JsonLdContextNormalized({
           '@__baseDocument': true,
           "@base": "http://base.org/",
           "@version": 1.1,
@@ -3396,7 +2591,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             "@id": "http://example.com/Parent",
             "@protected": true,
           },
-        });
+        }));
       });
 
       it('should expand keys without @id based on the correct @vocab', () => {
@@ -3409,7 +2604,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@id': 'http://ex.org/Foo',
           },
           'prop': {},
-        }, { processingMode: 1.1 })).resolves.toEqual({
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
           '@vocab': 'http://vocab.org/',
           'Foo': {
             '@context': {
@@ -3418,7 +2613,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@id': 'http://ex.org/Foo',
           },
           'prop': { '@id': 'http://vocab.org/prop' },
-        });
+        }));
       });
     });
 
@@ -3428,10 +2623,10 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           '@context': {
             '@import': 'http://example.org/simple.jsonld',
           },
-        })).resolves.toEqual({
+        })).resolves.toEqual(new JsonLdContextNormalized({
           name: "http://xmlns.com/foaf/0.1/name",
           xsd: "http://www.w3.org/2001/XMLSchema#",
-        });
+        }));
       });
 
       it('should fail to load a non-existing context', () => {
