@@ -1019,7 +1019,8 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
         expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@reverse': 'abc' } },
           parseDefaults))
           .toThrow(
-            new Error('Found non-matching @id and @reverse term values in \'term\':\'abc\' and \'http://ex.org/\''));
+            new ErrorCoded('Found non-matching @id and @reverse term values in \'term\':\'abc\' and \'http://ex.org/\'',
+              ERROR_CODES.INVALID_REVERSE_PROPERTY));
       });
 
       it('should not error on an @container: {}', async () => {
@@ -1222,6 +1223,31 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
         expect(() => parser.validate(<any> { '@__propagateFallback': { '@id': '@id', '@type': '_:bnode' } },
           parseDefaults))
           .not.toThrow();
+      });
+
+      it('should error on @nest: @id in expanded term definition', async () => {
+        expect(() => parser.validate(<any> { key: { '@id': 'ex:id', '@nest': '@id' } }, parseDefaults))
+          .toThrow(new ErrorCoded(
+            'Found an invalid term @nest value in: \'key\': \'{"@id":"ex:id","@nest":"@id"}\'',
+            ERROR_CODES.INVALID_NEST_VALUE));
+      });
+
+      it('should not error on @nest: @nest in expanded term definition', async () => {
+        expect(() => parser.validate(<any> { key: { '@id': 'ex:id', '@nest': '@nest' } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on @nest: term in expanded term definition', async () => {
+        expect(() => parser.validate(<any> { key: { '@id': 'ex:id', '@nest': 'term' } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on @nest in @reverse', async () => {
+        expect(() => parser.validate(<any> { key: { '@id': 'ex:id', '@reverse': true, '@nest': '@id' } },
+          parseDefaults))
+          .toThrow(new ErrorCoded(
+            '@nest is not allowed in the reverse property \'key\'',
+            ERROR_CODES.INVALID_REVERSE_PROPERTY));
       });
     });
 

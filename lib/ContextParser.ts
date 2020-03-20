@@ -405,8 +405,12 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
               break;
             case '@reverse':
               if (typeof objectValue === 'string' && value['@id'] && value['@id'] !== objectValue) {
-                throw new Error(`Found non-matching @id and @reverse term values in '${key}':\
-'${objectValue}' and '${value['@id']}'`);
+                throw new ErrorCoded(`Found non-matching @id and @reverse term values in '${key}':\
+'${objectValue}' and '${value['@id']}'`, ERROR_CODES.INVALID_REVERSE_PROPERTY);
+              }
+              if ('@nest' in value) {
+                throw new ErrorCoded(`@nest is not allowed in the reverse property '${key}'`,
+                  ERROR_CODES.INVALID_REVERSE_PROPERTY);
               }
               break;
             case '@container':
@@ -442,6 +446,11 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
                   key}': '${JSON.stringify(value)}'`, ERROR_CODES.INVALID_TERM_DEFINITION);
               }
               break;
+            case '@nest':
+              if (Util.isPotentialKeyword(objectValue) && objectValue !== '@nest') {
+                throw new ErrorCoded(`Found an invalid term @nest value in: '${key}': '${JSON.stringify(value)}'`,
+                  ERROR_CODES.INVALID_NEST_VALUE);
+              }
             }
           }
           break;
