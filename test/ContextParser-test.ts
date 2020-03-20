@@ -1445,7 +1445,9 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
       });
 
       it('should fail to parse an invalid source', () => {
-        return expect(parser.parse('http://example.org/invalid.jsonld')).rejects.toBeTruthy();
+        return expect(parser.parse('http://example.org/invalid.jsonld')).rejects.toThrow(new ErrorCoded(
+          'Failed to load remote context http://example.org/invalid.jsonld: undefined',
+          ERROR_CODES.LOADING_REMOTE_CONTEXT_FAILED));
       });
 
       it('should error on a cyclic context', () => {
@@ -2766,7 +2768,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           '@context': {
             '@import': 'http://example.org/404.jsonld',
           },
-        })).rejects.toThrow(new ErrorCoded('No valid context was found at http://example.org/404.jsonld: undefined',
+        })).rejects.toThrow(new ErrorCoded('Failed to load remote context http://example.org/404.jsonld: undefined',
           ERROR_CODES.INVALID_REMOTE_CONTEXT));
       });
 

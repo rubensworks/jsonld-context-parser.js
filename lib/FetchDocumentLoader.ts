@@ -12,7 +12,7 @@ export class FetchDocumentLoader implements IDocumentLoader {
     if (response.ok) {
       return (await response.json());
     } else {
-      throw new Error(`No valid context was found at ${url}: ${response.statusText}`);
+      throw new Error(response.statusText || `${response.status}`);
     }
   }
 

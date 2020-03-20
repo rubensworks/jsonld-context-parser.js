@@ -735,7 +735,12 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
     if (cached) {
       return typeof cached === 'string' ? cached : Array.isArray(cached) ? cached.slice() : {... cached};
     }
-    return this.documentCache[url] = (await this.documentLoader.load(url))['@context'];
+    try {
+      return this.documentCache[url] = (await this.documentLoader.load(url))['@context'];
+    } catch (e) {
+      throw new ErrorCoded(`Failed to load remote context ${url}: ${e.message}`,
+        ERROR_CODES.LOADING_REMOTE_CONTEXT_FAILED);
+    }
   }
 
   /**
