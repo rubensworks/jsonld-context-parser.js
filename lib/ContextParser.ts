@@ -360,6 +360,14 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
           }
           break;
         }
+
+        // Don't allow keywords to be overridden
+        if (Util.isValidKeyword(key) && Util.isValidKeyword(Util.getContextValueId(value))) {
+          throw new ErrorCoded(`Illegal keyword alias in term value, found: '${key}': '${Util
+              .getContextValueId(value)}'`,
+            ERROR_CODES.KEYWORD_REDEFINITION);
+        }
+
         continue;
       }
 

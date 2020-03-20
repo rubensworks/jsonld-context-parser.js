@@ -923,6 +923,15 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           .not.toThrow();
       });
 
+      it('should error when aliasing a keyword to another keyword', async () => {
+        expect(() => parser.validate(<any> { '@type': { '@id': '@id' } }, parseDefaults))
+          .toThrow(new ErrorCoded('Illegal keyword alias in term value, found: \'@type\': \'@id\'',
+            ERROR_CODES.KEYWORD_REDEFINITION));
+        expect(() => parser.validate(<any> { '@container': { '@id': '@id' } }, parseDefaults))
+          .toThrow(new ErrorCoded('Illegal keyword alias in term value, found: \'@container\': \'@id\'',
+            ERROR_CODES.KEYWORD_REDEFINITION));
+      });
+
       it('should error on term with @id: @container', async () => {
         expect(() => parser.validate(<any> { term: { '@id': '@container' } }, parseDefaults))
           .toThrow(new Error('Illegal keyword alias in term value, found: \'term\': \'{"@id":"@container"}\''));
