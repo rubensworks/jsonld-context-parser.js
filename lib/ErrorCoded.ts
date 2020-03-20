@@ -73,4 +73,5 @@ export enum ERROR_CODES {
   PROTECTED_TERM_REDEFINITION = 'protected term redefinition',
   CONTEXT_OVERFLOW = 'context overflow',
   INVALID_BASE_DIRECTION = 'invalid base direction',
+  RECURSIVE_CONTEXT_INCLUSION = 'recursive context inclusion',
 }

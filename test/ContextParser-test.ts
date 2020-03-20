@@ -1411,6 +1411,53 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
       it('should fail to parse an invalid source', () => {
         return expect(parser.parse('http://example.org/invalid.jsonld')).rejects.toBeTruthy();
       });
+
+      it('should error on a cyclic context', () => {
+        return expect(parser.parse('http://example.org/remote_cyclic.jsonld')).rejects.toThrow(
+          new ErrorCoded('Detected a cyclic context inclusion of http://example.org/remote_cyclic.jsonld',
+            ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION));
+      });
+
+      it('should error on an indirect cyclic context', () => {
+        return expect(parser.parse('http://example.org/remote_cyclic_indirect_1.jsonld')).rejects.toThrow(
+          new ErrorCoded('Detected a cyclic context inclusion of http://example.org/remote_cyclic_indirect_1.jsonld',
+            ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION));
+      });
+
+      it('should parse a cyclic context via a scoped context', () => {
+        return expect(parser.parse('http://example.org/remote_cyclic_scoped.jsonld'))
+          .resolves.toEqual(new JsonLdContextNormalized({
+            prop: {
+              '@context': 'http://example.org/remote_cyclic_scoped.jsonld',
+              '@id': 'ex:prop',
+            },
+          }));
+      });
+
+      it('should parse an indirect cyclic context via a scoped context', () => {
+        return expect(parser.parse('http://example.org/remote_cyclic_scoped_indirect_1.jsonld'))
+          .resolves.toEqual(new JsonLdContextNormalized({
+            prop: {
+              '@context': {
+                prop: {
+                  '@context': 'http://example.org/remote_cyclic_scoped_indirect_1.jsonld',
+                  '@id': 'ex:prop',
+                },
+              },
+              '@id': 'ex:prop',
+            },
+          }));
+      });
+
+      it('should parse another indirect cyclic context via a scoped context', () => {
+        return expect(parser.parse('http://example.org/remote_cyclic_scoped2_indirect_1.jsonld'))
+          .resolves.toEqual(new JsonLdContextNormalized({
+            prop: {
+              '@context': 'http://example.org/remote_cyclic_scoped2_indirect_1.jsonld',
+              '@id': 'ex:prop',
+            },
+          }));
+      });
     });
 
     describe('for parsing null', () => {
@@ -1584,6 +1631,43 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           "@vocab": "http://vocab.1.org/",
           "bar": "http://vocab.org/rel",
         }));
+      });
+
+      it('should error on a cyclic context', () => {
+        return expect(parser.parse(['http://example.org/remote_cyclic.jsonld'])).rejects.toThrow(
+          new ErrorCoded('Detected a cyclic context inclusion of http://example.org/remote_cyclic.jsonld',
+            ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION));
+      });
+
+      it('should error on an indirect cyclic context', () => {
+        return expect(parser.parse(['http://example.org/remote_cyclic_indirect_1.jsonld'])).rejects.toThrow(
+          new ErrorCoded('Detected a cyclic context inclusion of http://example.org/remote_cyclic_indirect_1.jsonld',
+            ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION));
+      });
+
+      it('should parse a cyclic context via a scoped context', () => {
+        return expect(parser.parse(['http://example.org/remote_cyclic_scoped.jsonld']))
+          .resolves.toEqual(new JsonLdContextNormalized({
+            prop: {
+              '@context': 'http://example.org/remote_cyclic_scoped.jsonld',
+              '@id': 'ex:prop',
+            },
+          }));
+      });
+
+      it('should parse an indirect cyclic context via a scoped context', () => {
+        return expect(parser.parse(['http://example.org/remote_cyclic_scoped_indirect_1.jsonld']))
+          .resolves.toEqual(new JsonLdContextNormalized({
+            prop: {
+              '@context': {
+                prop: {
+                  '@context': 'http://example.org/remote_cyclic_scoped_indirect_1.jsonld',
+                  '@id': 'ex:prop',
+                },
+              },
+              '@id': 'ex:prop',
+            },
+          }));
       });
     });
 

@@ -13,12 +13,12 @@ const canonicalizeJson = require('canonicalize');
 /**
  * Parses JSON-LD contexts.
  */
-export class ContextParser implements IDocumentLoader {
+export class ContextParser {
 
   public static readonly DEFAULT_PROCESSING_MODE: number = 1.1;
 
   private readonly documentLoader: IDocumentLoader;
-  private readonly documentCache: {[url: string]: any};
+  private readonly documentCache: {[url: string]: JsonLdContext};
   private readonly validateContext: boolean;
   private readonly expandContentTypeToBase: boolean;
 
@@ -461,6 +461,11 @@ must be one of ${Util.CONTAINERS.join(', ')}`);
    */
   public applyBaseEntry(context: IJsonLdContextNormalizedRaw, options: IParseOptions,
                         inheritFromParent: boolean): IJsonLdContextNormalizedRaw {
+    // In some special cases, this can be a string, so ignore those.
+    if (typeof context === 'string') {
+      return context;
+    }
+
     // Give priority to @base in the parent context
     if (inheritFromParent && !('@base' in context) && options.parentContext && '@base' in options.parentContext) {
       context['@base'] = options.parentContext['@base'];
@@ -522,14 +527,16 @@ must be one of ${Util.CONTAINERS.join(', ')}`);
               const parentContext = {...context};
               parentContext[key] = {...parentContext[key]};
               delete parentContext[key]['@context'];
-              await this.parse(value['@context'], {...options, parentContext, ignoreProtection: true});
+              await this.parse(value['@context'],
+                { ...options, parentContext, ignoreProtection: true, ignoreRemoteScopedContexts: true });
             } catch (e) {
               throw new ErrorCoded(e.message, ERROR_CODES.INVALID_SCOPED_CONTEXT);
             }
           }
 
           value['@context'] = (await this.parse(value['@context'],
-            { ...options, minimalProcessing: true, parentContext: context })).getContextRaw();
+            { ...options, minimalProcessing: true, ignoreRemoteScopedContexts: true, parentContext: context }))
+            .getContextRaw();
         }
       }
     }
@@ -554,8 +561,10 @@ must be one of ${Util.CONTAINERS.join(', ')}`);
       normalizeLanguageTags,
       ignoreProtection,
       minimalProcessing,
+      ignoreRemoteScopedContexts,
     } = options;
     let parentContext = parentContextInitial;
+    const remoteContexts = options.remoteContexts || {};
 
     if (context === null || context === undefined) {
       // Don't allow context nullification and there are protected terms
@@ -568,8 +577,21 @@ must be one of ${Util.CONTAINERS.join(', ')}`);
       return new JsonLdContextNormalized(this.applyBaseEntry({}, options, false));
     } else if (typeof context === 'string') {
       const contextIri = this.normalizeContextIri(context, baseIRI);
+      if (contextIri in remoteContexts) {
+        if (ignoreRemoteScopedContexts) {
+          return new JsonLdContextNormalized(<any> contextIri);
+        } else {
+          throw new ErrorCoded('Detected a cyclic context inclusion of ' + contextIri,
+            ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION);
+        }
+      }
       const parsedStringContext = await this.parse(await this.load(contextIri),
-        { ...options, external: true, baseIRI: contextIri });
+        {
+          ...options,
+          baseIRI: contextIri,
+          external: true,
+          remoteContexts: { ...remoteContexts, [contextIri]: true },
+        });
       this.applyBaseEntry(parsedStringContext.getContextRaw(), options, true);
       return parsedStringContext;
     } else if (Array.isArray(context)) {
@@ -579,6 +601,14 @@ must be one of ${Util.CONTAINERS.join(', ')}`);
         if (typeof subContext === 'string') {
           const contextIri = this.normalizeContextIri(subContext, baseIRI);
           contextIris[i] = contextIri;
+          if (contextIri in remoteContexts) {
+            if (ignoreRemoteScopedContexts) {
+              return <IJsonLdContextNormalizedRaw> <any> contextIri;
+            } else {
+              throw new ErrorCoded('Detected a cyclic context inclusion of ' + contextIri,
+                ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION);
+            }
+          }
           return this.load(contextIri);
         } else {
           return subContext;
@@ -596,6 +626,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`);
             baseIRI: contextIris[i] || options.baseIRI,
             external: !!contextIris[i] || options.external,
             parentContext: accContext.getContextRaw(),
+            remoteContexts: contextIris[i] ? { ...remoteContexts, [contextIris[i]]: true } : remoteContexts,
           })),
         Promise.resolve(new JsonLdContextNormalized(parentContext || {})));
 
@@ -691,10 +722,10 @@ must be one of ${Util.CONTAINERS.join(', ')}`);
    * @param url An URL.
    * @return A promise resolving to a raw JSON-LD context.
    */
-  public async load(url: string): Promise<IJsonLdContextNormalizedRaw> {
+  public async load(url: string): Promise<JsonLdContext> {
     const cached = this.documentCache[url];
     if (cached) {
-      return Array.isArray(cached) ? cached.slice() : {... cached};
+      return typeof cached === 'string' ? cached : Array.isArray(cached) ? cached.slice() : {... cached};
     }
     return this.documentCache[url] = (await this.documentLoader.load(url))['@context'];
   }
@@ -778,6 +809,18 @@ export interface IParseOptions {
    * This option is used internally when handling type-scoped and property-scoped contexts.
    */
   minimalProcessing?: boolean;
+  /**
+   * If true, a remote context that will be looked up,
+   * and is already contained in `remoteContexts`,
+   * will not emit an error but will produce an empty context.
+   */
+  ignoreRemoteScopedContexts?: boolean;
+  /**
+   * A hash containing all remote contexts that have been looked up before.
+   *
+   * This is used to avoid stack overflows on cyclic context references.
+   */
+  remoteContexts?: {[url: string]: boolean};
 }
 
 export interface IExpandOptions {
