@@ -1148,8 +1148,9 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
         expect(() => parser.validate(
           <any> { term: { '@id': 'http://ex.org/', '@container': { '@unknown': true } } },
           parseDefaults))
-          .toThrow(new Error('Invalid term @container for \'term\' (\'@unknown\'), ' +
-            'must be one of @list, @set, @index, @language, @graph, @id, @type'));
+          .toThrow(new ErrorCoded('Invalid term @container for \'term\' (\'@unknown\'), ' +
+            'must be one of @list, @set, @index, @language, @graph, @id, @type',
+            ERROR_CODES.INVALID_CONTAINER_MAPPING));
       });
 
       it('should error on a term with @container: @list and @reverse', async () => {
@@ -1454,6 +1455,18 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           .resolves.toEqual(new JsonLdContextNormalized({
             prop: {
               '@context': 'http://example.org/remote_cyclic_scoped2_indirect_1.jsonld',
+              '@id': 'ex:prop',
+            },
+          }));
+      });
+
+      it('should parse a cyclic context via a scoped context in an array', () => {
+        return expect(parser.parse('http://example.org/remote_cyclic_scoped_array.jsonld'))
+          .resolves.toEqual(new JsonLdContextNormalized({
+            prop: {
+              '@context': [
+                'http://example.org/remote_cyclic_scoped_array.jsonld',
+              ],
               '@id': 'ex:prop',
             },
           }));

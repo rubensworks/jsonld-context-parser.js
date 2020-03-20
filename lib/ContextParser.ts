@@ -416,8 +416,8 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
                     key}'`);
                 }
                 if (Util.CONTAINERS.indexOf(containerValue) < 0) {
-                  throw new Error(`Invalid term @container for '${key}' ('${containerValue}'), \
-must be one of ${Util.CONTAINERS.join(', ')}`);
+                  throw new ErrorCoded(`Invalid term @container for '${key}' ('${containerValue}'), \
+must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAPPING);
                 }
               }
               break;
@@ -561,7 +561,6 @@ must be one of ${Util.CONTAINERS.join(', ')}`);
       normalizeLanguageTags,
       ignoreProtection,
       minimalProcessing,
-      ignoreRemoteScopedContexts,
     } = options;
     let parentContext = parentContextInitial;
     const remoteContexts = options.remoteContexts || {};
@@ -577,13 +576,9 @@ must be one of ${Util.CONTAINERS.join(', ')}`);
       return new JsonLdContextNormalized(this.applyBaseEntry({}, options, false));
     } else if (typeof context === 'string') {
       const contextIri = this.normalizeContextIri(context, baseIRI);
-      if (contextIri in remoteContexts) {
-        if (ignoreRemoteScopedContexts) {
-          return new JsonLdContextNormalized(<any> contextIri);
-        } else {
-          throw new ErrorCoded('Detected a cyclic context inclusion of ' + contextIri,
-            ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION);
-        }
+      const overriddenLoad = this.getOverriddenLoad(contextIri, options);
+      if (overriddenLoad) {
+        return new JsonLdContextNormalized(overriddenLoad);
       }
       const parsedStringContext = await this.parse(await this.load(contextIri),
         {
@@ -601,13 +596,9 @@ must be one of ${Util.CONTAINERS.join(', ')}`);
         if (typeof subContext === 'string') {
           const contextIri = this.normalizeContextIri(subContext, baseIRI);
           contextIris[i] = contextIri;
-          if (contextIri in remoteContexts) {
-            if (ignoreRemoteScopedContexts) {
-              return <IJsonLdContextNormalizedRaw> <any> contextIri;
-            } else {
-              throw new ErrorCoded('Detected a cyclic context inclusion of ' + contextIri,
-                ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION);
-            }
+          const overriddenLoad = this.getOverriddenLoad(contextIri, options);
+          if (overriddenLoad) {
+            return overriddenLoad;
           }
           return this.load(contextIri);
         } else {
@@ -728,6 +719,27 @@ must be one of ${Util.CONTAINERS.join(', ')}`);
       return typeof cached === 'string' ? cached : Array.isArray(cached) ? cached.slice() : {... cached};
     }
     return this.documentCache[url] = (await this.documentLoader.load(url))['@context'];
+  }
+
+  /**
+   * Override the given context that may be loaded.
+   *
+   * This will check whether or not the url is recursively being loaded.
+   * @param url An URL.
+   * @param options Parsing options.
+   * @return An overridden context, or null.
+   *         Optionally an error can be thrown if a cyclic context is detected.
+   */
+  public getOverriddenLoad(url: string, options: IParseOptions): IJsonLdContextNormalizedRaw | null {
+    if (url in (options.remoteContexts || {})) {
+      if (options.ignoreRemoteScopedContexts) {
+        return <IJsonLdContextNormalizedRaw> <any> url;
+      } else {
+        throw new ErrorCoded('Detected a cyclic context inclusion of ' + url,
+          ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION);
+      }
+    }
+    return null;
   }
 
   /**
