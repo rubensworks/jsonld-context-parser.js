@@ -168,7 +168,8 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
                 changed = true;
               }
             }
-            if (type && type !== '@vocab' && (!value['@container'] || !(<any> value['@container'])['@type'])) {
+            if (type && typeof type === 'string' && type !== '@vocab'
+              && (!value['@container'] || !(<any> value['@container'])['@type'])) {
               // First check @vocab, then fallback to @base
               contextRaw[key]['@type'] = context.expandTerm(type, true);
               if (expandContentTypeToBase && type === contextRaw[key]['@type']) {
