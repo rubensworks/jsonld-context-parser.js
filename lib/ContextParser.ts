@@ -328,7 +328,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
         switch (key.substr(1)) {
         case 'vocab':
           if (value !== null && valueType !== 'string') {
-            throw new Error(`Found an invalid @vocab IRI: ${value}`);
+            throw new ErrorCoded(`Found an invalid @vocab IRI: ${value}`, ERROR_CODES.INVALID_VOCAB_MAPPING);
           }
           break;
         case 'base':
@@ -707,7 +707,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
       // In JSON-LD 1.1, @vocab can be relative to @vocab in the parent context.
       if ((newContext && newContext['@version'] || processingMode || ContextParser.DEFAULT_PROCESSING_MODE) >= 1.1
-        && (context['@vocab'] || context['@vocab'] === '')
+        && ((context['@vocab'] && typeof context['@vocab'] === 'string') || context['@vocab'] === '')
         && context['@vocab'].indexOf(':') < 0 && parentContext && '@vocab' in parentContext) {
         newContext['@vocab'] = parentContext['@vocab'] + context['@vocab'];
       }

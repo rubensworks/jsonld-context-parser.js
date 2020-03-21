@@ -830,7 +830,8 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should error on an invalid @vocab', async () => {
         expect(() => parser.validate(<any> { '@vocab': true }, parseDefaults))
-          .toThrow(new Error('Found an invalid @vocab IRI: true'));
+          .toThrow(new ErrorCoded('Found an invalid @vocab IRI: true',
+            ERROR_CODES.INVALID_VOCAB_MAPPING));
       });
 
       it('should error on an invalid @base', async () => {
