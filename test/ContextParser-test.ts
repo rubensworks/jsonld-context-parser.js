@@ -1225,7 +1225,8 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should error on a term set to a number', async () => {
         expect(() => parser.validate(<any> { term: 10 }, parseDefaults))
-          .toThrow(new Error('Found an invalid term value: \'term\': \'10\''));
+          .toThrow(new ErrorCoded('Found an invalid term value: \'term\': \'10\'',
+            ERROR_CODES.INVALID_TERM_DEFINITION));
       });
 
       it('should ignore reserved internal keywords', async () => {

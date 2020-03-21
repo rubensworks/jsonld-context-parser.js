@@ -472,7 +472,8 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
           }
           break;
         default:
-          throw new Error(`Found an invalid term value: '${key}': '${value}'`);
+          throw new ErrorCoded(`Found an invalid term value: '${key}': '${value}'`,
+            ERROR_CODES.INVALID_TERM_DEFINITION);
         }
       }
     }
