@@ -438,6 +438,13 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
               }
               break;
             case '@container':
+              if (processingMode === 1.0) {
+                if (Object.keys(objectValue).length > 1
+                  || Util.CONTAINERS_1_0.indexOf(Object.keys(objectValue)[0]) < 0) {
+                  throw new ErrorCoded(`Invalid term @container for '${key}' ('${Object.keys(objectValue)}') in 1.0, \
+must be only one of ${Util.CONTAINERS_1_0.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAPPING);
+                }
+              }
               for (const containerValue of Object.keys(objectValue)) {
                 if (containerValue === '@list' && value['@reverse']) {
                   throw new ErrorCoded(`Term value can not be @container: @list and @reverse at the same time on '${

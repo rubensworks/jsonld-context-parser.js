@@ -1171,6 +1171,36 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             ERROR_CODES.INVALID_CONTAINER_MAPPING));
       });
 
+      it('should error on a term with @container: @id in 1.0', async () => {
+        expect(() => parser.validate(
+          <any> { term: { '@id': 'http://ex.org/', '@container': { '@id': true } } },
+          { ... parseDefaults, processingMode: 1.0 }))
+          .toThrow(new ErrorCoded('Invalid term @container for \'term\' (\'@id\') in 1.0, ' +
+            'must be only one of @list, @set, @index',
+            ERROR_CODES.INVALID_CONTAINER_MAPPING));
+      });
+
+      it('should error on a term with multiple @container values in 1.0', async () => {
+        expect(() => parser.validate(
+          <any> { term: { '@id': 'http://ex.org/', '@container': { '@list': true, '@index': true } } },
+          { ... parseDefaults, processingMode: 1.0 }))
+          .toThrow(new ErrorCoded('Invalid term @container for \'term\' (\'@list,@index\') in 1.0, ' +
+            'must be only one of @list, @set, @index',
+            ERROR_CODES.INVALID_CONTAINER_MAPPING));
+      });
+
+      it('should not error on a term with one valid @container values in 1.0', async () => {
+        expect(() => parser.validate(
+          <any> { term: { '@id': 'http://ex.org/', '@container': { '@list': true } } },
+          { ... parseDefaults, processingMode: 1.0 })).not.toThrow();
+        expect(() => parser.validate(
+          <any> { term: { '@id': 'http://ex.org/', '@container': { '@set': true } } },
+          { ... parseDefaults, processingMode: 1.0 })).not.toThrow();
+        expect(() => parser.validate(
+          <any> { term: { '@id': 'http://ex.org/', '@container': { '@index': true } } },
+          { ... parseDefaults, processingMode: 1.0 })).not.toThrow();
+      });
+
       it('should error on a term with @container: @list and @reverse', async () => {
         expect(() => parser.validate(<any>
           { term: { '@id': 'http://ex.org/', '@container': { '@list': true }, '@reverse': true } }, parseDefaults))

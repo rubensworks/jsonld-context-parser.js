@@ -80,6 +80,12 @@ export class Util {
     '@id',
     '@type',
   ];
+  // All valid @container values under processing mode 1.0
+  public static readonly CONTAINERS_1_0: string[] = [
+    '@list',
+    '@set',
+    '@index',
+  ];
 
   /**
    * Check if the given term is a valid compact IRI.
