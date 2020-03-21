@@ -1262,6 +1262,18 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@nest is not allowed in the reverse property \'key\'',
             ERROR_CODES.INVALID_REVERSE_PROPERTY));
       });
+
+      it('should error on a cyclical IRI mapping in a compact term definition', async () => {
+        expect(() => parser.validate(<any> { term: 'term:a' }, parseDefaults))
+          .toThrow(new ErrorCoded('Detected cyclical IRI mapping in context entry: \'term\': \'"term:a"\'',
+            ERROR_CODES.CYCLIC_IRI_MAPPING));
+      });
+
+      it('should error on a cyclical IRI mapping in an expanded term definition', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': 'term:a' } }, parseDefaults))
+          .toThrow(new ErrorCoded('Detected cyclical IRI mapping in context entry: \'term\': \'{"@id":"term:a"}\'',
+            ERROR_CODES.CYCLIC_IRI_MAPPING));
+      });
     });
 
     describe('parse', () => {

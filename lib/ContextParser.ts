@@ -376,12 +376,20 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
       if (value !== null) {
         switch (valueType) {
         case 'string':
-          // Always valid
+          if (Util.getPrefix(value, context) === key) {
+            throw new ErrorCoded(`Detected cyclical IRI mapping in context entry: '${key}': '${JSON
+              .stringify(value)}'`, ERROR_CODES.CYCLIC_IRI_MAPPING);
+          }
           break;
         case 'object':
           if (!Util.isCompactIri(key) && !('@id' in value)
             && (value['@type'] === '@id' ? !context['@base'] : !context['@vocab'])) {
             throw new Error(`Missing @id in context entry: '${key}': '${JSON.stringify(value)}'`);
+          }
+
+          if ('@id' in value && value['@id'] && Util.getPrefix(value['@id'], context) === key) {
+            throw new ErrorCoded(`Detected cyclical IRI mapping in context entry: '${key}': '${JSON
+              .stringify(value)}'`, ERROR_CODES.CYCLIC_IRI_MAPPING);
           }
 
           for (const objectKey of Object.keys(value)) {
