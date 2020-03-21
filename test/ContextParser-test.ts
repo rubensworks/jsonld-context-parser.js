@@ -835,7 +835,8 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should error on an invalid @base', async () => {
         expect(() => parser.validate(<any> { '@base': true }, parseDefaults))
-          .toThrow(new Error('Found an invalid @base IRI: true'));
+          .toThrow(new ErrorCoded('Found an invalid @base IRI: true',
+            ERROR_CODES.INVALID_BASE_IRI));
       });
 
       it('should error on an invalid @language', async () => {

@@ -333,7 +333,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
           break;
         case 'base':
           if (value !== null && valueType !== 'string') {
-            throw new Error(`Found an invalid @base IRI: ${context[key]}`);
+            throw new ErrorCoded(`Found an invalid @base IRI: ${context[key]}`, ERROR_CODES.INVALID_BASE_IRI);
           }
           break;
         case 'language':
@@ -497,7 +497,8 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
         // The context base is the document base
         context['@base'] = options.baseIRI;
         context['@__baseDocument'] = true;
-      } else if (context['@base'] !== null && !Util.isValidIri(<string> context['@base'])) {
+      } else if (context['@base'] !== null && typeof context['@base'] === 'string'
+        && !Util.isValidIri(<string> context['@base'])) {
         // The context base is relative to the document base
         context['@base'] = resolve(<string> context['@base'],
           options.parentContext && options.parentContext['@base'] || options.baseIRI);
