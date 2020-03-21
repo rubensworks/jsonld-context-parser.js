@@ -721,7 +721,8 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
       return newContextWrapped;
     } else {
-      throw new Error(`Tried parsing a context that is not a string, array or object, but got ${context}`);
+      throw new ErrorCoded(`Tried parsing a context that is not a string, array or object, but got ${context}`,
+        ERROR_CODES.INVALID_LOCAL_CONTEXT);
     }
   }
 

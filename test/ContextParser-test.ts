@@ -2475,17 +2475,20 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
     describe('for parsing invalid values', () => {
       it('should error when parsing true', () => {
         return expect(parser.parse(true)).rejects
-          .toEqual(new Error('Tried parsing a context that is not a string, array or object, but got true'));
+          .toEqual(new ErrorCoded('Tried parsing a context that is not a string, array or object, but got true',
+            ERROR_CODES.INVALID_LOCAL_CONTEXT));
       });
 
       it('should error when parsing false', () => {
         return expect(parser.parse(false)).rejects
-          .toEqual(new Error('Tried parsing a context that is not a string, array or object, but got false'));
+          .toEqual(new ErrorCoded('Tried parsing a context that is not a string, array or object, but got false',
+            ERROR_CODES.INVALID_LOCAL_CONTEXT));
       });
 
       it('should error when parsing a number', () => {
         return expect(parser.parse(1)).rejects
-          .toEqual(new Error('Tried parsing a context that is not a string, array or object, but got 1'));
+          .toEqual(new ErrorCoded('Tried parsing a context that is not a string, array or object, but got 1',
+            ERROR_CODES.INVALID_LOCAL_CONTEXT));
       });
     });
 
