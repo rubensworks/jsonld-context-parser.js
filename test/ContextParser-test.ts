@@ -1170,7 +1170,8 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
       it('should error on a term with @container: @list and @reverse', async () => {
         expect(() => parser.validate(<any>
           { term: { '@id': 'http://ex.org/', '@container': { '@list': true }, '@reverse': true } }, parseDefaults))
-          .toThrow(new Error('Term value can not be @container: @list and @reverse at the same time on \'term\''));
+          .toThrow(new ErrorCoded('Term value can not be @container: @list and @reverse at the same time on \'term\'',
+            ERROR_CODES.INVALID_REVERSE_PROPERTY));
       });
 
       it('should not error on a term with @language: en', async () => {

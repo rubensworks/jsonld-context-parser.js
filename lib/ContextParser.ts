@@ -434,8 +434,8 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
             case '@container':
               for (const containerValue of Object.keys(objectValue)) {
                 if (containerValue === '@list' && value['@reverse']) {
-                  throw new Error(`Term value can not be @container: @list and @reverse at the same time on '${
-                    key}'`);
+                  throw new ErrorCoded(`Term value can not be @container: @list and @reverse at the same time on '${
+                    key}'`, ERROR_CODES.INVALID_REVERSE_PROPERTY);
                 }
                 if (Util.CONTAINERS.indexOf(containerValue) < 0) {
                   throw new ErrorCoded(`Invalid term @container for '${key}' ('${containerValue}'), \
