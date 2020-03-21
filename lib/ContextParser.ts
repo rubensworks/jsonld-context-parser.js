@@ -40,7 +40,8 @@ export class ContextParser {
    */
   public static validateLanguage(value: any, strictRange: boolean): boolean {
     if (typeof value !== 'string') {
-      throw new Error(`The value of an '@language' must be a string, got '${JSON.stringify(value)}'`);
+      throw new ErrorCoded(`The value of an '@language' must be a string, got '${JSON.stringify(value)}'`,
+        ERROR_CODES.INVALID_DEFAULT_LANGUAGE);
     }
 
     if (!Util.REGEX_LANGUAGE_TAG.test(value)) {

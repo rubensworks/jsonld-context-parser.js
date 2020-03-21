@@ -842,12 +842,14 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should error on an invalid @language', async () => {
         expect(() => parser.validate(<any> { '@language': true }, parseDefaults))
-          .toThrow(new Error('The value of an \'@language\' must be a string, got \'true\''));
+          .toThrow(new ErrorCoded('The value of an \'@language\' must be a string, got \'true\'',
+            ERROR_CODES.INVALID_DEFAULT_LANGUAGE));
       });
 
       it('should error on an invalid @direction', async () => {
         expect(() => parser.validate(<any> { '@direction': true }, parseDefaults))
-          .toThrow(new Error('The value of an \'@direction\' must be a string, got \'true\''));
+          .toThrow(new ErrorCoded('The value of an \'@direction\' must be a string, got \'true\'',
+            ERROR_CODES.INVALID_BASE_DIRECTION));
       });
 
       it('should error on an invalid @version', async () => {
