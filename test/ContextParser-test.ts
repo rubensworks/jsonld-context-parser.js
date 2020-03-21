@@ -899,12 +899,14 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should error on term without @id and @type : @id', async () => {
         expect(() => parser.validate(<any> { term: {} }, parseDefaults))
-          .toThrow(new Error('Missing @id in context entry: \'term\': \'{}\''));
+          .toThrow(new ErrorCoded('Missing @id in context entry: \'term\': \'{}\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
       });
 
       it('should error on term without @id, but with @type : @id', async () => {
         expect(() => parser.validate(<any> { term: { '@type': '@id' } }, parseDefaults))
-          .toThrow(new Error('Missing @id in context entry: \'term\': \'{"@type":"@id"}\''));
+          .toThrow(new ErrorCoded('Missing @id in context entry: \'term\': \'{"@type":"@id"}\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
       });
 
       it('should not error on term without @id, but with @type : @id and @base', async () => {
@@ -914,12 +916,14 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should not error on term without @id and @type : @id and @base', async () => {
         expect(() => parser.validate(<any> { 'term': {}, '@base': 'abc' }, parseDefaults))
-          .toThrow(new Error('Missing @id in context entry: \'term\': \'{}\''));
+          .toThrow(new ErrorCoded('Missing @id in context entry: \'term\': \'{}\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
       });
 
       it('should error on term without @id, but with @type : @id and @vocab', async () => {
         expect(() => parser.validate(<any> { 'term': { '@type': '@id' }, '@vocab': 'abc' }, parseDefaults))
-          .toThrow(new Error('Missing @id in context entry: \'term\': \'{"@type":"@id"}\''));
+          .toThrow(new ErrorCoded('Missing @id in context entry: \'term\': \'{"@type":"@id"}\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
       });
 
       it('should not error on term without @id and @type : @id and @vocab', async () => {

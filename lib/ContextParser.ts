@@ -385,7 +385,8 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
         case 'object':
           if (!Util.isCompactIri(key) && !('@id' in value)
             && (value['@type'] === '@id' ? !context['@base'] : !context['@vocab'])) {
-            throw new Error(`Missing @id in context entry: '${key}': '${JSON.stringify(value)}'`);
+            throw new ErrorCoded(`Missing @id in context entry: '${key}': '${JSON.stringify(value)}'`,
+              ERROR_CODES.INVALID_IRI_MAPPING);
           }
 
           if ('@id' in value && typeof value['@id'] !== 'string' && value['@id'] !== null) {
