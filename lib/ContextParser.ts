@@ -155,7 +155,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
             const type = value['@type'];
             if ('@id' in value) {
               // Use @id value for expansion
-              if (id !== undefined && id !== null) {
+              if (id !== undefined && id !== null && typeof id === 'string') {
                 contextRaw[key]['@id'] = context.expandTerm(id, true);
                 changed = changed || id !== contextRaw[key]['@id'];
               }
@@ -386,6 +386,11 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
           if (!Util.isCompactIri(key) && !('@id' in value)
             && (value['@type'] === '@id' ? !context['@base'] : !context['@vocab'])) {
             throw new Error(`Missing @id in context entry: '${key}': '${JSON.stringify(value)}'`);
+          }
+
+          if ('@id' in value && typeof value['@id'] !== 'string' && value['@id'] !== null) {
+            throw new ErrorCoded(`Detected non-string @id in context entry: '${key}': '${JSON.stringify(value)}'`,
+              ERROR_CODES.INVALID_IRI_MAPPING);
           }
 
           if ('@id' in value && value['@id'] && Util.getPrefix(value['@id'], context) === key) {

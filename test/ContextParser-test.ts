@@ -1276,6 +1276,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           .toThrow(new ErrorCoded('Detected cyclical IRI mapping in context entry: \'term\': \'{"@id":"term:a"}\'',
             ERROR_CODES.CYCLIC_IRI_MAPPING));
       });
+
+      it('should error on non-string @id', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': true } }, parseDefaults))
+          .toThrow(new ErrorCoded('Detected non-string @id in context entry: \'term\': \'{"@id":true}\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
+      });
     });
 
     describe('parse', () => {
