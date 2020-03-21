@@ -457,14 +457,10 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
               }
               break;
             case '@language':
-              if (objectValue !== null) {
-                ContextParser.validateLanguage(objectValue, true, ERROR_CODES.INVALID_LANGUAGE_MAPPING);
-              }
+              ContextParser.validateLanguage(objectValue, true, ERROR_CODES.INVALID_LANGUAGE_MAPPING);
               break;
             case '@direction':
-              if (objectValue !== null) {
-                ContextParser.validateDirection(objectValue, true);
-              }
+              ContextParser.validateDirection(objectValue, true);
               break;
             case '@prefix':
               if (objectValue !== null && typeof objectValue !== 'boolean') {
