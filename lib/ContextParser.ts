@@ -3,7 +3,7 @@ import {resolve} from "relative-to-absolute-iri";
 import {ERROR_CODES, ErrorCoded} from "./ErrorCoded";
 import {FetchDocumentLoader} from "./FetchDocumentLoader";
 import {IDocumentLoader} from "./IDocumentLoader";
-import {IJsonLdContextNormalizedRaw, IPrefixValue, JsonLdContext} from "./JsonLdContext";
+import {IJsonLdContext, IJsonLdContextNormalizedRaw, IPrefixValue, JsonLdContext} from "./JsonLdContext";
 import {JsonLdContextNormalized} from "./JsonLdContextNormalized";
 import {Util} from "./Util";
 
@@ -731,16 +731,28 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    * @return A promise resolving to a raw JSON-LD context.
    */
   public async load(url: string): Promise<JsonLdContext> {
+    // First try to retrieve the context from cache
     const cached = this.documentCache[url];
     if (cached) {
       return typeof cached === 'string' ? cached : Array.isArray(cached) ? cached.slice() : {... cached};
     }
+
+    // If not in cache, load it
+    let document: IJsonLdContext;
     try {
-      return this.documentCache[url] = (await this.documentLoader.load(url))['@context'];
+      document = await this.documentLoader.load(url);
     } catch (e) {
       throw new ErrorCoded(`Failed to load remote context ${url}: ${e.message}`,
         ERROR_CODES.LOADING_REMOTE_CONTEXT_FAILED);
     }
+
+    // Validate the context
+    if (!('@context' in document)) {
+      throw new ErrorCoded(`Missing @context in remote context at ${url}`,
+        ERROR_CODES.INVALID_REMOTE_CONTEXT);
+    }
+
+    return this.documentCache[url] = document['@context'];
   }
 
   /**

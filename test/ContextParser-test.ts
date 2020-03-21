@@ -1508,6 +1508,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             },
           }));
       });
+
+      it('should error on a remote context without @context', () => {
+        return expect(parser.parse('http://example.org/remote_context_invalid.jsonld')).rejects.toThrow(new ErrorCoded(
+          'Missing @context in remote context at http://example.org/context_no_root.jsonld',
+          ERROR_CODES.INVALID_REMOTE_CONTEXT));
+      });
     });
 
     describe('for parsing null', () => {
