@@ -11,39 +11,39 @@ describe('ContextParser', () => {
   describe('validateLanguage', () => {
     describe('with strictRange', () => {
       it('should pass on valid languages', () => {
-        expect(ContextParser.validateLanguage('en-us', true)).toBeTruthy();
-        expect(ContextParser.validateLanguage('EN-us', true)).toBeTruthy();
-        expect(ContextParser.validateLanguage('nl-be', true)).toBeTruthy();
+        expect(ContextParser.validateLanguage('en-us', true, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toBeTruthy();
+        expect(ContextParser.validateLanguage('EN-us', true, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toBeTruthy();
+        expect(ContextParser.validateLanguage('nl-be', true, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toBeTruthy();
       });
 
       it('should error on invalid language datatypes', () => {
-        expect(() => ContextParser.validateLanguage(3, true)).toThrow();
-        expect(() => ContextParser.validateLanguage({}, true)).toThrow();
+        expect(() => ContextParser.validateLanguage(3, true, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toThrow();
+        expect(() => ContextParser.validateLanguage({}, true, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toThrow();
       });
 
       it('should error on invalid language strings', () => {
-        expect(() => ContextParser.validateLanguage('!', true)).toThrow();
-        expect(() => ContextParser.validateLanguage('', true)).toThrow();
-        expect(() => ContextParser.validateLanguage('en_us', true)).toThrow();
+        expect(() => ContextParser.validateLanguage('!', true, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toThrow();
+        expect(() => ContextParser.validateLanguage('', true, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toThrow();
+        expect(() => ContextParser.validateLanguage('en_us', true, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toThrow();
       });
     });
 
     describe('without strictRange', () => {
       it('should pass on valid languages', () => {
-        expect(ContextParser.validateLanguage('en-us', false)).toBeTruthy();
-        expect(ContextParser.validateLanguage('EN-us', false)).toBeTruthy();
-        expect(ContextParser.validateLanguage('nl-be', false)).toBeTruthy();
+        expect(ContextParser.validateLanguage('en-us', false, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toBeTruthy();
+        expect(ContextParser.validateLanguage('EN-us', false, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toBeTruthy();
+        expect(ContextParser.validateLanguage('nl-be', false, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toBeTruthy();
       });
 
       it('should error on invalid language datatypes', () => {
-        expect(() => ContextParser.validateLanguage(3, false)).toThrow();
-        expect(() => ContextParser.validateLanguage({}, false)).toThrow();
+        expect(() => ContextParser.validateLanguage(3, false, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toThrow();
+        expect(() => ContextParser.validateLanguage({}, false, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toThrow();
       });
 
       it('should return false on invalid language strings', () => {
-        expect(ContextParser.validateLanguage('!', false)).toBeFalsy();
-        expect(ContextParser.validateLanguage('', false)).toBeFalsy();
-        expect(ContextParser.validateLanguage('en_us', false)).toBeFalsy();
+        expect(ContextParser.validateLanguage('!', false, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toBeFalsy();
+        expect(ContextParser.validateLanguage('', false, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toBeFalsy();
+        expect(ContextParser.validateLanguage('en_us', false, ERROR_CODES.INVALID_LANGUAGE_MAPPING)).toBeFalsy();
       });
     });
   });

@@ -35,19 +35,19 @@ export class ContextParser {
    * An error will be thrown if it is invalid.
    * @param value An @language value.
    * @param {boolean} strictRange If the string value should be strictly checked against a regex.
+   * @param {string} errorCode The error code to emit on errors.
    * @return {boolean} If validation passed.
    *                   Can only be false if strictRange is false and the string value did not pass the regex.
    */
-  public static validateLanguage(value: any, strictRange: boolean): boolean {
+  public static validateLanguage(value: any, strictRange: boolean, errorCode: string): boolean {
     if (typeof value !== 'string') {
-      throw new ErrorCoded(`The value of an '@language' must be a string, got '${JSON.stringify(value)}'`,
-        ERROR_CODES.INVALID_DEFAULT_LANGUAGE);
+      throw new ErrorCoded(`The value of an '@language' must be a string, got '${JSON.stringify(value)}'`, errorCode);
     }
 
     if (!Util.REGEX_LANGUAGE_TAG.test(value)) {
       if (strictRange) {
-        throw new Error(`The value of an '@language' must be a valid language tag, got '${
-          JSON.stringify(value)}'`);
+        throw new ErrorCoded(`The value of an '@language' must be a valid language tag, got '${
+          JSON.stringify(value)}'`, errorCode);
       } else {
         return false;
       }
@@ -340,7 +340,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
           break;
         case 'language':
           if (value !== null) {
-            ContextParser.validateLanguage(value, true);
+            ContextParser.validateLanguage(value, true, ERROR_CODES.INVALID_DEFAULT_LANGUAGE);
           }
           break;
         case 'version':
@@ -451,7 +451,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
               break;
             case '@language':
               if (objectValue !== null) {
-                ContextParser.validateLanguage(objectValue, true);
+                ContextParser.validateLanguage(objectValue, true, ERROR_CODES.INVALID_LANGUAGE_MAPPING);
               }
               break;
             case '@direction':
