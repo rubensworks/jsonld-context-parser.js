@@ -326,6 +326,12 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
         continue;
       }
 
+      // Do not allow empty term
+      if (key === '') {
+        throw new ErrorCoded(`The empty term is not allowed, got: '${key}': '${JSON.stringify(context[key])}'`,
+          ERROR_CODES.INVALID_TERM_DEFINITION);
+      }
+
       const value = context[key];
       const valueType = typeof value;
       // First check if the key is a keyword

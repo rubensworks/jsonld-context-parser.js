@@ -1386,6 +1386,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           .toThrow(new ErrorCoded('Detected non-string @id in context entry: \'term\': \'{"@id":true}\'',
             ERROR_CODES.INVALID_IRI_MAPPING));
       });
+
+      it('should error on empty string keys', async () => {
+        expect(() => parser.validate(<any> { '': { '@id': 'http://example.org/' } }, parseDefaults))
+          .toThrow(new ErrorCoded('The empty term is not allowed, got: \'\': \'{"@id":"http://example.org/"}\'',
+            ERROR_CODES.INVALID_TERM_DEFINITION));
+      });
     });
 
     describe('parse', () => {
