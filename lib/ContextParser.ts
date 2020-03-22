@@ -389,16 +389,6 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
               ERROR_CODES.INVALID_IRI_MAPPING);
           }
 
-          if ('@id' in value && typeof value['@id'] !== 'string' && value['@id'] !== null) {
-            throw new ErrorCoded(`Detected non-string @id in context entry: '${key}': '${JSON.stringify(value)}'`,
-              ERROR_CODES.INVALID_IRI_MAPPING);
-          }
-
-          if ('@id' in value && value['@id'] && Util.getPrefix(value['@id'], context) === key) {
-            throw new ErrorCoded(`Detected cyclical IRI mapping in context entry: '${key}': '${JSON
-              .stringify(value)}'`, ERROR_CODES.CYCLIC_IRI_MAPPING);
-          }
-
           for (const objectKey of Object.keys(value)) {
             const objectValue = value[objectKey];
             if (!objectValue) {
@@ -410,6 +400,15 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
               if (Util.isValidKeyword(objectValue) && objectValue !== '@type' && objectValue !== '@id') {
                 throw new ErrorCoded(`Illegal keyword alias in term value, found: '${key}': '${JSON.stringify(value)}'`,
                   ERROR_CODES.INVALID_IRI_MAPPING);
+              }
+              if (typeof objectValue !== 'string') {
+                throw new ErrorCoded(`Detected non-string @id in context entry: '${key}': '${JSON.stringify(value)}'`,
+                  ERROR_CODES.INVALID_IRI_MAPPING);
+              }
+
+              if (Util.getPrefix(objectValue, context) === key) {
+                throw new ErrorCoded(`Detected cyclical IRI mapping in context entry: '${key}': '${JSON
+                  .stringify(value)}'`, ERROR_CODES.CYCLIC_IRI_MAPPING);
               }
 
               break;
