@@ -952,7 +952,27 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should error on IRI term with @id: @type', async () => {
         expect(() => parser.validate(<any> { 'http://ex.org/': { '@id': '@type' } }, parseDefaults))
-          .toThrow(new Error('IRIs can not be mapped to @type, found: \'http://ex.org/\': \'{"@id":"@type"}\''));
+          .toThrow(new ErrorCoded('IRIs can not be mapped to @type, found: \'http://ex.org/\': \'{"@id":"@type"}\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
+      });
+
+      it('should error on IRI term mapping @id to something else', async () => {
+        expect(() => parser.validate(<any> { 'http://ex.org/': { '@id': 'http://something.else.com/' } },
+          parseDefaults))
+          .toThrow(new ErrorCoded(
+            'IRIs can not be mapped to other IRIs, found: \'http://ex.org/\': \'{"@id":"http://something.else.com/"}\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
+      });
+
+      it('should not error on IRI term mapping @id to the same IRI', async () => {
+        expect(() => parser.validate(<any> { 'http://ex.org/': { '@id': 'http://ex.org/' } }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on IRI term mapping @id to the same IRI when the key is compacted', async () => {
+        expect(() => parser.validate(<any> { 'ex': 'http://ex.org/', 'ex:a': { '@id': 'http://ex.org/a' } },
+          parseDefaults))
+          .not.toThrow();
       });
 
       it('should not error on term with @id: @id', async () => {
