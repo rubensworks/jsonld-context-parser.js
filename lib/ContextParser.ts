@@ -401,6 +401,10 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
                 throw new ErrorCoded(`Illegal keyword alias in term value, found: '${key}': '${JSON.stringify(value)}'`,
                   ERROR_CODES.INVALID_IRI_MAPPING);
               }
+              if (Util.isValidIri(key) && objectValue === '@type') {
+                throw new ErrorCoded(`IRIs can not be mapped to @type, found: '${key}': '${JSON.stringify(value)}'`,
+                  ERROR_CODES.INVALID_IRI_MAPPING);
+              }
               if (typeof objectValue !== 'string') {
                 throw new ErrorCoded(`Detected non-string @id in context entry: '${key}': '${JSON.stringify(value)}'`,
                   ERROR_CODES.INVALID_IRI_MAPPING);

@@ -950,6 +950,11 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           .not.toThrow();
       });
 
+      it('should error on IRI term with @id: @type', async () => {
+        expect(() => parser.validate(<any> { 'http://ex.org/': { '@id': '@type' } }, parseDefaults))
+          .toThrow(new Error('IRIs can not be mapped to @type, found: \'http://ex.org/\': \'{"@id":"@type"}\''));
+      });
+
       it('should not error on term with @id: @id', async () => {
         expect(() => parser.validate(<any> { term: { '@id': '@id' } }, parseDefaults))
           .not.toThrow();
