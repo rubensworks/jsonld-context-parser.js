@@ -127,6 +127,36 @@ describe('Util', () => {
     });
   });
 
+  describe('#isValidIriWeak', () => {
+    it('should be false for null', async () => {
+      expect(Util.isValidIriWeak(null)).toBeFalsy();
+    });
+
+    it('should be false for an empty string', async () => {
+      expect(Util.isValidIriWeak('')).toBeFalsy();
+    });
+
+    it('should be false for an abc', async () => {
+      expect(Util.isValidIriWeak('abc')).toBeFalsy();
+    });
+
+    it('should be true for an abc:def', async () => {
+      expect(Util.isValidIriWeak('abc:def')).toBeTruthy();
+    });
+
+    it('should be true for an ./relative', async () => {
+      expect(Util.isValidIriWeak('./relative')).toBeTruthy();
+    });
+
+    it('should be true for an http://google.com', async () => {
+      expect(Util.isValidIriWeak('http://google.com')).toBeTruthy();
+    });
+
+    it('should be false for an :term', async () => {
+      expect(Util.isValidIriWeak(':term')).toBeFalsy();
+    });
+  });
+
   describe('#isValidKeyword', () => {
     it('should be true for valid keywords', async () => {
       expect(Util.isValidKeyword('@id')).toBeTruthy();

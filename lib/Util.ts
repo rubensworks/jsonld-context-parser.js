@@ -5,6 +5,8 @@ export class Util {
 
   // Regex for valid IRIs
   public static readonly IRI_REGEX: RegExp = /^([A-Za-z][A-Za-z0-9+-.]*|_):[^ "<>{}|\\\[\]`#]*(#[^#]*)?$/;
+  // Weaker regex for valid IRIs, this includes relative IRIs
+  public static readonly IRI_REGEX_WEAK: RegExp = /(?::[^:])|\//;
   // Regex for keyword form
   public static readonly KEYWORD_REGEX: RegExp = /^@[a-z]+$/i;
   // Regex to see if an IRI ends with a gen-delim character (see RFC 3986)
@@ -192,6 +194,15 @@ export class Util {
    */
   public static isValidIri(iri: string): boolean {
     return Util.IRI_REGEX.test(iri);
+  }
+
+  /**
+   * Check if the given IRI is valid, this includes the possibility of being a relative IRI.
+   * @param {string} iri A potential IRI.
+   * @return {boolean} If the given IRI is valid.
+   */
+  public static isValidIriWeak(iri: string): boolean {
+    return !!iri && iri[0] !== ':' && Util.IRI_REGEX_WEAK.test(iri);
   }
 
   /**

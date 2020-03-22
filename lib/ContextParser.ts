@@ -381,6 +381,16 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
             throw new ErrorCoded(`Detected cyclical IRI mapping in context entry: '${key}': '${JSON
               .stringify(value)}'`, ERROR_CODES.CYCLIC_IRI_MAPPING);
           }
+          if (Util.isValidIriWeak(key)) {
+            if (value === '@type') {
+              throw new ErrorCoded(`IRIs can not be mapped to @type, found: '${key}': '${value}'`,
+                ERROR_CODES.INVALID_IRI_MAPPING);
+            } else if (Util.isValidIri(value) && value !== new JsonLdContextNormalized(context).expandTerm(key)) {
+              throw new ErrorCoded(
+                `IRIs can not be mapped to other IRIs, found: '${key}': '${value}'`,
+                ERROR_CODES.INVALID_IRI_MAPPING);
+            }
+          }
           break;
         case 'object':
           if (!Util.isCompactIri(key) && !('@id' in value)
@@ -401,7 +411,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
                 throw new ErrorCoded(`Illegal keyword alias in term value, found: '${key}': '${JSON.stringify(value)}'`,
                   ERROR_CODES.INVALID_IRI_MAPPING);
               }
-              if (Util.isValidIri(key)) {
+              if (Util.isValidIriWeak(key)) {
                 if (objectValue === '@type') {
                   throw new ErrorCoded(`IRIs can not be mapped to @type, found: '${key}': '${JSON.stringify(value)}'`,
                     ERROR_CODES.INVALID_IRI_MAPPING);

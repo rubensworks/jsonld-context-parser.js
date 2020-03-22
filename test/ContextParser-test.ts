@@ -956,7 +956,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             ERROR_CODES.INVALID_IRI_MAPPING));
       });
 
-      it('should error on IRI term mapping @id to something else', async () => {
+      it('should error on IRI term mapping an IRI to something else', async () => {
         expect(() => parser.validate(<any> { 'http://ex.org/': { '@id': 'http://something.else.com/' } },
           parseDefaults))
           .toThrow(new ErrorCoded(
@@ -964,12 +964,57 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             ERROR_CODES.INVALID_IRI_MAPPING));
       });
 
-      it('should not error on IRI term mapping @id to the same IRI', async () => {
+      it('should error on IRI term mapping a relative IRI to something else', async () => {
+        expect(() => parser.validate(<any> { './relative': { '@id': 'http://something.else.com/' } },
+          parseDefaults))
+          .toThrow(new ErrorCoded(
+            'IRIs can not be mapped to other IRIs, found: \'./relative\': \'{"@id":"http://something.else.com/"}\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
+      });
+
+      it('should not error on IRI term mapping an IRI to the same IRI', async () => {
         expect(() => parser.validate(<any> { 'http://ex.org/': { '@id': 'http://ex.org/' } }, parseDefaults))
           .not.toThrow();
       });
 
-      it('should not error on IRI term mapping @id to the same IRI when the key is compacted', async () => {
+      it('should not error on term with @id: @type in simple form', async () => {
+        expect(() => parser.validate(<any> { term: '@type' }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should error on IRI term with @id: @type in simple form', async () => {
+        expect(() => parser.validate(<any> { 'http://ex.org/': '@type' }, parseDefaults))
+          .toThrow(new ErrorCoded('IRIs can not be mapped to @type, found: \'http://ex.org/\': \'@type\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
+      });
+
+      it('should error on IRI term mapping an IRI to something else in simple form', async () => {
+        expect(() => parser.validate(<any> { 'http://ex.org/': 'http://something.else.com/' },
+          parseDefaults))
+          .toThrow(new ErrorCoded(
+            'IRIs can not be mapped to other IRIs, found: \'http://ex.org/\': \'http://something.else.com/\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
+      });
+
+      it('should error on IRI term mapping a relative IRI to something else in simple form', async () => {
+        expect(() => parser.validate(<any> { './relative': 'http://something.else.com/' },
+          parseDefaults))
+          .toThrow(new ErrorCoded(
+            'IRIs can not be mapped to other IRIs, found: \'./relative\': \'http://something.else.com/\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
+      });
+
+      it('should not error on IRI term mapping an IRI to the same IRI in simple form', async () => {
+        expect(() => parser.validate(<any> { 'http://ex.org/': 'http://ex.org/' }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on term starting with colon mapping to an IRI in simple form', async () => {
+        expect(() => parser.validate(<any> { ':term': 'http://ex.org/' }, parseDefaults))
+          .not.toThrow();
+      });
+
+      it('should not error on IRI term mapping an IRI to the same IRI when the key is compacted', async () => {
         expect(() => parser.validate(<any> { 'ex': 'http://ex.org/', 'ex:a': { '@id': 'http://ex.org/a' } },
           parseDefaults))
           .not.toThrow();
