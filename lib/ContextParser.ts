@@ -153,13 +153,15 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
           } else {
             const id = value['@id'];
             const type = value['@type'];
+            // If @id is missing, don't allow @id to be added if @prefix: true and key not being a valid IRI.
+            const canAddIdEntry = !('@prefix' in value) || Util.isValidIri(key);
             if ('@id' in value) {
               // Use @id value for expansion
               if (id !== undefined && id !== null && typeof id === 'string') {
                 contextRaw[key]['@id'] = context.expandTerm(id, true);
                 changed = changed || id !== contextRaw[key]['@id'];
               }
-            } else if (!Util.isPotentialKeyword(key)) {
+            } else if (!Util.isPotentialKeyword(key) && canAddIdEntry) {
               // Add an explicit @id value based on the expanded key value
               const newId = context.expandTerm(key, true);
               if (newId !== key) {
@@ -169,7 +171,8 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
               }
             }
             if (type && typeof type === 'string' && type !== '@vocab'
-              && (!value['@container'] || !(<any> value['@container'])['@type'])) {
+              && (!value['@container'] || !(<any> value['@container'])['@type'])
+              && canAddIdEntry) {
               // First check @vocab, then fallback to @base
               contextRaw[key]['@type'] = context.expandTerm(type, true);
               if (expandContentTypeToBase && type === contextRaw[key]['@type']) {
@@ -485,6 +488,10 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
             case '@prefix':
               if (objectValue !== null && typeof objectValue !== 'boolean') {
                 throw new Error(`Found an invalid term @prefix boolean in: '${key}': '${JSON.stringify(value)}'`);
+              }
+              if (!('@id' in value) && !Util.isValidIri(key)) {
+                throw new ErrorCoded(`Invalid @prefix definition for '${key}' ('${JSON.stringify(value)}'`,
+                  ERROR_CODES.INVALID_TERM_DEFINITION);
               }
               break;
             case '@index':

@@ -1503,6 +1503,24 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           'ignoreMe': '@ignoreMe',
         }));
       });
+
+      it('should error when parsing a prefix definition on a relative IRI against vocab', () => {
+        return expect(parser.parse({
+          "./something": {"@prefix": true},
+          "@vocab": "http:/example.org",
+        })).rejects
+          .toEqual(new ErrorCoded('Invalid @prefix definition for \'./something\' (\'{"@prefix":true}\'',
+            ERROR_CODES.INVALID_TERM_DEFINITION));
+      });
+
+      it('should error when parsing a prefix definition on a relative IRI against base', () => {
+        return expect(parser.parse({
+          "./something": {"@type": "@id", "@prefix": true},
+          "@vocab": "http:/example.org",
+        }, { baseIRI: 'http://base.org/' })).rejects
+          .toEqual(new ErrorCoded('Invalid @prefix definition for \'./something\' (\'{"@type":"@id","@prefix":true}\'',
+            ERROR_CODES.INVALID_TERM_DEFINITION));
+      });
     });
 
     describe('for parsing URLs', () => {
