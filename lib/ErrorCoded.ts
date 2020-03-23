@@ -74,4 +74,5 @@ export enum ERROR_CODES {
   CONTEXT_OVERFLOW = 'context overflow',
   INVALID_BASE_DIRECTION = 'invalid base direction',
   RECURSIVE_CONTEXT_INCLUSION = 'recursive context inclusion',
+  INVALID_STREAMING_KEY_ORDER = 'invalid streaming key order',
 }
