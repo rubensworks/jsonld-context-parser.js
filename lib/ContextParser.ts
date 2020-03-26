@@ -416,7 +416,8 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
 
             switch (objectKey) {
             case '@id':
-              if (Util.isValidKeyword(objectValue) && objectValue !== '@type' && objectValue !== '@id') {
+              if (Util.isValidKeyword(objectValue)
+                && objectValue !== '@type' && objectValue !== '@id' && objectValue !== '@graph') {
                 throw new ErrorCoded(`Illegal keyword alias in term value, found: '${key}': '${JSON.stringify(value)}'`,
                   ERROR_CODES.INVALID_IRI_MAPPING);
               }
