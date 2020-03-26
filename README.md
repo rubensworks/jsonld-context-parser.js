@@ -74,10 +74,18 @@ const ContextParser = require('jsonld-context-parser').ContextParser;
 const myParser = new ContextParser();
 ```
 
-Optionally, you can pass an options object with a custom [document loader](https://github.com/rubensworks/jsonld-context-parser.js/blob/master/lib/IDocumentLoader.ts):
+Optionally, the following constructor options can be passed:
+
+* `documentLoader`: An optional document loader that should be used for fetching external JSON-LD contexts. Custom loaders must implement the [IDocumentLoader interface](https://github.com/rubensworks/jsonld-context-parser.js/blob/master/lib/IDocumentLoader.ts) _(Default: [`new FetchDocumentLoader()`](https://github.com/rubensworks/jsonld-context-parser.js/blob/master/lib/FetchDocumentLoader.ts))_
+* `skipValidation`: By default, JSON-LD contexts will be validated. This can be disabled by setting this option to true. _(Default: `false`)_
+* `expandContentTypeToBase`: If @type inside the context may be expanded via @base is @vocab is set to null. _(Default: `false`)_
 
 ```javascript
-const myParser = new ContextParser({ documentLoader: myDocumentLoader });
+const myParser = new ContextParser({
+  documentLoader: new FetchDocumentLoader(),
+  skipValidation: true,
+  expandContentTypeToBase: true,
+});
 ```
 
 #### Parse a context.
@@ -109,6 +117,10 @@ Optionally, the following parsing options can be passed:
 * `external`: If the given context is being loaded from an external URL. _(Default: `false`)_
 * `processingMode`: The JSON-LD version that the context should be parsed with. _(Default: `1.1`)_
 * `normalizeLanguageTags`: Whether or not language tags should be normalized to lowercase. _(Default: `false` for JSON-LD 1.1 (and higher), `true` for JSON-LD 1.0)_
+* `ignoreProtection`: If checks for validating term protection should be skipped. _(Default: `false`)_
+* `minimalProcessing`: If the context should only be parsed and validated, without performing normalizations and other modifications. _(Default: `false`)_
+* `ignoreRemoteScopedContexts`: If true, a remote context that will be looked up, and is already contained in `remoteContexts`, will not emit an error but will produce an empty context. _(Default: `false`)_
+* `remoteContexts`: A hash containing all remote contexts that have been looked up before. _(Default: `false`)_
 
 ```javascript
 const myContext = await myParser.parse({ ... }, {
@@ -117,6 +129,12 @@ const myContext = await myParser.parse({ ... }, {
   external: true,
   processingMode: 1.0,
   normalizeLanguageTags: true,
+  ignoreProtection: true,
+  minimalProcessing: true,
+  ignoreRemoteScopedContexts: true,
+  remoteContexts: {
+    'http://example.org/context.json': true,
+  }
 });
 ```
 
@@ -155,6 +173,24 @@ myContext.expandTerm('foaf:name', true);
 // Returns the URI as-is
 myContext.expandTerm('http://xmlns.com/foaf/0.1/name', true);
 ```
+
+##### Expansion options
+
+Optionally, the following options can be passed for expansion:
+
+* `allowPrefixNonGenDelims`: If compact IRI prefixes can end with any kind of character in simple term definitions, instead of only the default gen-delim characters (:,/,?,#,[,],@). _(Default: `false`)_
+* `allowPrefixForcing`: If compact IRI prefixes ending with a non-gen-delim character can be forced as a prefix using @prefix: true. _(Default: `false`)_
+* `allowVocabRelativeToBase`: If @vocab values are allowed contain IRIs relative to @base. _(Default: `true`)_
+
+```javascript
+myContext.expandTerm('person', false, {
+  allowPrefixNonGenDelims: false,
+  allowPrefixForcing: false,
+  allowVocabRelativeToBase: true,
+});
+```
+
+The `defaultExpandOptions` variable that is exported from this package contains the default expansion options hash.
 
 #### Compact an IRI
 
@@ -195,7 +231,35 @@ myContext.compactIri('http://term.org/', true);
 myContext.compactIri('http://xmlns.com/foaf/0.1/name', true);
 ```
 
-### Command-line
+#### Getting the raw normalized context
+
+The output of `ContextParser#parse` is a `JsonLdContextNormalized` object
+that represents the normalized context and exposes convenience functions such as `expandTerm` and `compactIri`.
+
+In some cases, you may want to store the raw normalized JSON-LD context, e.g. caching to a file.
+For this, you can invoke the `JsonLdContextNormalized#getContextRaw` function as follows:
+
+```javascript
+const myContext = await myParser.parse('http://json-ld.org/contexts/person.jsonld');
+const myRawJsonLdContext = myContext.getContextRaw();
+```
+
+Afterwards, you can load this raw context into a new `JsonLdContextNormalized` context:
+
+```javascript
+const JsonLdContextNormalized = require('jsonld-context-parser').JsonLdContextNormalized;
+
+const myNewContext = new JsonLdContextNormalized(myRawJsonLdContext);
+// Call functions such as myNewContext.expandTerm(...)
+```
+
+#### Advanced
+
+This library exposes many operations that are useful to parse and handle a JSON-LD context.
+For this, the static functions on [`Util`](https://github.com/rubensworks/jsonld-context-parser.js/blob/master/lib/Util.ts)
+and [`ContextParser`](https://github.com/rubensworks/jsonld-context-parser.js/blob/master/lib/ContextParser.ts) can be used. 
+
+## Command-line
 
 A command-line tool is provided to quickly normalize any context by URL, file or string.
 
