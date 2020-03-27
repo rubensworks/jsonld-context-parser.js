@@ -21,6 +21,7 @@ export class ContextParser {
   private readonly documentCache: {[url: string]: JsonLdContext};
   private readonly validateContext: boolean;
   private readonly expandContentTypeToBase: boolean;
+  private readonly remoteContextsDepthLimit: number;
 
   constructor(options?: IContextParserOptions) {
     options = options || {};
@@ -28,6 +29,7 @@ export class ContextParser {
     this.documentCache = {};
     this.validateContext = !options.skipValidation;
     this.expandContentTypeToBase = !!options.expandContentTypeToBase;
+    this.remoteContextsDepthLimit = options.remoteContextsDepthLimit || 32;
   }
 
   /**
@@ -638,6 +640,12 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
     let parentContext = parentContextInitial;
     const remoteContexts = options.remoteContexts || {};
 
+    // Avoid remote context overflows
+    if (Object.keys(remoteContexts).length >= this.remoteContextsDepthLimit) { // TODO: test
+      throw new ErrorCoded('Detected an overflow in remote context inclusions: ' + Object.keys(remoteContexts),
+        ERROR_CODES.CONTEXT_OVERFLOW);
+    }
+
     if (context === null || context === undefined) {
       // Don't allow context nullification and there are protected terms
       if (!ignoreProtection && parentContext && Util.hasProtectedTerms(parentContext)) {
@@ -874,6 +882,12 @@ export interface IContextParserOptions {
    * If @type inside the context may be expanded via @base is @vocab is set to null.
    */
   expandContentTypeToBase?: boolean;
+  /**
+   * The maximum number of remote contexts that can be fetched recursively.
+   *
+   * Defaults to 32.
+   */
+  remoteContextsDepthLimit?: number;
 }
 
 export interface IParseOptions {

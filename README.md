@@ -79,6 +79,7 @@ Optionally, the following constructor options can be passed:
 * `documentLoader`: An optional document loader that should be used for fetching external JSON-LD contexts. Custom loaders must implement the [IDocumentLoader interface](https://github.com/rubensworks/jsonld-context-parser.js/blob/master/lib/IDocumentLoader.ts) _(Default: [`new FetchDocumentLoader()`](https://github.com/rubensworks/jsonld-context-parser.js/blob/master/lib/FetchDocumentLoader.ts))_
 * `skipValidation`: By default, JSON-LD contexts will be validated. This can be disabled by setting this option to true. _(Default: `false`)_
 * `expandContentTypeToBase`: If @type inside the context may be expanded via @base is @vocab is set to null. _(Default: `false`)_
+* `remoteContextsDepthLimit`: The maximum number of remote contexts that can be fetched recursively. _(Default: `32`)_
 
 ```javascript
 const myParser = new ContextParser({

@@ -55,7 +55,7 @@ export enum ERROR_CODES {
   INVALID_REVERSE_PROPERTY_MAP = 'invalid reverse property map',
   INVALID_REVERSE_PROPERTY_VALUE = 'invalid reverse property value',
   INVALID_SCOPED_CONTEXT = 'invalid scoped context',
-  INVALID_SCRIPT_ELEMENT = 'invalid script element', // TODO: html
+  INVALID_SCRIPT_ELEMENT = 'invalid script element',
   INVALID_SET_OR_LIST_OBJECT = 'invalid set or list object',
   INVALID_TERM_DEFINITION = 'invalid term definition',
   INVALID_TYPE_MAPPING = 'invalid type mapping',
@@ -66,12 +66,12 @@ export enum ERROR_CODES {
   INVALID_VOCAB_MAPPING = 'invalid vocab mapping',
   IRI_CONFUSED_WITH_PREFIX = 'IRI confused with prefix',
   KEYWORD_REDEFINITION = 'keyword redefinition',
-  LOADING_DOCUMENT_FAILED = 'loading document failed', // TODO: remote-doc
+  LOADING_DOCUMENT_FAILED = 'loading document failed',
   LOADING_REMOTE_CONTEXT_FAILED = 'loading remote context failed',
-  MULTIPLE_CONTEXT_LINK_HEADERS = 'multiple context link headers', // TODO: remote-doc
+  MULTIPLE_CONTEXT_LINK_HEADERS = 'multiple context link headers',
   PROCESSING_MODE_CONFLICT = 'processing mode conflict',
   PROTECTED_TERM_REDEFINITION = 'protected term redefinition',
-  CONTEXT_OVERFLOW = 'context overflow', // TODO: toRdf: check spec
+  CONTEXT_OVERFLOW = 'context overflow',
   INVALID_BASE_DIRECTION = 'invalid base direction',
   RECURSIVE_CONTEXT_INCLUSION = 'recursive context inclusion',
   INVALID_STREAMING_KEY_ORDER = 'invalid streaming key order',

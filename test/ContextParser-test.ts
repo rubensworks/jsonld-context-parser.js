@@ -1319,8 +1319,8 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should error on a term with @prefix: 10', async () => {
         expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@prefix': 10 } }, parseDefaults))
-          .toThrow(new Error('Found an invalid term @prefix boolean in: \'term\': ' +
-            '\'{"@id":"http://ex.org/","@prefix":10}\''));
+          .toThrow(new ErrorCoded('Found an invalid term @prefix boolean in: \'term\': ' +
+            '\'{"@id":"http://ex.org/","@prefix":10}\'', ERROR_CODES.INVALID_PREFIX_VALUE));
       });
 
       it('should not error on a term set to null', async () => {
@@ -1617,6 +1617,20 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
         return expect(parser.parse('http://example.org/remote_cyclic_indirect_1.jsonld')).rejects.toThrow(
           new ErrorCoded('Detected a cyclic context inclusion of http://example.org/remote_cyclic_indirect_1.jsonld',
             ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION));
+      });
+
+      it('should error when remoteContextsDepthLimit is reached', () => {
+        parser = new ContextParser({ documentLoader, remoteContextsDepthLimit: 3 });
+        const options = {
+          remoteContexts: {
+            a: true,
+            b: true,
+            c: true,
+          },
+        };
+        return expect(parser.parse('http://example.org/remote_cyclic_indirect_1.jsonld', options)).rejects.toThrow(
+          new ErrorCoded('Detected an overflow in remote context inclusions: a,b,c',
+            ERROR_CODES.CONTEXT_OVERFLOW));
       });
 
       it('should parse a cyclic context via a scoped context', () => {
