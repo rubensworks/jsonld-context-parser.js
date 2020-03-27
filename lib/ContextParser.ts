@@ -494,7 +494,8 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
               break;
             case '@prefix':
               if (objectValue !== null && typeof objectValue !== 'boolean') {
-                throw new Error(`Found an invalid term @prefix boolean in: '${key}': '${JSON.stringify(value)}'`);
+                throw new ErrorCoded(`Found an invalid term @prefix boolean in: '${key}': '${JSON.stringify(value)}'`,
+                  ERROR_CODES.INVALID_PREFIX_VALUE);
               }
               if (!('@id' in value) && !Util.isValidIri(key)) {
                 throw new ErrorCoded(`Invalid @prefix definition for '${key}' ('${JSON.stringify(value)}'`,
