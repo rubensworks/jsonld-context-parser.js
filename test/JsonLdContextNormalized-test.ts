@@ -1,4 +1,5 @@
 import {defaultExpandOptions} from "../lib/ContextParser";
+import {ERROR_CODES, ErrorCoded} from "../lib/ErrorCoded";
 import {JsonLdContextNormalized} from "../lib/JsonLdContextNormalized";
 
 describe('JsonLdContextNormalized', () => {
@@ -97,8 +98,9 @@ describe('JsonLdContextNormalized', () => {
           ...defaultExpandOptions,
           allowVocabRelativeToBase: false,
         };
-        expect(() => context.expandTerm('bla', true, opts)).toThrow(new Error(
-          'Relative vocab expansion for term \'bla\' with vocab \'relative/\' is not allowed.'));
+        expect(() => context.expandTerm('bla', true, opts)).toThrow(new ErrorCoded(
+          'Relative vocab expansion for term \'bla\' with vocab \'relative/\' is not allowed.',
+          ERROR_CODES.INVALID_VOCAB_MAPPING));
       });
 
       it('to throw for unsupported relative empty @vocab', async () => {
@@ -109,8 +111,9 @@ describe('JsonLdContextNormalized', () => {
           ...defaultExpandOptions,
           allowVocabRelativeToBase: false,
         };
-        expect(() => context.expandTerm('bla', true, opts)).toThrow(new Error(
-          'Relative vocab expansion for term \'bla\' with vocab \'\' is not allowed.'));
+        expect(() => context.expandTerm('bla', true, opts)).toThrow(new ErrorCoded(
+          'Relative vocab expansion for term \'bla\' with vocab \'\' is not allowed.',
+          ERROR_CODES.INVALID_VOCAB_MAPPING));
       });
 
       it('to return when @vocab is empty string and @base does not exist', async () => {
@@ -139,8 +142,9 @@ describe('JsonLdContextNormalized', () => {
           ...defaultExpandOptions,
           allowVocabRelativeToBase: false,
         };
-        expect(() => context.expandTerm('def', true, opts)).toThrow(new Error(
-          'Relative vocab expansion for term \'def\' with vocab \'\' is not allowed.'));
+        expect(() => context.expandTerm('def', true, opts)).toThrow(new ErrorCoded(
+          'Relative vocab expansion for term \'def\' with vocab \'\' is not allowed.',
+          ERROR_CODES.INVALID_VOCAB_MAPPING));
       });
 
       it('to return when @vocab is "#" and @base exists if allowVocabRelativeToBase is true', async () => {
@@ -159,8 +163,9 @@ describe('JsonLdContextNormalized', () => {
           allowVocabRelativeToBase: false,
         };
         expect(() => context.expandTerm('def', true,
-          opts)).toThrow(new Error(
-          'Relative vocab expansion for term \'def\' with vocab \'#\' is not allowed.'));
+          opts)).toThrow(new ErrorCoded(
+          'Relative vocab expansion for term \'def\' with vocab \'#\' is not allowed.',
+          ERROR_CODES.INVALID_VOCAB_MAPPING));
       });
 
       it('to return when @vocab is "../#" and @base exists if allowVocabRelativeToBase is true', async () => {
@@ -178,8 +183,9 @@ describe('JsonLdContextNormalized', () => {
           ...defaultExpandOptions,
           allowVocabRelativeToBase: false,
         };
-        expect(() => context.expandTerm('def', true, opts)).toThrow(new Error(
-          'Relative vocab expansion for term \'def\' with vocab \'../#\' is not allowed.'));
+        expect(() => context.expandTerm('def', true, opts)).toThrow(new ErrorCoded(
+          'Relative vocab expansion for term \'def\' with vocab \'../#\' is not allowed.',
+          ERROR_CODES.INVALID_VOCAB_MAPPING));
       });
 
       it('to return when @vocab is absolute and @base exists if allowVocabRelativeToBase is true', async () => {
@@ -563,13 +569,15 @@ describe('JsonLdContextNormalized', () => {
       it('to throw when context alias value is not a string', async () => {
         const context = new JsonLdContextNormalized({ k: { '@id': 3 } });
         expect(() => context.expandTerm('k', true))
-          .toThrow(new Error('Invalid IRI mapping found for context entry \'k\': \'{"@id":3}\''));
+          .toThrow(new ErrorCoded('Invalid IRI mapping found for context entry \'k\': \'{"@id":3}\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
       });
 
       it('to throw when context alias value is not an IRI', async () => {
         const context = new JsonLdContextNormalized({ k: { '@id': 'not an IRI' } });
         expect(() => context.expandTerm('k', true))
-          .toThrow(new Error('Invalid IRI mapping found for context entry \'k\': \'{"@id":"not an IRI"}\''));
+          .toThrow(new ErrorCoded('Invalid IRI mapping found for context entry \'k\': \'{"@id":"not an IRI"}\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
       });
 
       it('to ignore invalid aliases and fallback to vocab', async () => {

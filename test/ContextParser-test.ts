@@ -854,7 +854,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should error on an invalid @version', async () => {
         expect(() => parser.validate(<any> { '@version': true }, parseDefaults))
-          .toThrow(new Error('Found an invalid @version number: true'));
+          .toThrow(new ErrorCoded('Found an invalid @version number: true', ERROR_CODES.INVALID_VERSION_VALUE));
       });
 
       it('should not error on a null @language', async () => {
@@ -942,7 +942,8 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should error on term with @id: @container', async () => {
         expect(() => parser.validate(<any> { term: { '@id': '@container' } }, parseDefaults))
-          .toThrow(new Error('Illegal keyword alias in term value, found: \'term\': \'{"@id":"@container"}\''));
+          .toThrow(new ErrorCoded('Illegal keyword alias in term value, found: \'term\': \'{"@id":"@container"}\'',
+            ERROR_CODES.INVALID_IRI_MAPPING));
       });
 
       it('should not error on term with @id: @type', async () => {
@@ -1094,12 +1095,14 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should error on term with @type: _:bnode', async () => {
         expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': '_:bnode' } }, parseDefaults))
-          .toThrow(new Error('A context @type must be an absolute IRI, found: \'term\': \'_:bnode\''));
+          .toThrow(new ErrorCoded('A context @type must be an absolute IRI, found: \'term\': \'_:bnode\'',
+            ERROR_CODES.INVALID_TYPE_MAPPING));
       });
 
       it('should error on term with @type: invalid-iri', async () => {
         expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': 'invalid-iri' } }, parseDefaults))
-          .toThrow(new Error('A context @type must be an absolute IRI, found: \'term\': \'invalid-iri\''));
+          .toThrow(new ErrorCoded('A context @type must be an absolute IRI, found: \'term\': \'invalid-iri\'',
+            ERROR_CODES.INVALID_TYPE_MAPPING));
       });
 
       it('should not error on term with @reverse: true', async () => {
@@ -1297,19 +1300,22 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should error on a term with @language: 10', async () => {
         expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 10 } }, parseDefaults))
-          .toThrow(new Error('The value of an \'@language\' must be a string, got \'10\''));
+          .toThrow(new ErrorCoded('The value of an \'@language\' must be a string, got \'10\'',
+            ERROR_CODES.INVALID_LANGUAGE_TAGGED_VALUE));
       });
 
       it('should error on a term with @language: en us', async () => {
         expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@language': 'en us' } },
           parseDefaults))
-          .toThrow(new Error('The value of an \'@language\' must be a valid language tag, got \'"en us"\''));
+          .toThrow(new ErrorCoded('The value of an \'@language\' must be a valid language tag, got \'"en us"\'',
+            ERROR_CODES.INVALID_LANGUAGE_TAGGED_VALUE));
       });
 
       it('should error on a term with @direction: abc', async () => {
         expect(() => parser.validate(<any> { term: { '@id': 'http://ex.org/', '@direction': 'abc' } },
           parseDefaults))
-          .toThrow(new Error('The value of an \'@direction\' must be \'ltr\' or \'rtl\', got \'"abc"\''));
+          .toThrow(new ErrorCoded('The value of an \'@direction\' must be \'ltr\' or \'rtl\', got \'"abc"\'',
+            ERROR_CODES.INVALID_BASE_DIRECTION));
       });
 
       it('should error on a term with @prefix: true', async () => {
@@ -1402,7 +1408,8 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
     describe('parse', () => {
       it('should error when parsing a context with an invalid context entry', () => {
         return expect(parser.parse({ '@base': true })).rejects
-          .toEqual(new Error('Found an invalid @base IRI: true'));
+          .toEqual(new ErrorCoded('Found an invalid @base IRI: true',
+            ERROR_CODES.INVALID_BASE_IRI));
       });
 
       it('should parse an object with direct context values', () => {

@@ -356,7 +356,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
           break;
         case 'version':
           if (value !== null && valueType !== 'number') {
-            throw new Error(`Found an invalid @version number: ${value}`);
+            throw new ErrorCoded(`Found an invalid @version number: ${value}`, ERROR_CODES.INVALID_VERSION_VALUE);
           }
           break;
         case 'direction':
