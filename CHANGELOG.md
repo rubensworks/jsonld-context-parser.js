@@ -1,6 +1,20 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.0.0"></a>
+## [v2.0.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.3.4...v2.0.0) - 2020-04-03
+
+### Added
+* Add support for [JSON-LD 1.1](https://www.w3.org/TR/json-ld11/) expansion and compaction features.
+* [Add Error class that exposes standard error codes](https://github.com/rubensworks/jsonld-context-parser.js/commit/a762c550d114ed67119d641235c93d24badadf4d)
+
+### Changed
+* [Make parser object-oriented instead of fully static](https://github.com/rubensworks/jsonld-context-parser.js/commit/c5593680728856c27a874a904a2025061ea3e0ff)
+* [Rename baseIri option to baseIRI](https://github.com/rubensworks/jsonld-context-parser.js/commit/fb516950a5e031299c207d67e2c87809b85e2fe3)
+
+### Fixed
+* [Fix aliasing @graph producing validation errors](https://github.com/rubensworks/jsonld-context-parser.js/commit/eccfc3b55a798e8903ed8520e297399fceb567ab)
+
 <a name="v1.3.4"></a>
 ## [v1.3.4](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.3.3...v1.3.4) - 2019-10-05
 
