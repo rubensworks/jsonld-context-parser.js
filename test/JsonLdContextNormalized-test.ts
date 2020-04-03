@@ -740,8 +740,15 @@ describe('JsonLdContextNormalized', () => {
 
   describe('#compactIri', () => {
     describe('in vocab-mode', () => {
-      it('when no prefix applies', async () => {
+      it('when no prefix applies in an empty context', async () => {
         const context = new JsonLdContextNormalized({});
+        expect(context.compactIri('http://ex.org/abc', true)).toBe('http://ex.org/abc');
+      });
+
+      it('when no prefix applies', async () => {
+        const context = new JsonLdContextNormalized({
+          myterm: 'http://ex2.org/abc',
+        });
         expect(context.compactIri('http://ex.org/abc', true)).toBe('http://ex.org/abc');
       });
 
