@@ -641,7 +641,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
     const remoteContexts = options.remoteContexts || {};
 
     // Avoid remote context overflows
-    if (Object.keys(remoteContexts).length >= this.remoteContextsDepthLimit) { // TODO: test
+    if (Object.keys(remoteContexts).length >= this.remoteContextsDepthLimit) {
       throw new ErrorCoded('Detected an overflow in remote context inclusions: ' + Object.keys(remoteContexts),
         ERROR_CODES.CONTEXT_OVERFLOW);
     }
