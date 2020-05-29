@@ -1031,6 +1031,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           .not.toThrow();
       });
 
+      it('should error on term with @type: array', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': ['ex:a', 'ex:b'] } }, parseDefaults))
+          .toThrow(new ErrorCoded(`The value of an '@type' must be a string, got '"object"'`,
+            ERROR_CODES.INVALID_TYPE_MAPPING));
+      });
+
       it('should not error on term with @type: @id', async () => {
         expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': '@id' } }, parseDefaults))
           .not.toThrow();

@@ -451,6 +451,10 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
                     key}': '${objectValue}'`,
                   ERROR_CODES.INVALID_TYPE_MAPPING);
               }
+              if (typeof objectValue !== 'string') {
+                throw new ErrorCoded(`The value of an '@type' must be a string, got '${JSON.stringify(valueType)}'`,
+                  ERROR_CODES.INVALID_TYPE_MAPPING);
+              }
               if (objectValue !== '@id' && objectValue !== '@vocab'
                 && (processingMode === 1.0 || objectValue !== '@json')
                 && (processingMode === 1.0 || objectValue !== '@none')
