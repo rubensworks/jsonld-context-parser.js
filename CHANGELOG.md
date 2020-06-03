@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.0.1"></a>
+## [v2.0.1](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.0.0...v2.0.1) - 2020-06-03
+
+### Fixed
+* [Fix contexts behind alternate links not being detected](https://github.com/rubensworks/jsonld-context-parser.js/commit/eeb2e05eacabb21dc4962de3377ed6f52e3faeab)
+* [Throw error on invalid @type value in context](https://github.com/rubensworks/jsonld-context-parser.js/commit/bca3cb5512d321daa7a854ed57a68501f45b5fed)
+
 <a name="v2.0.0"></a>
 ## [v2.0.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v1.3.4...v2.0.0) - 2020-04-03
 
