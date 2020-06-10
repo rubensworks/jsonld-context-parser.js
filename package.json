@@ -36,7 +36,7 @@
     "jsonld-context-parse": "bin/jsonld-context-parse.js"
   },
   "devDependencies": {
-    "@types/jest": "^25.1.0",
+    "@types/jest": "^26.0.0",
     "coveralls": "^3.0.0",
     "jest": "^26.0.0",
     "manual-git-changelog": "^1.0.0",
