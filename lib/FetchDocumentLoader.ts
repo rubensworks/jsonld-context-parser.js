@@ -10,14 +10,14 @@ import {resolve} from "relative-to-absolute-iri";
  */
 export class FetchDocumentLoader implements IDocumentLoader {
 
-  private readonly fetcher: (url: string, init: RequestInit) => Promise<Response>;
+  private readonly fetcher?: (url: string, init: RequestInit) => Promise<Response>;
 
   constructor(fetcher?: (url: string, init: RequestInit) => Promise<Response>) {
-    this.fetcher = fetcher || fetch;
+    this.fetcher = fetcher;
   }
 
   public async load(url: string): Promise<IJsonLdContext> {
-    const response: Response = await this.fetcher(url, { headers: new Headers({ accept: 'application/ld+json' }) });
+    const response: Response = await (this.fetcher || fetch)(url, { headers: new Headers({ accept: 'application/ld+json' }) });
     if (response.ok && response.headers) {
       const mediaType = response.headers.get('Content-Type');
       if (mediaType === 'application/ld+json') {
