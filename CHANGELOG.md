@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.0.2"></a>
+## [v2.0.2](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.0.1...v2.0.2) - 2020-07-09
+
+### Fixed
+* [Fix false negative on charset in content type](https://github.com/rubensworks/jsonld-context-parser.js/commit/5dd54eaeff5df7e595b221d8af0ad3fa0e09e49e)
+* [Fix fetcher breaking in browser environments](https://github.com/rubensworks/jsonld-context-parser.js/commit/ab8b446b81d6d2dfb6be15dfcfa662e23277d216)
+
 <a name="v2.0.1"></a>
 ## [v2.0.1](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.0.0...v2.0.1) - 2020-06-03
 
