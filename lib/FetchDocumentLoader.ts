@@ -19,7 +19,13 @@ export class FetchDocumentLoader implements IDocumentLoader {
   public async load(url: string): Promise<IJsonLdContext> {
     const response: Response = await (this.fetcher || fetch)(url, { headers: new Headers({ accept: 'application/ld+json' }) });
     if (response.ok && response.headers) {
-      const mediaType = response.headers.get('Content-Type');
+      let mediaType = response.headers.get('Content-Type');
+      if (mediaType) {
+        const colonPos = mediaType.indexOf(';');
+        if (colonPos > 0) {
+          mediaType = mediaType.substr(0, colonPos);
+        }
+      }
       if (mediaType === 'application/ld+json') {
         // Return JSON-LD if proper content type was returned
         return (await response.json());

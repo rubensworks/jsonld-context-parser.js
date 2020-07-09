@@ -2,7 +2,13 @@
 global.fetch = jest.fn().mockImplementation((url) => {
   let data;
   const filePath = url.replace('http://example.org/', __dirname + '/test/http/');
-  const headers = { 'Content-Type': 'application/ld+json' };
+  let headers = { 'Content-Type': 'application/ld+json' };
+  if (filePath.indexOf('nocontenttype') >= 0) {
+    headers = {};
+  }
+  if (filePath.indexOf('charset') >= 0) {
+    headers = { 'Content-Type': 'application/ld+json; charset=utf-8' };
+  }
   try {
     data = JSON.parse(require('fs').readFileSync(filePath, 'utf8'));
   } catch (e) {

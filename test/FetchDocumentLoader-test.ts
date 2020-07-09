@@ -12,6 +12,20 @@ describe('FetchDocumentLoader', () => {
     });
   });
 
+  it('should fetch a valid source with charset in context type', () => {
+    return expect(loader.load('http://example.org/charset.jsonld')).resolves.toEqual({
+      '@context': {
+        name: "http://xmlns.com/foaf/0.1/name",
+        xsd: "http://www.w3.org/2001/XMLSchema#",
+      },
+    });
+  });
+
+  it('should fail to fetch a source without content type', () => {
+    return expect(loader.load('http://example.org/nocontenttype.jsonld')).rejects
+        .toThrow(new Error('Unsupported JSON-LD media type null'));
+  });
+
   it('should fail to fetch an invalid source', () => {
     return expect(loader.load('http://example.org/invalid.jsonld')).rejects
       .toThrow(new Error('FAIL (setupJest.js)'));
