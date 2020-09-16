@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.1.0"></a>
+## [v2.1.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.0.2...v2.1.0) - 2020-09-16
+
+### Changed
+* [Migrate to cross-fetch](https://github.com/rubensworks/jsonld-context-parser.js/commit/9b3e9c12a2292e2aeed58965df8485c478a7366f)
+
 <a name="v2.0.2"></a>
 ## [v2.0.2](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.0.1...v2.0.2) - 2020-07-09
 
