@@ -22,6 +22,7 @@ export class ContextParser {
   private readonly validateContext: boolean;
   private readonly expandContentTypeToBase: boolean;
   private readonly remoteContextsDepthLimit: number;
+  private readonly redirectSchemaOrgHttps: boolean;
 
   constructor(options?: IContextParserOptions) {
     options = options || {};
@@ -30,6 +31,7 @@ export class ContextParser {
     this.validateContext = !options.skipValidation;
     this.expandContentTypeToBase = !!options.expandContentTypeToBase;
     this.remoteContextsDepthLimit = options.remoteContextsDepthLimit || 32;
+    this.redirectSchemaOrgHttps = 'redirectSchemaOrgHttps' in options ? !!options.redirectSchemaOrgHttps : true;
   }
 
   /**
@@ -581,6 +583,12 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
         throw new Error(`Invalid context IRI: ${contextIri}`);
       }
     }
+
+    // TODO: Temporary workaround for fixing schema.org CORS issues (https://github.com/schemaorg/schemaorg/issues/2578#issuecomment-652324465)
+    if (this.redirectSchemaOrgHttps && contextIri.startsWith('http://schema.org')) {
+      contextIri = 'https://schema.org/';
+    }
+
     return contextIri;
   }
 
@@ -892,6 +900,13 @@ export interface IContextParserOptions {
    * Defaults to 32.
    */
   remoteContextsDepthLimit?: number;
+  /**
+   * If http-based schema.org contexts should internally be redirected to https.
+   * WARNING: this option is a temporary workaround for https://github.com/schemaorg/schemaorg/issues/2578#issuecomment-652324465
+   * and will be removed once that issue is fixed.
+   * Defaults to true.
+   */
+  redirectSchemaOrgHttps?: boolean;
 }
 
 export interface IParseOptions {

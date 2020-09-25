@@ -8,6 +8,34 @@ import {
 } from "../index";
 
 describe('ContextParser', () => {
+  describe('normalizeContextIri', () => {
+    it('should redirect schema.org contexts to https by default', () => {
+      expect(new ContextParser().normalizeContextIri('http://schema.org'))
+        .toEqual('https://schema.org/');
+      expect(new ContextParser().normalizeContextIri('http://schema.org/'))
+        .toEqual('https://schema.org/');
+    });
+
+    it('should redirect schema.org contexts to https if redirectSchemaOrgHttps is true', () => {
+      expect(new ContextParser({ redirectSchemaOrgHttps: true }).normalizeContextIri('http://schema.org'))
+        .toEqual('https://schema.org/');
+      expect(new ContextParser({ redirectSchemaOrgHttps: true }).normalizeContextIri('http://schema.org/'))
+        .toEqual('https://schema.org/');
+    });
+
+    it('should not redirect schema.org contexts to https if redirectSchemaOrgHttps is false', () => {
+      expect(new ContextParser({ redirectSchemaOrgHttps: false }).normalizeContextIri('http://schema.org'))
+        .toEqual('http://schema.org');
+      expect(new ContextParser({ redirectSchemaOrgHttps: false }).normalizeContextIri('http://schema.org/'))
+        .toEqual('http://schema.org/');
+    });
+
+    it('should not change other URLS', () => {
+      expect(new ContextParser().normalizeContextIri('http://example.org/'))
+        .toEqual('http://example.org/');
+    });
+  });
+
   describe('validateLanguage', () => {
     describe('with strictRange', () => {
       it('should pass on valid languages', () => {
