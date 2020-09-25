@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.1.1"></a>
+## [v2.1.1](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.1.0...v2.1.1) - 2020-09-25
+
+### Fixed
+* [Add workaround for failing http-based schema.org requests in browsers](https://github.com/rubensworks/jsonld-context-parser.js/commit/4498d97b00226a5e484b3bcf5cae62c85ffb0900)
+
 <a name="v2.1.0"></a>
 ## [v2.1.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.0.2...v2.1.0) - 2020-09-16
 
