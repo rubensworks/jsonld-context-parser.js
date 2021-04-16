@@ -29,7 +29,7 @@ case 'url':
   break;
 case 'file':
   input = JSON.parse(readFileSync(argv[1], 'utf8'));
-  baseIRI = argv[1];
+  baseIRI = 'file://' + argv[1];
   break;
 case 'arg':
   input = JSON.parse(argv[1]);
