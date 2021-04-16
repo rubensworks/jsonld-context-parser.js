@@ -1,6 +1,19 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.1.2"></a>
+## [v2.1.2](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.1.1...v2.1.2) - 2021-04-16
+
+### Changed
+* [Set compilation target to es2017](https://github.com/rubensworks/jsonld-context-parser.js/commit/461c626e19f2bb3afdb50c12f1bb4b2501d608b8)
+* [Don't deepcopy parentContext on minimal processing for better perf](https://github.com/rubensworks/jsonld-context-parser.js/commit/d476b59eda1bee6501fc648afd667b6f50e6a53d)
+* [Improve performance for many scoped contexts, Closes #34](https://github.com/rubensworks/jsonld-context-parser.js/commit/e1cd29bbc3a2137cf19bb64bf1229ff675d798ca)
+
+### Fixed
+* [Fix invalid baseIRI when parsing file via CLI](https://github.com/rubensworks/jsonld-context-parser.js/commit/793bd526392d31549570c7aec711c5f5816a24bb)
+* [Fix crash when parent context is a string](https://github.com/rubensworks/jsonld-context-parser.js/commit/b87b317f2d01cfc913d44b8f612b77323621954a)
+* [Fix base failure on complex nested scoped contexts, Closes #35](https://github.com/rubensworks/jsonld-context-parser.js/commit/7f9095080627656df07c317ed7b699239b7114d9)
+
 <a name="v2.1.1"></a>
 ## [v2.1.1](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.1.0...v2.1.1) - 2020-09-25
 
