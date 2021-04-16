@@ -770,7 +770,12 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       }
 
       // Merge different parts of the final context in order
-      newContext = { ...newContext, ...parentContext, ...importContext, ...context };
+      newContext = {
+        ...newContext,
+        ...(typeof parentContext === 'object' ? parentContext : {}),
+        ...importContext,
+        ...context,
+      };
       const newContextWrapped = new JsonLdContextNormalized(newContext);
 
       // Parse inner contexts with minimal processing
