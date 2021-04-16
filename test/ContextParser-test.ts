@@ -2970,6 +2970,93 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           'prop': { '@id': 'http://vocab.org/prop' },
         }));
       });
+
+      it('should handle array-based inner contexts', () => {
+        return expect(parser.parse({
+          'Foo': {
+            '@context': [
+              'http://example.org/simple.jsonld',
+              {
+                'id': null,
+                'type': null
+              }
+            ],
+            '@id': 'http://ex.org/Foo',
+          },
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
+          'Foo': {
+            '@context': [
+              {
+                'name': 'http://xmlns.com/foaf/0.1/name',
+                'xsd': 'http://www.w3.org/2001/XMLSchema#',
+              },
+              {
+                'id': null,
+                'type': null
+              }
+            ],
+            '@id': 'http://ex.org/Foo',
+          },
+        }));
+      });
+
+      it('should handle nested array-based inner contexts', () => {
+        return expect(parser.parse({
+          'service': {
+            '@type': '@id',
+            '@id': 'ex:service',
+            '@context': {
+              'Foo1': {
+                '@id': 'ex:Foo1',
+                '@context': [
+                  'http://example.org/simple.jsonld',
+                  {
+                    'id': null,
+                    'type': null
+                  }
+                ],
+              },
+              'Foo2': {
+                '@id': 'ex:Foo2',
+                '@context': [
+                  'http://example.org/simple.jsonld',
+                  {
+                    'id': null,
+                    'type': null
+                  }
+                ],
+              },
+            },
+          },
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
+          'service': {
+            '@type': '@id',
+            '@id': 'ex:service',
+            '@context': {
+              'Foo1': {
+                '@id': 'ex:Foo1',
+                '@context': [
+                  'http://example.org/simple.jsonld',
+                  {
+                    'id': null,
+                    'type': null
+                  }
+                ],
+              },
+              'Foo2': {
+                '@id': 'ex:Foo2',
+                '@context': [
+                  'http://example.org/simple.jsonld',
+                  {
+                    'id': null,
+                    'type': null
+                  }
+                ],
+              },
+            },
+          },
+        }));
+      });
     });
 
     describe('for contexts with @import', () => {

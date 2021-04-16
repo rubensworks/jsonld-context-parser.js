@@ -547,7 +547,8 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
     }
 
     // Give priority to @base in the parent context
-    if (inheritFromParent && !('@base' in context) && options.parentContext && '@base' in options.parentContext) {
+    if (inheritFromParent && !('@base' in context) && options.parentContext
+      && typeof options.parentContext === 'object' && '@base' in options.parentContext) {
       context['@base'] = options.parentContext['@base'];
       if (options.parentContext['@__baseDocument']) {
         context['@__baseDocument'] = true;
