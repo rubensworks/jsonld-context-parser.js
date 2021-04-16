@@ -2827,7 +2827,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             '@id': 'ex:t1',
           },
         }, { processingMode: 1.1 })).rejects.toThrow(new ErrorCoded(
-          'Missing @id in context entry: \'t2\': \'{}\'',
+          'Missing @id in context entry: \'t2\': \'{"@context":{"type":null}}\'',
           ERROR_CODES.INVALID_SCOPED_CONTEXT));
       });
 

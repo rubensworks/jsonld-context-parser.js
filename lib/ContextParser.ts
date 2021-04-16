@@ -604,7 +604,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
     for (const key of Object.keys(context)) {
       const value = context[key];
       if (value && typeof value === 'object') {
-        if ('@context' in value && value['@context'] !== null) {
+        if ('@context' in value && value['@context'] !== null && !options.ignoreScopedContexts) {
           // Simulate a processing based on the parent context to check if there are any (potential errors).
           // Honestly, I find it a bit weird to do this here, as the context may be unused,
           // and the final effective context may differ based on any other embedded/scoped contexts.
@@ -616,7 +616,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
               parentContext[key] = {...parentContext[key]};
               delete parentContext[key]['@context'];
               await this.parse(value['@context'],
-                { ...options, parentContext, ignoreProtection: true, ignoreRemoteScopedContexts: true });
+                { ...options, parentContext, ignoreProtection: true, ignoreRemoteScopedContexts: true, ignoreScopedContexts: true });
             } catch (e) {
               throw new ErrorCoded(e.message, ERROR_CODES.INVALID_SCOPED_CONTEXT);
             }
@@ -963,6 +963,12 @@ export interface IParseOptions {
    * This is used to avoid stack overflows on cyclic context references.
    */
   remoteContexts?: {[url: string]: boolean};
+  /**
+   * If further processing of scoped contexts should be skipped.
+   *
+   * This is done to avoid combinatorial explosions when handling a scoped context if there are many scoped contexts.
+   */
+  ignoreScopedContexts?: boolean;
 }
 
 export interface IExpandOptions {
