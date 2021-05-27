@@ -1596,7 +1596,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should fail to parse a relative context URL without baseIRI', () => {
         return expect(parser.parse('simple.jsonld')).rejects
-          .toThrow(new Error('Found invalid relative IRI \'simple.jsonld\' for a missing baseIRI'));
+          .toThrow(new Error('Invalid context IRI: simple.jsonld'));
       });
 
       it('should parse and ignore the @base IRI', () => {

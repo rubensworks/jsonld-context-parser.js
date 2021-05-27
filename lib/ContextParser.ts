@@ -579,8 +579,9 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    */
   public normalizeContextIri(contextIri: string, baseIRI?: string) {
     if (!Util.isValidIri(contextIri)) {
-      contextIri = resolve(contextIri, baseIRI);
-      if (!Util.isValidIri(contextIri)) {
+      try {
+        contextIri = resolve(contextIri, baseIRI);
+      } catch {
         throw new Error(`Invalid context IRI: ${contextIri}`);
       }
     }
