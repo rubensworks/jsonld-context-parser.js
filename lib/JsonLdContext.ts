@@ -3,8 +3,8 @@
 export type JsonLdContext = IJsonLdContext | string | (IJsonLdContext | string)[];
 
 export interface IJsonLdContext {
-  '@base'?: Uri;            // 1.0; https://json-ld.org/spec/latest/json-ld/#base-iri
-  '@vocab'?: Uri;           // 1.0; https://json-ld.org/spec/latest/json-ld/#default-vocabulary
+  '@base'?: Uri | null;     // 1.0; https://json-ld.org/spec/latest/json-ld/#base-iri
+  '@vocab'?: Uri | null;    // 1.0; https://json-ld.org/spec/latest/json-ld/#default-vocabulary
   '@language'?: Language;   // 1.0; https://json-ld.org/spec/latest/json-ld/#string-internationalization
   [id: string]: any;
   // We can not define the following entries here due to TS restrictions
@@ -14,8 +14,8 @@ export interface IJsonLdContext {
 }
 
 export interface IJsonLdContextNormalizedRaw {
-  '@base'?: Uri;            // 1.0; https://json-ld.org/spec/latest/json-ld/#base-iri
-  '@vocab'?: Uri;           // 1.0; https://json-ld.org/spec/latest/json-ld/#default-vocabulary
+  '@base'?: Uri | null;     // 1.0; https://json-ld.org/spec/latest/json-ld/#base-iri
+  '@vocab'?: Uri | null;    // 1.0; https://json-ld.org/spec/latest/json-ld/#default-vocabulary
   '@language'?: Language;   // 1.0; https://json-ld.org/spec/latest/json-ld/#string-internationalization
   [id: string]: any;
   // We can not define the following entries here due to TS restrictions

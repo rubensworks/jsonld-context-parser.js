@@ -192,8 +192,8 @@ export class Util {
    * @param {string} iri A potential IRI.
    * @return {boolean} If the given IRI is valid.
    */
-  public static isValidIri(iri: string): boolean {
-    return Util.IRI_REGEX.test(iri);
+  public static isValidIri(iri: string | null): boolean {
+    return Boolean(iri && Util.IRI_REGEX.test(iri));
   }
 
   /**
@@ -201,7 +201,7 @@ export class Util {
    * @param {string} iri A potential IRI.
    * @return {boolean} If the given IRI is valid.
    */
-  public static isValidIriWeak(iri: string): boolean {
+  public static isValidIriWeak(iri: string | null): boolean {
     return !!iri && iri[0] !== ':' && Util.IRI_REGEX_WEAK.test(iri);
   }
 

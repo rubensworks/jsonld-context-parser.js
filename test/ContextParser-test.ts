@@ -115,7 +115,7 @@ describe('ContextParser', () => {
   });
 
   describe('when instantiated without options', () => {
-    let parser;
+    let parser: any;
 
     beforeEach(() => {
       parser = new ContextParser();
@@ -127,7 +127,7 @@ describe('ContextParser', () => {
   });
 
   describe('when instantiated with empty options', () => {
-    let parser;
+    let parser: any;
 
     beforeEach(() => {
       parser = new ContextParser({});
@@ -139,7 +139,7 @@ describe('ContextParser', () => {
   });
 
   describe('when instantiated with skipValidation = true', () => {
-    let parser;
+    let parser: any;
 
     beforeEach(() => {
       parser = new ContextParser({ skipValidation: true });
@@ -152,8 +152,8 @@ describe('ContextParser', () => {
   });
 
   describe('when instantiated with options and a document loader', () => {
-    let documentLoader;
-    let parser;
+    let documentLoader: any;
+    let parser: any;
 
     beforeEach(() => {
       documentLoader = new FetchDocumentLoader();
@@ -1596,7 +1596,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       it('should fail to parse a relative context URL without baseIRI', () => {
         return expect(parser.parse('simple.jsonld')).rejects
-          .toThrow(new Error('Invalid context IRI: simple.jsonld'));
+          .toThrow(new Error('Found invalid relative IRI \'simple.jsonld\' for a missing baseIRI'));
       });
 
       it('should parse and ignore the @base IRI', () => {

@@ -70,9 +70,9 @@ export class JsonLdContextNormalized {
 
     // Check if the term is prefixed
     const prefix: string | null = Util.getPrefix(term, this.contextRaw);
-    const vocab: string | undefined = this.contextRaw['@vocab'];
+    const vocab: string | undefined | null = this.contextRaw['@vocab'];
     const vocabRelative: boolean = (!!vocab || vocab === '') && vocab.indexOf(':') < 0;
-    const base: string | undefined = this.contextRaw['@base'];
+    const base: string | undefined | null = this.contextRaw['@base'];
     const potentialKeyword = Util.isPotentialKeyword(term);
     if (prefix) {
       const contextPrefixValue = this.contextRaw[prefix];
@@ -101,7 +101,7 @@ export class JsonLdContextNormalized {
       && !potentialKeyword && !Util.isCompactIri(term)) {
       if (vocabRelative) {
         if (options.allowVocabRelativeToBase) {
-          return resolve(<string> vocab, base) + term;
+          return ((vocab || base) ? resolve(<string> vocab, <any> base) : '') + term;
         } else {
           throw new ErrorCoded(`Relative vocab expansion for term '${term}' with vocab '${
             vocab}' is not allowed.`, ERROR_CODES.INVALID_VOCAB_MAPPING);
