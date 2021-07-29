@@ -2539,6 +2539,60 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           },
         }));
       });
+
+      it('should parse protected terms that are expanded vs compact', async() => {
+        await expect(parser.parse({
+          "@protected": true,
+          "foo": "http://ex.org/foo",
+          "Type": {
+            "@id": "http://ex.org/Type",
+            "@context": {
+              "ex": "http://ex.org/",
+              "foo": "ex:foo"
+            }
+          },
+        }, { processingMode: 1.1, baseIRI: 'http://base.org/' })).resolves.toEqual(new JsonLdContextNormalized({
+          '@__baseDocument': true,
+          "@base": "http://base.org/",
+          "foo": {
+            "@id": "http://ex.org/foo",
+            "@protected": true
+          },
+          "Type": {
+            "@id": "http://ex.org/Type",
+            "@protected": true,
+            "@context": {
+              '@__baseDocument': true,
+              "@base": "http://base.org/",
+              "ex": "http://ex.org/",
+              "foo": "ex:foo"
+            }
+          },
+        }));
+
+        await expect(parser.parse([
+          {
+            "@protected": true,
+            "foo": "http://ex.org/foo",
+          },
+          {
+            "@protected": true,
+            "ex": "http://ex.org/",
+            "foo": "ex:foo"
+          }
+        ], { processingMode: 1.1, baseIRI: 'http://base.org/' })).resolves.toEqual(new JsonLdContextNormalized({
+          '@__baseDocument': true,
+          "@base": "http://base.org/",
+          "ex": {
+            "@id": "http://ex.org/",
+            "@protected": true
+          },
+          "foo": {
+            "@id": "http://ex.org/foo",
+            "@protected": true
+          },
+        }));
+      });
     });
 
     it('should parse a complex context', () => {

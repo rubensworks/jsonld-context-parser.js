@@ -782,11 +782,6 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       // Parse inner contexts with minimal processing
       await this.parseInnerContexts(newContext, options);
 
-      // In JSON-LD 1.1, check if we are not redefining any protected keywords
-      if (!ignoreProtection && parentContext && processingMode && processingMode >= 1.1) {
-        this.validateKeywordRedefinitions(parentContext, newContext, defaultExpandOptions);
-      }
-
       // In JSON-LD 1.1, @vocab can be relative to @vocab in the parent context.
       if ((newContext && newContext['@version'] || processingMode || ContextParser.DEFAULT_PROCESSING_MODE) >= 1.1
         && ((context['@vocab'] && typeof context['@vocab'] === 'string') || context['@vocab'] === '')
@@ -794,8 +789,15 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
         newContext['@vocab'] = parentContext['@vocab'] + context['@vocab'];
       }
 
+      // Handle terms (before protection checks)
       this.idifyReverseTerms(newContext);
       this.expandPrefixedTerms(newContextWrapped, this.expandContentTypeToBase);
+
+      // In JSON-LD 1.1, check if we are not redefining any protected keywords
+      if (!ignoreProtection && parentContext && processingMode && processingMode >= 1.1) {
+        this.validateKeywordRedefinitions(parentContext, newContext, defaultExpandOptions);
+      }
+
       this.normalize(newContext, { processingMode, normalizeLanguageTags });
       this.applyScopedProtected(newContext, { processingMode });
       if (this.validateContext) {
