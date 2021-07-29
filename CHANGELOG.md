@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.1.3"></a>
+## [v2.1.3](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.1.2...v2.1.3) - 2021-07-29
+
+### Fixed
+* [Fix protection checks not handling compact vs expanded terms](https://github.com/rubensworks/jsonld-context-parser.js/commit/ceec47ddce7ff2a61ce0e1727b5238815a59e52a)
+
 <a name="v2.1.2"></a>
 ## [v2.1.2](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.1.1...v2.1.2) - 2021-04-16
 
