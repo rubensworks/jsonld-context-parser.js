@@ -639,14 +639,12 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    * @return {Promise<JsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
-                     options: IParseOptions = {
-                       processingMode: ContextParser.DEFAULT_PROCESSING_MODE,
-                     }): Promise<JsonLdContextNormalized> {
+                     options: IParseOptions = {}): Promise<JsonLdContextNormalized> {
     const {
       baseIRI,
       parentContext: parentContextInitial,
       external,
-      processingMode,
+      processingMode = ContextParser.DEFAULT_PROCESSING_MODE,
       normalizeLanguageTags,
       ignoreProtection,
       minimalProcessing,
@@ -754,7 +752,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       // In JSON-LD 1.1, load @import'ed context prior to processing.
       let importContext = {};
       if ('@import' in context) {
-        if (processingMode && processingMode >= 1.1) {
+        if (processingMode >= 1.1) {
           // Only accept string values
           if (typeof context['@import'] !== 'string') {
             throw new ErrorCoded('An @import value must be a string, but got ' + typeof context['@import'],
@@ -783,7 +781,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       await this.parseInnerContexts(newContext, options);
 
       // In JSON-LD 1.1, @vocab can be relative to @vocab in the parent context.
-      if ((newContext && newContext['@version'] || processingMode || ContextParser.DEFAULT_PROCESSING_MODE) >= 1.1
+      if ((newContext && newContext['@version'] || ContextParser.DEFAULT_PROCESSING_MODE) >= 1.1
         && ((context['@vocab'] && typeof context['@vocab'] === 'string') || context['@vocab'] === '')
         && context['@vocab'].indexOf(':') < 0 && parentContext && '@vocab' in parentContext) {
         newContext['@vocab'] = parentContext['@vocab'] + context['@vocab'];
@@ -794,7 +792,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       this.expandPrefixedTerms(newContextWrapped, this.expandContentTypeToBase);
 
       // In JSON-LD 1.1, check if we are not redefining any protected keywords
-      if (!ignoreProtection && parentContext && processingMode && processingMode >= 1.1) {
+      if (!ignoreProtection && parentContext && processingMode >= 1.1) {
         this.validateKeywordRedefinitions(parentContext, newContext, defaultExpandOptions);
       }
 
