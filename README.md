@@ -1,6 +1,6 @@
 # JSON-LD Context Parser
 
-[![Build Status](https://travis-ci.org/rubensworks/jsonld-context-parser.js.svg?branch=master)](https://travis-ci.org/rubensworks/jsonld-context-parser.js)
+[![Build status](https://github.com/rubensworks/jsonld-context-parser.js/workflows/CI/badge.svg)](https://github.com/rubensworks/jsonld-context-parser.js/actions?query=workflow%3ACI)
 [![Coverage Status](https://coveralls.io/repos/github/rubensworks/jsonld-context-parser.js/badge.svg?branch=master)](https://coveralls.io/github/rubensworks/jsonld-context-parser.js?branch=master)
 [![npm version](https://badge.fury.io/js/jsonld-context-parser.svg)](https://www.npmjs.com/package/jsonld-context-parser)
 
