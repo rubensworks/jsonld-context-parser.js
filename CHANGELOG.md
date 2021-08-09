@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.1.4"></a>
+## [v2.1.4](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.1.3...v2.1.4) - 2021-08-09
+
+### Fixed
+* [Fix default value for processing mode if options are present (#39)](https://github.com/rubensworks/jsonld-context-parser.js/commit/aaf926bfc4975cdfac02dcff5966a1c27994dc59)
+
 <a name="v2.1.3"></a>
 ## [v2.1.3](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.1.2...v2.1.3) - 2021-07-29
 
