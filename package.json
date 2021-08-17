@@ -1,6 +1,6 @@
 {
   "name": "jsonld-context-parser",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "Parses JSON-LD contexts",
   "keywords": [
     "json",

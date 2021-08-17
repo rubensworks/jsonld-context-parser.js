@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.1.5"></a>
+## [v2.1.5](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.1.4...v2.1.5) - 2021-08-17
+
+### Fixed
+* [Fix containers handling for imported contexts, Closes #40](https://github.com/rubensworks/jsonld-context-parser.js/commit/f8e06978e4d46dd479911352ef773b548ac9b7a6)
+
 <a name="v2.1.4"></a>
 ## [v2.1.4](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.1.3...v2.1.4) - 2021-08-09
 
