@@ -3181,6 +3181,20 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
         }, { processingMode: 1.0 })).rejects.toThrow(new ErrorCoded('Context importing is not supported in JSON-LD 1.0',
           ERROR_CODES.INVALID_CONTEXT_ENTRY));
       });
+
+      it('should convert containers to hash values after loading context', async () => {
+        const parsed = await parser.loadImportContext('http://example.org/simple_with_container.jsonld');
+
+        expect(parsed).toEqual({
+          rdfs: "https://www.w3.org/2000/01/rdf-schema#",
+          label: {
+            "@id": "rdfs:label",
+            "@container": {
+              "@language": true,
+            },
+          },
+        });
+      });
     });
 
   });
