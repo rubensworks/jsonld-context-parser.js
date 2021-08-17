@@ -880,6 +880,9 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
         ERROR_CODES.INVALID_CONTEXT_ENTRY);
     }
 
+    // Containers have to be converted into hash values the same way as for the importing context
+    // Otherwise context validation will fail for container values
+    this.containersToHash(importContext);
     return importContext;
   }
 
