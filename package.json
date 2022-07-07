@@ -36,12 +36,12 @@
     "jsonld-context-parse": "bin/jsonld-context-parse.js"
   },
   "devDependencies": {
-    "@types/jest": "^27.0.0",
+    "@types/jest": "^28.0.0",
     "coveralls": "^3.0.0",
-    "jest": "^27.0.1",
+    "jest": "^28.0.1",
     "manual-git-changelog": "^1.0.0",
     "pre-commit": "^1.2.2",
-    "ts-jest": "^27.0.1",
+    "ts-jest": "^28.0.1",
     "tslint": "^6.0.0",
     "tslint-eslint-rules": "^5.3.1",
     "typescript": "^4.0.0"
@@ -49,7 +49,7 @@
   "jest": {
     "globals": {
       "ts-jest": {
-        "tsConfig": "test/tsconfig.json"
+        "tsconfig": "test/tsconfig.json"
       }
     },
     "setupFiles": [
@@ -78,10 +78,10 @@
   },
   "dependencies": {
     "@types/http-link-header": "^1.0.1",
-    "@types/node": "^14.0.0",
+    "@types/node": "^18.0.0",
     "canonicalize": "^1.0.1",
-    "http-link-header": "^1.0.2",
     "cross-fetch": "^3.0.6",
+    "http-link-header": "^1.0.2",
     "relative-to-absolute-iri": "^1.0.5"
   }
 }

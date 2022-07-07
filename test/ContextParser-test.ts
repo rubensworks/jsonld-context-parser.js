@@ -1,6 +1,5 @@
 import {
   ContextParser,
-  defaultExpandOptions,
   ERROR_CODES,
   ErrorCoded,
   FetchDocumentLoader,
