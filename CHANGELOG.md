@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.2.0"></a>
+## [v2.2.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.1.5...v2.2.0) - 2022-07-14
+
+### Changed
+* [Enables tree shaking in package.json](https://github.com/rubensworks/jsonld-context-parser.js/commit/75c223651fd436a0a672e2b887fc5e6fcb801cef)
+
 <a name="v2.1.5"></a>
 ## [v2.1.5](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.1.4...v2.1.5) - 2021-08-17
 
