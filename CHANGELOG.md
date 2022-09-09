@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.2.1"></a>
+## [v2.2.1](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.2.0...v2.2.1) - 2022-09-09
+
+### Fixed
+* [Fix `@base` not resolving in nested inner contexts](https://github.com/rubensworks/jsonld-context-parser.js/commit/db15734a81bcffbf7411aebef937723615f0e960)
+
 <a name="v2.2.0"></a>
 ## [v2.2.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.1.5...v2.2.0) - 2022-07-14
 
