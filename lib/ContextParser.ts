@@ -617,8 +617,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
               parentContext[key] = {...parentContext[key]};
               delete parentContext[key]['@context'];
               await this.parse(value['@context'],
-                { ...options, external: false, parentContext, ignoreProtection: true, ignoreRemoteScopedContexts: true, 
-                  ignoreScopedContexts: true });
+                { ...options, external: false, parentContext, ignoreProtection: true, ignoreRemoteScopedContexts: true, ignoreScopedContexts: true });
             } catch (e) {
               throw new ErrorCoded(e.message, ERROR_CODES.INVALID_SCOPED_CONTEXT);
             }

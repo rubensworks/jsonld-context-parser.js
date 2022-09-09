@@ -1688,6 +1688,8 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           .resolves.toEqual(new JsonLdContextNormalized({
             prop: {
               '@context': {
+                "@__baseDocument": true,
+                "@base": "http://example.org/remote_cyclic_scoped_indirect_1.jsonld",
                 prop: {
                   '@context': 'http://example.org/remote_cyclic_scoped_indirect_1.jsonld',
                   '@id': 'ex:prop',
@@ -1927,6 +1929,8 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           .resolves.toEqual(new JsonLdContextNormalized({
             prop: {
               '@context': {
+                "@__baseDocument": true,
+                "@base": "http://example.org/remote_cyclic_scoped_indirect_1.jsonld",
                 prop: {
                   '@context': 'http://example.org/remote_cyclic_scoped_indirect_1.jsonld',
                   '@id': 'ex:prop',
