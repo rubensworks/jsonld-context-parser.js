@@ -1058,6 +1058,11 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           .not.toThrow();
       });
 
+      it('should not error on term with @id: @nest', async () => {
+        expect(() => parser.validate(<any> { term: { '@id': '@nest' } }, parseDefaults))
+          .not.toThrow();
+      });
+
       it('should error on term with @type: array', async () => {
         expect(() => parser.validate(<any> { term: { '@id': '@id', '@type': ['ex:a', 'ex:b'] } }, parseDefaults))
           .toThrow(new ErrorCoded(`The value of an '@type' must be a string, got '"object"'`,
