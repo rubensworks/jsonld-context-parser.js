@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.2.3"></a>
+## [v2.2.3](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.2.2...v2.2.3) - 2023-01-06
+
+### Fixed
+* [Fix error on @id: @nest](https://github.com/rubensworks/jsonld-context-parser.js/commit/7c939c43eb007264d66e51038786b880d5d10e25)
+* [Fix handling of prefixed @vocab](https://github.com/rubensworks/jsonld-context-parser.js/commit/db7d9a2d1c15f424fb64f564cfc152f337149679)
+
 <a name="v2.2.2"></a>
 ## [v2.2.2](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.2.1...v2.2.2) - 2022-11-09
 
