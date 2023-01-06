@@ -2043,6 +2043,36 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           }));
       });
 
+      it('should parse compact @vocab in 1.1', () => {
+        return expect(parser.parse({ '@vocab': 'ex:vocab/', '@version': 1.1, ex: {
+          '@id': 'http://example.org/',
+          '@prefix': true
+        }}, {}))
+          .resolves.toEqual(new JsonLdContextNormalized({
+            '@version': 1.1,
+            '@vocab': 'http://example.org/vocab/',
+            ex: {
+              '@id': 'http://example.org/',
+              '@prefix': true
+            },
+          }));
+      });
+
+      it('should parse compact @vocab in 1.1 that equals a prefix', () => {
+        return expect(parser.parse({ '@vocab': 'ex', '@version': 1.1, ex: {
+          '@id': 'http://example.org/',
+          '@prefix': true
+        }}, {}))
+          .resolves.toEqual(new JsonLdContextNormalized({
+            '@version': 1.1,
+            '@vocab': 'http://example.org/',
+            ex: {
+              '@id': 'http://example.org/',
+              '@prefix': true
+            },
+          }));
+      });
+
       it('should not expand @type in @container: @type', () => {
         return expect(parser.parse({
           '@base': 'http://example.org/base/',

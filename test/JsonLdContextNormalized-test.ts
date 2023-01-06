@@ -30,6 +30,16 @@ describe('JsonLdContextNormalized', () => {
         expect(context.expandTerm('def:123', true)).toBe('def:123');
       });
 
+      it('to return when it is a prefix', async () => {
+        const context = new JsonLdContextNormalized({def: 'http://DEF/'});
+        expect(context.expandTerm('def', true)).toBe('http://DEF/');
+      });
+
+      it('to return when it is a prefix with colon', async () => {
+        const context = new JsonLdContextNormalized({def: 'DEF/'});
+        expect(context.expandTerm('def:', true)).toBe('DEF/');
+      });
+
       it('to return when a direct value applies', async () => {
         const context = new JsonLdContextNormalized({abc: 'http://DEF'});
         expect(context.expandTerm('abc', true)).toBe('http://DEF');
@@ -645,6 +655,11 @@ describe('JsonLdContextNormalized', () => {
       it('to return when a prefix applies with @id', async () => {
         const context = new JsonLdContextNormalized({def: { '@id': 'DEF/'} });
         expect(context.expandTerm('def:123', false)).toBe('def:123');
+      });
+
+      it('to return when it is a prefix with colon', async () => {
+        const context = new JsonLdContextNormalized({def: 'DEF/'});
+        expect(context.expandTerm('def:', false)).toBe('DEF/');
       });
 
       it('to return when a direct value applies, but ignore it in base-mode', async () => {

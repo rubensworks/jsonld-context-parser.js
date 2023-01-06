@@ -780,11 +780,17 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       // Parse inner contexts with minimal processing
       await this.parseInnerContexts(newContext, options);
 
-      // In JSON-LD 1.1, @vocab can be relative to @vocab in the parent context.
+      // In JSON-LD 1.1, @vocab can be relative to @vocab in the parent context, or a compact IRI.
       if ((newContext && newContext['@version'] || ContextParser.DEFAULT_PROCESSING_MODE) >= 1.1
-        && ((context['@vocab'] && typeof context['@vocab'] === 'string') || context['@vocab'] === '')
-        && context['@vocab'].indexOf(':') < 0 && parentContext && '@vocab' in parentContext) {
-        newContext['@vocab'] = parentContext['@vocab'] + context['@vocab'];
+        && ((context['@vocab'] && typeof context['@vocab'] === 'string') || context['@vocab'] === '')) {
+        if (parentContext && '@vocab' in parentContext && context['@vocab'].indexOf(':') < 0) {
+          newContext['@vocab'] = parentContext['@vocab'] + context['@vocab'];
+        } else {
+          if (Util.isCompactIri(context['@vocab']) || context['@vocab'] in newContextWrapped.getContextRaw()) {
+            // @vocab is a compact IRI or refers exactly to a prefix
+            newContext['@vocab'] = newContextWrapped.expandTerm(context['@vocab'], true);
+          }
+        }
       }
 
       // Handle terms (before protection checks)
