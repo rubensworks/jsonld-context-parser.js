@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.3.0"></a>
+## [v2.3.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.2.3...v2.3.0) - 2023-01-27
+
+### Added
+* [Expose annotations and error messages for JSON-LD-Star](https://github.com/rubensworks/jsonld-context-parser.js/commit/a5598bb1d096b30a34b6e210675d622bc29a4667)
+
 <a name="v2.2.3"></a>
 ## [v2.2.3](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.2.2...v2.2.3) - 2023-01-06
 
