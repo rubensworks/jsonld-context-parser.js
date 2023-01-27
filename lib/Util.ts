@@ -19,6 +19,7 @@ export class Util {
   // All known valid JSON-LD keywords
   // @see https://www.w3.org/TR/json-ld11/#keywords
   public static readonly VALID_KEYWORDS: {[keyword: string]: boolean} = {
+    '@annotation': true, // https://json-ld.github.io/json-ld-star/
     '@base': true,
     '@container': true,
     '@context': true,
