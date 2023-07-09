@@ -2132,6 +2132,26 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
         }));
       });
 
+      it('should parse 2 contexts where one is protected', () => {
+        return expect(parser.parse([
+          {"ex":"https://example.org/ns/"},
+          {
+            "@version": 1.1,
+            "@protected": true,
+            "VerifiableCredential": {
+              "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+            }
+          }
+        ])).resolves.toEqual(new JsonLdContextNormalized({
+          "@version": 1.1,
+          VerifiableCredential: {
+            "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+            "@protected": true,
+          },
+          ex: "https://example.org/ns/"
+        }));
+      });
+
       it('should parse a single keyword alias', () => {
         return expect(parser.parse({
           id: {
