@@ -239,7 +239,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
   }
 
   /**
-   * Normalize and apply context-levevl @protected terms onto each term separately.
+   * Normalize and apply context-level @protected terms onto each term separately.
    * @param {IJsonLdContextNormalizedRaw} context A context.
    * @param {number} processingMode The processing mode.
    */
@@ -769,6 +769,18 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       }
 
       // Merge different parts of the final context in order
+      // FIXME: We need to have logic here to prevent overriding based on the `@protected` keyword.
+      // FIXME: Check the merge is happening in the right order
+      // Handle terms (before protection checks)
+
+      // NOTE: There may still be *some* issues here if a different context is required to fully expand a protected
+      // term (though I'm not actually sure this is allowed?)
+      const contextWrapped = new JsonLdContextNormalized(context);
+      this.idifyReverseTerms(context);
+      this.expandPrefixedTerms(contextWrapped, this.expandContentTypeToBase);
+      
+      this.applyScopedProtected(context, { processingMode });
+      // FIXME: See if we need to apply scoping on anything else
       newContext = {
         ...newContext,
         ...(typeof parentContext === 'object' ? parentContext : {}),
@@ -799,6 +811,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
       // In JSON-LD 1.1, check if we are not redefining any protected keywords
       if (!ignoreProtection && parentContext && processingMode >= 1.1) {
+        // FIXME: See why version conflicts aren't being complained about here
         this.validateKeywordRedefinitions(parentContext, newContext, defaultExpandOptions);
       }
 
