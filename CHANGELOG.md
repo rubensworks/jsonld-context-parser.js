@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.3.1"></a>
+## [v2.3.1](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.3.0...v2.3.1) - 2023-09-26
+
+### Fixed
+* [Fix circular dependency in imports, Closes #63](https://github.com/rubensworks/jsonld-context-parser.js/commit/22a74dc761d66df80f143a0b3a0faa68ded8ebca)
+
 <a name="v2.3.0"></a>
 ## [v2.3.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.2.3...v2.3.0) - 2023-01-27
 
