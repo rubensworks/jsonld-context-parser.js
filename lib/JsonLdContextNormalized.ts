@@ -1,5 +1,4 @@
 import {resolve} from "relative-to-absolute-iri";
-import {defaultExpandOptions, IExpandOptions} from "./ContextParser";
 import {ERROR_CODES, ErrorCoded} from "./ErrorCoded";
 import {IJsonLdContextNormalizedRaw} from "./JsonLdContext";
 import {Util} from "./Util";
@@ -176,3 +175,25 @@ export class JsonLdContextNormalized {
   }
 
 }
+
+export interface IExpandOptions {
+  /**
+   * If compact IRI prefixes can end with any kind of character in simple term definitions,
+   * instead of only the default gen-delim characters (:,/,?,#,[,],@).
+   */
+  allowPrefixNonGenDelims: boolean;
+  /**
+   * If compact IRI prefixes ending with a non-gen-delim character
+   * can be forced as a prefix using @prefix: true.
+   */
+  allowPrefixForcing: boolean;
+  /**
+   * If @vocab values are allowed contain IRIs relative to @base.
+   */
+  allowVocabRelativeToBase: boolean;
+}
+export const defaultExpandOptions: IExpandOptions = {
+  allowPrefixForcing: true,
+  allowPrefixNonGenDelims: false,
+  allowVocabRelativeToBase: true,
+};

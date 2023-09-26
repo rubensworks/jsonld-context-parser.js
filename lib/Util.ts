@@ -1,4 +1,4 @@
-import {IExpandOptions} from "./ContextParser";
+import {IExpandOptions} from "./JsonLdContextNormalized";
 import {IJsonLdContextNormalizedRaw, JsonLdContext} from "./JsonLdContext";
 
 export class Util {

@@ -1,4 +1,4 @@
-import {defaultExpandOptions} from "../lib/ContextParser";
+import {defaultExpandOptions} from "../lib/JsonLdContextNormalized";
 import {ERROR_CODES, ErrorCoded} from "../lib/ErrorCoded";
 import {JsonLdContextNormalized} from "../lib/JsonLdContextNormalized";
 
