@@ -2135,8 +2135,6 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
       it('should parse 2 contexts where one is protected', () => {
         return expect(parser.parse([
           {
-            // NOTE: This gets elevated to 1.1; when the contexts get merged.
-            // We should add a test here which uses a 1.0 specific feature.
             "@version": 1.0,
             "ex":"https://example.org/ns/"
           },
