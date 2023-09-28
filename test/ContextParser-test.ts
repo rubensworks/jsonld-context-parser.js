@@ -2132,6 +2132,110 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
         }));
       });
 
+      it('should parse 2 contexts where one is protected', () => {
+        return expect(parser.parse([
+          {
+            // NOTE: This gets elevated to 1.1; when the contexts get merged.
+            // We should add a test here which uses a 1.0 specific feature.
+            "@version": 1.0,
+            "ex":"https://example.org/ns/"
+          },
+          {
+            "@version": 1.1,
+            "@protected": true,
+            "VerifiableCredential": {
+              "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+            }
+          }
+        ])).resolves.toEqual(new JsonLdContextNormalized({
+          "@version": 1.1,
+          VerifiableCredential: {
+            "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+            "@protected": true,
+          },
+          ex: "https://example.org/ns/"
+        }));
+      });
+
+      const contexts = [
+        {
+          "@version": 1.1,
+          "@protected": true,
+          "VerifiableCredential": {
+            "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+          }
+        },
+        {
+          "ex":"https://example.org/ns/",
+          "@version": 1.1,
+          "@protected": false,
+        }
+      ];
+
+      const result = new JsonLdContextNormalized({
+        "@version": 1.1,
+        // FIXME: See why there is an explicit false in the normalized context. I would think that this could
+        // just be deleted
+        "@protected": false,
+        VerifiableCredential: {
+          "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+          "@protected": true,
+        },
+        ex: "https://example.org/ns/"
+      });
+
+      it('should parse 2 contexts where one is protected and one globally has protected false', () => {
+        return expect(parser.parse(contexts)).resolves.toEqual(result);
+      });
+
+      it('should parse 2 contexts where one is protected and one globally has protected false [reverse order]', () => {
+        return expect(parser.parse([contexts[1], contexts[0]])).resolves.toEqual(result);
+      });
+
+      it('protected context should override the unprotected context', () => {
+        return expect(parser.parse([
+          {
+            // NOTE: This gets elevated to 1.1; when the contexts get merged.
+            // We should add a test here which uses a 1.0 specific feature.
+            "@version": 1.0,
+            "VerifiableCredential":"https://example.org/ns/"
+          },
+          {
+            "@version": 1.1,
+            "@protected": true,
+            "VerifiableCredential": {
+              "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+            }
+          }
+        ])).resolves.toEqual(new JsonLdContextNormalized({
+          "@version": 1.1,
+          VerifiableCredential: {
+            "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+            "@protected": true,
+          }
+        }));
+      });
+
+      it('should parse 2 contexts where one is protected', () => {
+        return expect(parser.parse([
+          {"ex":"https://example.org/ns/"},
+          {
+            "@version": 1.1,
+            "@protected": true,
+            "VerifiableCredential": {
+              "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+            }
+          }
+        ])).resolves.toEqual(new JsonLdContextNormalized({
+          "@version": 1.1,
+          VerifiableCredential: {
+            "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+            "@protected": true,
+          },
+          ex: "https://example.org/ns/"
+        }));
+      });
+
       it('should parse a single keyword alias', () => {
         return expect(parser.parse({
           id: {
@@ -2203,6 +2307,60 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             name: {
               '@id': 'http://xmlns.com/foaf/0.1/name',
               '@protected': true,
+            },
+          },
+          {
+            name: 'http://schema.org/name',
+          },
+        ], { processingMode: 1.1 })).rejects.toThrow(new ErrorCoded(
+          'Attempted to override the protected keyword name from ' +
+          '"http://xmlns.com/foaf/0.1/name" to "http://schema.org/name"',
+          ERROR_CODES.PROTECTED_TERM_REDEFINITION));
+      });
+
+      it('should error on a protected term with override when the overriding version is 1.0', () => {
+        return expect(parser.parse([
+          {
+            name: {
+              '@id': 'http://xmlns.com/foaf/0.1/name',
+              '@protected': true,
+            },
+          },
+          {
+            "@version": 1.0,
+            name: 'http://schema.org/name',
+          },
+        ])).rejects.toThrow(new ErrorCoded(
+          'Attempted to override the protected keyword name from ' +
+          '"http://xmlns.com/foaf/0.1/name" to "http://schema.org/name"',
+          ERROR_CODES.PROTECTED_TERM_REDEFINITION));
+      });
+
+      it('should error on an outer scope protected term with override of another protected term', () => {
+        return expect(parser.parse([
+          {
+            "VerifiableCredential":"https://example.org/ns/",
+            "@protected": true
+          },
+          {
+            "@version": 1.1,
+            "@protected": true,
+            "VerifiableCredential": {
+              "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+            }
+          }
+        ], { processingMode: 1.1 })).rejects.toThrow(new ErrorCoded(
+          'Attempted to override the protected keyword VerifiableCredential from ' +
+          '"https://example.org/ns/" to "https://www.w3.org/2018/credentials#VerifiableCredential"',
+          ERROR_CODES.PROTECTED_TERM_REDEFINITION));
+      });
+
+      it('should error on an outer scope protected term with override', () => {
+        return expect(parser.parse([
+          {
+            '@protected': true,
+            name: {
+              '@id': 'http://xmlns.com/foaf/0.1/name',
             },
           },
           {
@@ -2482,6 +2640,21 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
         }));
       });
 
+      it('should parse a globally protected string term ending in gen-delim', () => {
+        return expect(parser.parse([
+          {
+            '@protected': true,
+            'foo': 'http://example/foo#',
+          }
+        ], { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
+          foo: {
+            '@id': 'http://example/foo#',
+            '@prefix': true,
+            '@protected': true,
+          },
+        }));
+      });
+
       it('should parse a globally protected string term ending in non-gen-delim with identical override', () => {
         return expect(parser.parse([
           {
@@ -2623,6 +2796,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           "@base": "http://base.org/",
           "ex": {
             "@id": "http://ex.org/",
+            "@prefix": true,
             "@protected": true
           },
           "foo": {
