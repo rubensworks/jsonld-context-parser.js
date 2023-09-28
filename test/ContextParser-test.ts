@@ -2192,6 +2192,14 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
         return expect(parser.parse([contexts[1], contexts[0]])).resolves.toEqual(result);
       });
 
+      const BASIC_VC_CONTEXT = {
+        "@version": 1.1,
+        "@protected": true,
+        "VerifiableCredential": {
+          "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+        }
+      }
+
       it('protected context should override the unprotected context', () => {
         return expect(parser.parse([
           {
@@ -2200,13 +2208,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             "@version": 1.0,
             "VerifiableCredential":"https://example.org/ns/"
           },
-          {
-            "@version": 1.1,
-            "@protected": true,
-            "VerifiableCredential": {
-              "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
-            }
-          }
+          BASIC_VC_CONTEXT
         ])).resolves.toEqual(new JsonLdContextNormalized({
           "@version": 1.1,
           VerifiableCredential: {
@@ -2214,6 +2216,55 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
             "@protected": true,
           }
         }));
+      });
+
+      describe('with imported contexts', () => {
+        beforeEach(() => {
+          jest.mocked(globalThis.fetch).mockImplementationOnce(async (...args) => {
+            return new Response(JSON.stringify({
+              "@context": {
+                "MyType": {
+                  "@id": "http://example.org#MyType",
+                }
+              }
+            }), { headers: new Headers([
+              ['content-type', 'application/ld+json']
+            ]) })
+          });
+        });
+
+        it('protected should be applied to the imported context', () => {
+          return expect(parser.parse([
+            {
+              ...BASIC_VC_CONTEXT,
+              "@import": "http://example.org/imported/context"
+            }
+          ])).resolves.toEqual(new JsonLdContextNormalized({
+            "@version": 1.1,
+            VerifiableCredential: {
+              "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+              "@protected": true,
+            },
+            MyType: {
+              "@id": "http://example.org#MyType",
+              "@protected": true,
+            }
+          }));
+        });
+
+        it.each([
+          ['child', [BASIC_VC_CONTEXT, {"@import": "http://example.org/imported/context"}]],
+          ['parent', [{"@import": "http://example.org/imported/context"}, BASIC_VC_CONTEXT]],
+        ])('protected should not be applied to the imported contexts in other %s contexts', (_, context) => {
+          return expect(parser.parse(context)).resolves.toEqual(new JsonLdContextNormalized({
+            "@version": 1.1,
+            VerifiableCredential: {
+              "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+              "@protected": true,
+            },
+            MyType: { "@id": "http://example.org#MyType" }
+          }));
+        });
       });
 
       it('should parse 2 contexts where one is protected', () => {

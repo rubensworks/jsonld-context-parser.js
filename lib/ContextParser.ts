@@ -760,14 +760,14 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
         }
       }
 
-      // Merge different parts of the final context in order
-      this.applyScopedProtected(context, { processingMode }, defaultExpandOptions);
+      this.applyScopedProtected(importContext, { processingMode }, defaultExpandOptions);
+      let newContext: IJsonLdContextNormalizedRaw = { ...importContext, ...context };
+      if (typeof parentContext === 'object') {
+        // Merge different parts of the final context in order
+        this.applyScopedProtected(newContext, { processingMode }, defaultExpandOptions);
+        newContext = { ...parentContext, ...newContext };
+      }
 
-      const newContext: IJsonLdContextNormalizedRaw = {
-        ...(typeof parentContext === 'object' ? parentContext : {}),
-        ...importContext,
-        ...context,
-      };
       const newContextWrapped = new JsonLdContextNormalized(newContext);
 
       // Parse inner contexts with minimal processing
