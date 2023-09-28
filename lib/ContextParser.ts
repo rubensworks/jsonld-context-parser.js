@@ -791,7 +791,6 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
       // In JSON-LD 1.1, check if we are not redefining any protected keywords
       if (!ignoreProtection && parentContext && processingMode >= 1.1) {
-        // FIXME: See why version conflicts aren't being complained about here
         this.validateKeywordRedefinitions(parentContext, newContext, defaultExpandOptions);
       }
 
