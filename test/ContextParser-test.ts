@@ -2267,6 +2267,61 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
         });
       });
 
+
+      describe('with imported contexts containing the @protected keyword', () => {
+
+        const BASIC_VC_CONTEXT_WITHOUT_PROTECTED = {
+          "@version": 1.1,
+          "VerifiableCredential": {
+            "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+          }
+        }
+
+        beforeEach(() => {
+          jest.mocked(globalThis.fetch).mockImplementationOnce(async (...args) => {
+            return new Response(JSON.stringify({
+              "@context": {
+                "@protected": true,
+                "MyType": "http://example.org#MyType"
+              }
+            }), { headers: new Headers([
+              ['content-type', 'application/ld+json']
+            ]) })
+          });
+        });
+
+        it('protected should be applied to the imported context', () => {
+          return expect(parser.parse([
+            {
+              ...BASIC_VC_CONTEXT_WITHOUT_PROTECTED,
+              "@import": "http://example.org/imported/context"
+            }
+          ])).resolves.toEqual(new JsonLdContextNormalized({
+            "@version": 1.1,
+            VerifiableCredential: {
+              "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+            },
+            MyType: {
+              "@id": "http://example.org#MyType",
+              "@protected": true,
+            }
+          }));
+        });
+
+        it.each([
+          ['child', [BASIC_VC_CONTEXT_WITHOUT_PROTECTED, {"@import": "http://example.org/imported/context"}]],
+          ['parent', [{"@import": "http://example.org/imported/context"}, BASIC_VC_CONTEXT_WITHOUT_PROTECTED]],
+        ])('protected should not be applied to the imported contexts in other %s contexts', (_, context) => {
+          return expect(parser.parse(context)).resolves.toEqual(new JsonLdContextNormalized({
+            "@version": 1.1,
+            VerifiableCredential: {
+              "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
+            },
+            MyType: { "@id": "http://example.org#MyType", "@protected": true }
+          }));
+        });
+      });
+
       it('should parse 2 contexts where one is protected', () => {
         return expect(parser.parse([
           {"ex":"https://example.org/ns/"},
