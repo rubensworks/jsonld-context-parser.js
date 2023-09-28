@@ -293,7 +293,6 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
           contextAfter[key] = { '@id': contextAfter[key] };
         }
 
-
         // Convert term values to strings for each comparison
         const valueBefore = canonicalizeJson(contextBefore[key]);
         // We modify this deliberately,
