@@ -2172,8 +2172,6 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
       const result = new JsonLdContextNormalized({
         "@version": 1.1,
-        // FIXME: See why there is an explicit false in the normalized context. I would think that this could
-        // just be deleted
         "@protected": false,
         VerifiableCredential: {
           "@id": "https://www.w3.org/2018/credentials#VerifiableCredential",
