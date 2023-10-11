@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.3.2"></a>
+## [v2.3.2](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.3.1...v2.3.2) - 2023-10-11
+
+### Fixed
+* [Fix incorrect handling of protected prefixes](https://github.com/rubensworks/jsonld-context-parser.js/commit/2cf1f59acc6bbbedbb74cc13f4b2c643e560839b)
+
 <a name="v2.3.1"></a>
 ## [v2.3.1](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.3.0...v2.3.1) - 2023-09-26
 
