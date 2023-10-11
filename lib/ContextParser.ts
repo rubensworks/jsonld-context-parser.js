@@ -252,7 +252,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
           }
 
           if (!Util.isPotentialKeyword(key) && !Util.isTermProtected(context, key)) {
-            const value = context[key];
+            const value: unknown = context[key];
             if (value && typeof value === 'object') {
               if (!('@protected' in context[key])) {
                 // Mark terms with object values as protected if they don't have an @protected: false annotation
