@@ -239,11 +239,11 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
   }
 
   /**
-   * Normalize and apply context-levevl @protected terms onto each term separately.
+   * Normalize and apply context-level @protected terms onto each term separately.
    * @param {IJsonLdContextNormalizedRaw} context A context.
    * @param {number} processingMode The processing mode.
    */
-  public applyScopedProtected(context: IJsonLdContextNormalizedRaw, { processingMode }: IParseOptions) {
+  public applyScopedProtected(context: IJsonLdContextNormalizedRaw, { processingMode }: IParseOptions, expandOptions: IExpandOptions) {
     if (processingMode && processingMode >= 1.1) {
       if (context['@protected']) {
         for (const key of Object.keys(context)) {
@@ -264,6 +264,9 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
                 '@id': value,
                 '@protected': true,
               };
+              if (Util.isSimpleTermDefinitionPrefix(value, expandOptions)) {
+                context[key]['@prefix'] = true
+              }
             }
           }
         }
@@ -287,16 +290,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
         // If the new entry is in string-mode, convert it to object-mode
         // before checking if it is identical.
         if (typeof contextAfter[key] === 'string') {
-          const isPrefix = Util.isSimpleTermDefinitionPrefix(contextAfter[key], expandOptions);
           contextAfter[key] = { '@id': contextAfter[key] };
-
-          // If the simple term def was a prefix, explicitly mark the term as a prefix in the expanded term definition,
-          // because otherwise we loose this information due to JSON-LD interpreting prefixes differently
-          // in simple vs expanded term definitions.
-          if (isPrefix) {
-            contextAfter[key]['@prefix'] = true;
-            contextBefore[key]['@prefix'] = true; // Also on before, to make sure the next step still considers them ==
-          }
         }
 
         // Convert term values to strings for each comparison
@@ -729,9 +723,6 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
         parentContext = <IJsonLdContextNormalizedRaw> JSON.parse(JSON.stringify(parentContext));
       }
 
-      // We have an actual context object.
-      let newContext: IJsonLdContextNormalizedRaw = {};
-
       // According to the JSON-LD spec, @base must be ignored from external contexts.
       if (external) {
         delete context['@base'];
@@ -768,13 +759,14 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
         }
       }
 
-      // Merge different parts of the final context in order
-      newContext = {
-        ...newContext,
-        ...(typeof parentContext === 'object' ? parentContext : {}),
-        ...importContext,
-        ...context,
-      };
+      this.applyScopedProtected(importContext, { processingMode }, defaultExpandOptions);
+      let newContext: IJsonLdContextNormalizedRaw = { ...importContext, ...context };
+      if (typeof parentContext === 'object') {
+        // Merge different parts of the final context in order
+        this.applyScopedProtected(newContext, { processingMode }, defaultExpandOptions);
+        newContext = { ...parentContext, ...newContext };
+      }
+
       const newContextWrapped = new JsonLdContextNormalized(newContext);
 
       // Parse inner contexts with minimal processing
@@ -803,7 +795,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       }
 
       this.normalize(newContext, { processingMode, normalizeLanguageTags });
-      this.applyScopedProtected(newContext, { processingMode });
+      this.applyScopedProtected(newContext, { processingMode }, defaultExpandOptions);
       if (this.validateContext) {
         this.validate(newContext, { processingMode });
       }
