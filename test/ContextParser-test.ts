@@ -2418,6 +2418,21 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           ERROR_CODES.PROTECTED_TERM_REDEFINITION));
       });
 
+      it('should error on a protected null term with override', () => {
+        return expect(parser.parse([
+          {
+            "@version": 1.1,
+            "@protected": true,
+            "term": null
+          }, {
+            "@version": 1.1,
+            "term": {"@id": "http://example.com/term"}
+          }
+        ], { processingMode: 1.1 })).rejects.toThrow(new ErrorCoded(
+          'Attempted to override the protected keyword term from null to \"http://example.com/term\"',
+          ERROR_CODES.PROTECTED_TERM_REDEFINITION));
+      });
+
       it('should error on a protected term with override when the overriding version is 1.0', () => {
         return expect(parser.parse([
           {

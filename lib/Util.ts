@@ -156,9 +156,9 @@ export class Util {
    * @param value A simple term definition value.
    * @param options Options that define the way how expansion must be done.
    */
-  public static isSimpleTermDefinitionPrefix(value: string, options: IExpandOptions): boolean {
+  public static isSimpleTermDefinitionPrefix(value: unknown, options: IExpandOptions): boolean {
     return !Util.isPotentialKeyword(value)
-      && (value[0] === '_' || options.allowPrefixNonGenDelims || Util.isPrefixIriEndingWithGenDelim(value));
+      && (options.allowPrefixNonGenDelims || (typeof value === 'string' && (value[0] === '_' || Util.isPrefixIriEndingWithGenDelim(value))));
   }
 
   /**
