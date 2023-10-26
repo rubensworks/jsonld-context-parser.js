@@ -6,6 +6,7 @@ import {IDocumentLoader} from "./IDocumentLoader";
 import {IJsonLdContext, IJsonLdContextNormalizedRaw, IPrefixValue, JsonLdContext} from "./JsonLdContext";
 import {JsonLdContextNormalized, defaultExpandOptions, IExpandOptions} from "./JsonLdContextNormalized";
 import {Util} from "./Util";
+import { IContextCache } from './IContextCache';
 
 // tslint:disable-next-line:no-var-requires
 const canonicalizeJson = require('canonicalize');
@@ -23,10 +24,12 @@ export class ContextParser {
   private readonly expandContentTypeToBase: boolean;
   private readonly remoteContextsDepthLimit: number;
   private readonly redirectSchemaOrgHttps: boolean;
+  private readonly contextCache?: IContextCache;
 
   constructor(options?: IContextParserOptions) {
     options = options || {};
     this.documentLoader = options.documentLoader || new FetchDocumentLoader();
+    this.contextCache = options.contextCache;
     this.documentCache = {};
     this.validateContext = !options.skipValidation;
     this.expandContentTypeToBase = !!options.expandContentTypeToBase;
@@ -610,14 +613,14 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
               const parentContext = {...context};
               parentContext[key] = {...parentContext[key]};
               delete parentContext[key]['@context'];
-              await this.parse(value['@context'],
+              await this._parse(value['@context'],
                 { ...options, external: false, parentContext, ignoreProtection: true, ignoreRemoteScopedContexts: true, ignoreScopedContexts: true });
             } catch (e) {
               throw new ErrorCoded(e.message, ERROR_CODES.INVALID_SCOPED_CONTEXT);
             }
           }
 
-          value['@context'] = (await this.parse(value['@context'],
+          value['@context'] = (await this._parse(value['@context'],
             { ...options, external: false, minimalProcessing: true, ignoreRemoteScopedContexts: true, parentContext: context }))
             .getContextRaw();
         }
@@ -633,6 +636,27 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    * @return {Promise<JsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
+    options: IParseOptions = {}): Promise<JsonLdContextNormalized> {
+      if (this.contextCache) {
+        const hash = this.contextCache.hash(context, options);
+        const cached = this.contextCache.get(hash);
+        if (cached)
+          return cached;
+
+        const parsed = this._parse(context, options);
+        this.contextCache.set(hash, parsed);
+        return parsed;
+      }
+      return this._parse(context, options);
+    }
+
+  /**
+   * Parse a JSON-LD context in any form.
+   * @param {JsonLdContext} context A context, URL to a context, or an array of contexts/URLs.
+   * @param {IParseOptions} options Optional parsing options.
+   * @return {Promise<JsonLdContextNormalized>} A promise resolving to the context.
+   */
+  private async _parse(context: JsonLdContext,
                      options: IParseOptions = {}): Promise<JsonLdContextNormalized> {
     const {
       baseIRI,
@@ -667,7 +691,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       if (overriddenLoad) {
         return new JsonLdContextNormalized(overriddenLoad);
       }
-      const parsedStringContext = await this.parse(await this.load(contextIri),
+      const parsedStringContext = await this._parse(await this.load(contextIri),
         {
           ...options,
           baseIRI: contextIri,
@@ -699,7 +723,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       }
 
       const reducedContexts = await contexts.reduce((accContextPromise, contextEntry, i) => accContextPromise
-          .then((accContext) => this.parse(contextEntry, {
+          .then((accContext) => this._parse(contextEntry, {
             ...options,
             baseIRI: contextIris[i] || options.baseIRI,
             external: !!contextIris[i] || options.external,
@@ -714,7 +738,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       return reducedContexts;
     } else if (typeof context === 'object') {
       if ('@context' in context) {
-        return await this.parse(context['@context'], options);
+        return await this._parse(context['@context'], options);
       }
 
       // Make a deep clone of the given context, to avoid modifying it.
@@ -891,6 +915,10 @@ export interface IContextParserOptions {
    * An optional loader that should be used for fetching external JSON-LD contexts.
    */
   documentLoader?: IDocumentLoader;
+  /**
+   * An optional cache for parsed contexts.
+   */
+  contextCache?: IContextCache;
   /**
    * By default, JSON-LD contexts will be validated.
    * This can be disabled by setting this option to true.
