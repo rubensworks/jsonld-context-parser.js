@@ -7,6 +7,7 @@ import {IJsonLdContext, IJsonLdContextNormalizedRaw, IPrefixValue, JsonLdContext
 import {JsonLdContextNormalized, defaultExpandOptions, IExpandOptions} from "./JsonLdContextNormalized";
 import {Util} from "./Util";
 import { IContextCache } from './IContextCache';
+import { ContextCache } from './ContextCache';
 
 // tslint:disable-next-line:no-var-requires
 const canonicalizeJson = require('canonicalize');
@@ -24,12 +25,12 @@ export class ContextParser {
   private readonly expandContentTypeToBase: boolean;
   private readonly remoteContextsDepthLimit: number;
   private readonly redirectSchemaOrgHttps: boolean;
-  private readonly contextCache?: IContextCache;
+  private readonly contextCache: IContextCache;
 
   constructor(options?: IContextParserOptions) {
     options = options || {};
     this.documentLoader = options.documentLoader || new FetchDocumentLoader();
-    this.contextCache = options.contextCache;
+    this.contextCache = options.contextCache || new ContextCache();
     this.documentCache = {};
     this.validateContext = !options.skipValidation;
     this.expandContentTypeToBase = !!options.expandContentTypeToBase;
@@ -636,18 +637,15 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    * @return {Promise<JsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
-    options: IParseOptions = {}): Promise<JsonLdContextNormalized> {
-    if (this.contextCache) {
-      const hash = this.contextCache.hash(context, options);
-      const cached = this.contextCache.get(hash);
-      if (cached)
-        return cached;
+      options: IParseOptions = {}): Promise<JsonLdContextNormalized> {
+    const hash = this.contextCache.hash(context, options);
+    const cached = this.contextCache.get(hash);
+    if (cached)
+      return cached;
 
-      const parsed = this._parse(context, options);
-      this.contextCache.set(hash, parsed);
-      return parsed;
-    }
-    return this._parse(context, options);
+    const parsed = this._parse(context, options);
+    this.contextCache.set(hash, parsed);
+    return parsed;
   }
 
   /**

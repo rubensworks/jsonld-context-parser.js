@@ -24,8 +24,10 @@ async function main() {
 
   const contextCache = new ContextCache();
   const context = Object.keys(contexts);
+  const contextObject = contexts[context[0] as keyof typeof contexts];
   const contextParser = new ContextParser({ documentLoader: new CachedDocumentLoader(), contextCache: new ContextCache() });
   await contextParser.parse(context);
+  await contextParser.parse(contextObject);
 
   // add tests
   suite
@@ -36,16 +38,22 @@ async function main() {
         await contextParser.parse(context);
       }),
     ).add(
-      'Parse a context that has not been cached; and with caching in place',
-      deferred(async () => {
-        const contextParser = new ContextParser({ documentLoader: new CachedDocumentLoader(), contextCache: new ContextCache() });
-        await contextParser.parse(context);
-      }),
-    ).add(
-      'Parse a context that has been cached',
+      'Parse a list of iri contexts that have been cached',
       deferred(async () => {
         const contextParser = new ContextParser({ documentLoader: new CachedDocumentLoader(), contextCache });
         await contextParser.parse(context);
+      }),
+    ).add(
+      'Parse a context object that has not been cached',
+      deferred(async () => {
+        const contextParser = new ContextParser({ documentLoader: new CachedDocumentLoader() });
+        await contextParser.parse(contextObject);
+      }),
+    ).add(
+      'Parse a context object that has been cached',
+      deferred(async () => {
+        const contextParser = new ContextParser({ documentLoader: new CachedDocumentLoader(), contextCache });
+        await contextParser.parse(contextObject);
       }),
     ).on('cycle', (event: Event) => {
       console.log(event.target.toString());
