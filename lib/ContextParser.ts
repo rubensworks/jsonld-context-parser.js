@@ -6,6 +6,8 @@ import {IDocumentLoader} from "./IDocumentLoader";
 import {IJsonLdContext, IJsonLdContextNormalizedRaw, IPrefixValue, JsonLdContext} from "./JsonLdContext";
 import {JsonLdContextNormalized, defaultExpandOptions, IExpandOptions} from "./JsonLdContextNormalized";
 import {Util} from "./Util";
+import { IContextCache } from './IContextCache';
+import { ContextCache } from './ContextCache';
 
 // tslint:disable-next-line:no-var-requires
 const canonicalizeJson = require('canonicalize');
@@ -23,10 +25,12 @@ export class ContextParser {
   private readonly expandContentTypeToBase: boolean;
   private readonly remoteContextsDepthLimit: number;
   private readonly redirectSchemaOrgHttps: boolean;
+  private readonly contextCache?: IContextCache;
 
   constructor(options?: IContextParserOptions) {
     options = options || {};
     this.documentLoader = options.documentLoader || new FetchDocumentLoader();
+    this.contextCache = options.contextCache;
     this.documentCache = {};
     this.validateContext = !options.skipValidation;
     this.expandContentTypeToBase = !!options.expandContentTypeToBase;
@@ -610,14 +614,14 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
               const parentContext = {...context};
               parentContext[key] = {...parentContext[key]};
               delete parentContext[key]['@context'];
-              await this.parse(value['@context'],
+              await this._parse(value['@context'],
                 { ...options, external: false, parentContext, ignoreProtection: true, ignoreRemoteScopedContexts: true, ignoreScopedContexts: true });
             } catch (e) {
               throw new ErrorCoded(e.message, ERROR_CODES.INVALID_SCOPED_CONTEXT);
             }
           }
 
-          value['@context'] = (await this.parse(value['@context'],
+          value['@context'] = (await this._parse(value['@context'],
             { ...options, external: false, minimalProcessing: true, ignoreRemoteScopedContexts: true, parentContext: context }))
             .getContextRaw();
         }
@@ -633,7 +637,105 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    * @return {Promise<JsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
-                     options: IParseOptions = {}): Promise<JsonLdContextNormalized> {
+      options: IParseOptions = {}): Promise<JsonLdContextNormalized> {
+    if (!this.contextCache)
+      return this._parse(context, options);
+
+    const hash = this.contextCache.hash(context, options);
+    const cached = this.contextCache.get(hash);
+    if (cached)
+      return cached;
+
+    const parsed = this._parse(context, options);
+    this.contextCache.set(hash, parsed);
+    return parsed;
+  }
+
+  /**
+   * Fetch the given URL as a raw JSON-LD context.
+   * @param url An URL.
+   * @return A promise resolving to a raw JSON-LD context.
+   */
+  public async load(url: string): Promise<JsonLdContext> {
+    // First try to retrieve the context from cache
+    const cached = this.documentCache[url];
+    if (cached) {
+      return typeof cached === 'string' ? cached : Array.isArray(cached) ? cached.slice() : {... cached};
+    }
+
+    // If not in cache, load it
+    let document: IJsonLdContext;
+    try {
+      document = await this.documentLoader.load(url);
+    } catch (e) {
+      throw new ErrorCoded(`Failed to load remote context ${url}: ${e.message}`,
+        ERROR_CODES.LOADING_REMOTE_CONTEXT_FAILED);
+    }
+
+    // Validate the context
+    if (!('@context' in document)) {
+      throw new ErrorCoded(`Missing @context in remote context at ${url}`,
+        ERROR_CODES.INVALID_REMOTE_CONTEXT);
+    }
+
+    return this.documentCache[url] = document['@context'];
+  }
+
+  /**
+   * Override the given context that may be loaded.
+   *
+   * This will check whether or not the url is recursively being loaded.
+   * @param url An URL.
+   * @param options Parsing options.
+   * @return An overridden context, or null.
+   *         Optionally an error can be thrown if a cyclic context is detected.
+   */
+  public getOverriddenLoad(url: string, options: IParseOptions): IJsonLdContextNormalizedRaw | null {
+    if (url in (options.remoteContexts || {})) {
+      if (options.ignoreRemoteScopedContexts) {
+        return <IJsonLdContextNormalizedRaw> <any> url;
+      } else {
+        throw new ErrorCoded('Detected a cyclic context inclusion of ' + url,
+          ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Load an @import'ed context.
+   * @param importContextIri The full URI of an @import value.
+   */
+  public async loadImportContext(importContextIri: string): Promise<IJsonLdContextNormalizedRaw> {
+    // Load the context
+    const importContext = await this.load(importContextIri);
+
+    // Require the context to be a non-array object
+    if (typeof importContext !== 'object' || Array.isArray(importContext)) {
+      throw new ErrorCoded('An imported context must be a single object: ' + importContextIri,
+        ERROR_CODES.INVALID_REMOTE_CONTEXT);
+    }
+
+    // Error if the context contains another @import
+    if ('@import' in importContext) {
+      throw new ErrorCoded('An imported context can not import another context: ' + importContextIri,
+        ERROR_CODES.INVALID_CONTEXT_ENTRY);
+    }
+
+    // Containers have to be converted into hash values the same way as for the importing context
+    // Otherwise context validation will fail for container values
+    this.containersToHash(importContext);
+    return importContext;
+  }
+
+  /**
+   * Parse a JSON-LD context in any form.
+   * @param {JsonLdContext} context A context, URL to a context, or an array of contexts/URLs.
+   * @param {IParseOptions} options Optional parsing options.
+   * @return {Promise<JsonLdContextNormalized>} A promise resolving to the context.
+   */
+  private async _parse(context: JsonLdContext,
+                     options: IParseOptions): Promise<JsonLdContextNormalized> {
     const {
       baseIRI,
       parentContext: parentContextInitial,
@@ -667,7 +769,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       if (overriddenLoad) {
         return new JsonLdContextNormalized(overriddenLoad);
       }
-      const parsedStringContext = await this.parse(await this.load(contextIri),
+      const parsedStringContext = await this._parse(await this.load(contextIri),
         {
           ...options,
           baseIRI: contextIri,
@@ -699,7 +801,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       }
 
       const reducedContexts = await contexts.reduce((accContextPromise, contextEntry, i) => accContextPromise
-          .then((accContext) => this.parse(contextEntry, {
+          .then((accContext) => this._parse(contextEntry, {
             ...options,
             baseIRI: contextIris[i] || options.baseIRI,
             external: !!contextIris[i] || options.external,
@@ -714,7 +816,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       return reducedContexts;
     } else if (typeof context === 'object') {
       if ('@context' in context) {
-        return await this.parse(context['@context'], options);
+        return await this._parse(context['@context'], options);
       }
 
       // Make a deep clone of the given context, to avoid modifying it.
@@ -807,83 +909,6 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
     }
   }
 
-  /**
-   * Fetch the given URL as a raw JSON-LD context.
-   * @param url An URL.
-   * @return A promise resolving to a raw JSON-LD context.
-   */
-  public async load(url: string): Promise<JsonLdContext> {
-    // First try to retrieve the context from cache
-    const cached = this.documentCache[url];
-    if (cached) {
-      return typeof cached === 'string' ? cached : Array.isArray(cached) ? cached.slice() : {... cached};
-    }
-
-    // If not in cache, load it
-    let document: IJsonLdContext;
-    try {
-      document = await this.documentLoader.load(url);
-    } catch (e) {
-      throw new ErrorCoded(`Failed to load remote context ${url}: ${e.message}`,
-        ERROR_CODES.LOADING_REMOTE_CONTEXT_FAILED);
-    }
-
-    // Validate the context
-    if (!('@context' in document)) {
-      throw new ErrorCoded(`Missing @context in remote context at ${url}`,
-        ERROR_CODES.INVALID_REMOTE_CONTEXT);
-    }
-
-    return this.documentCache[url] = document['@context'];
-  }
-
-  /**
-   * Override the given context that may be loaded.
-   *
-   * This will check whether or not the url is recursively being loaded.
-   * @param url An URL.
-   * @param options Parsing options.
-   * @return An overridden context, or null.
-   *         Optionally an error can be thrown if a cyclic context is detected.
-   */
-  public getOverriddenLoad(url: string, options: IParseOptions): IJsonLdContextNormalizedRaw | null {
-    if (url in (options.remoteContexts || {})) {
-      if (options.ignoreRemoteScopedContexts) {
-        return <IJsonLdContextNormalizedRaw> <any> url;
-      } else {
-        throw new ErrorCoded('Detected a cyclic context inclusion of ' + url,
-          ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Load an @import'ed context.
-   * @param importContextIri The full URI of an @import value.
-   */
-  public async loadImportContext(importContextIri: string): Promise<IJsonLdContextNormalizedRaw> {
-    // Load the context
-    const importContext = await this.load(importContextIri);
-
-    // Require the context to be a non-array object
-    if (typeof importContext !== 'object' || Array.isArray(importContext)) {
-      throw new ErrorCoded('An imported context must be a single object: ' + importContextIri,
-        ERROR_CODES.INVALID_REMOTE_CONTEXT);
-    }
-
-    // Error if the context contains another @import
-    if ('@import' in importContext) {
-      throw new ErrorCoded('An imported context can not import another context: ' + importContextIri,
-        ERROR_CODES.INVALID_CONTEXT_ENTRY);
-    }
-
-    // Containers have to be converted into hash values the same way as for the importing context
-    // Otherwise context validation will fail for container values
-    this.containersToHash(importContext);
-    return importContext;
-  }
-
 }
 
 export interface IContextParserOptions {
@@ -891,6 +916,10 @@ export interface IContextParserOptions {
    * An optional loader that should be used for fetching external JSON-LD contexts.
    */
   documentLoader?: IDocumentLoader;
+  /**
+   * An optional cache for parsed contexts.
+   */
+  contextCache?: IContextCache;
   /**
    * By default, JSON-LD contexts will be validated.
    * This can be disabled by setting this option to true.

@@ -40,13 +40,17 @@
   },
   "sideEffects": false,
   "devDependencies": {
+    "@types/benchmark": "^2.1.4",
     "@types/jest": "^28.0.0",
+    "@types/md5": "^2.3.4",
+    "benchmark": "^2.1.4",
     "coveralls": "^3.0.0",
     "jest": "^28.0.1",
     "manual-git-changelog": "^1.0.0",
     "pre-commit": "^1.2.2",
     "ts-jest": "^28.0.1",
     "ts-loader": "^9.3.1",
+    "ts-node": "^10.9.1",
     "tslint": "^6.0.0",
     "tslint-eslint-rules": "^5.3.1",
     "typescript": "^5.0.0",
@@ -81,7 +85,8 @@
     "build-watch": "tsc --watch",
     "validate": "npm ls",
     "prepare": "npm run build",
-    "version": "manual-git-changelog onversion"
+    "version": "manual-git-changelog onversion",
+    "perf": "ts-node perf/bench.ts 2>&1 | tee perf/output.txt"
   },
   "dependencies": {
     "@types/http-link-header": "^1.0.1",
@@ -89,6 +94,8 @@
     "canonicalize": "^1.0.1",
     "cross-fetch": "^3.0.6",
     "http-link-header": "^1.0.2",
+    "lru-cache": "^10.0.1",
+    "md5": "^2.3.0",
     "relative-to-absolute-iri": "^1.0.5"
   }
 }

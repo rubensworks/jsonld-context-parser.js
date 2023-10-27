@@ -260,6 +260,18 @@ This library exposes many operations that are useful to parse and handle a JSON-
 For this, the static functions on [`Util`](https://github.com/rubensworks/jsonld-context-parser.js/blob/master/lib/Util.ts)
 and [`ContextParser`](https://github.com/rubensworks/jsonld-context-parser.js/blob/master/lib/ContextParser.ts) can be used. 
 
+##### Context Caching
+
+This library supports the ability to cache context entry calculations and share them between multiple context parsers. This can be done as follows:
+
+```ts
+import { ContextCache, ContextParser } from 'jsonld-context-parser';
+
+const contextCache = new ContextCache();
+const contextParser1 = new ContextParser({ contextCache });
+const contextParser2 = new ContextParser({ contextCache });
+```
+
 ## Command-line
 
 A command-line tool is provided to quickly normalize any context by URL, file or string.

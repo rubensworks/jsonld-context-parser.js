@@ -1,4 +1,5 @@
 import {
+  ContextCache,
   ContextParser,
   ERROR_CODES,
   ErrorCoded,
@@ -1444,17 +1445,62 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
     });
 
     describe('parse', () => {
-      it('should error when parsing a context with an invalid context entry', () => {
-        return expect(parser.parse({ '@base': true })).rejects
+      it('should error when parsing a context with an invalid context entry', async () => {
+        await expect(parser.parse({ '@base': true })).rejects
+          .toEqual(new ErrorCoded('Found an invalid @base IRI: true',
+            ERROR_CODES.INVALID_BASE_IRI));
+
+        // Testing multiple times to make sure that rejection works with caching
+        await expect(parser.parse({ '@base': true })).rejects
           .toEqual(new ErrorCoded('Found an invalid @base IRI: true',
             ERROR_CODES.INVALID_BASE_IRI));
       });
 
-      it('should parse an object with direct context values', () => {
-        return expect(parser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
+      it('should parse an object with direct context values', async () => {
+        await expect(parser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
           .toEqual(new JsonLdContextNormalized({
             name: "http://xmlns.com/foaf/0.1/name",
           }));
+      });
+
+      describe('caching parser', () => {
+        let cachingParser: ContextParser;
+
+        beforeEach(() => {
+          cachingParser = new ContextParser({ contextCache: new ContextCache() });
+        });
+
+        it('should resolve to the same object when parse is called on the same context', async () => {
+          await expect(cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
+          .toBe(await cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" }));
+        });
+
+        it('should resolve to the same object when parse is called on the same context and with empty parent', async () => {
+          await expect(cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
+          .toEqual(await cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" }, {
+            parentContext: (await cachingParser.parse({})).getContextRaw(),
+          }));
+        });
+
+        it('should not resolve to the same object when parse is called on the same context and with non-empty parent', async () => {
+          await expect(cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
+          .not.toEqual(await cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" }, {
+            parentContext: (await cachingParser.parse({
+              name2: "http://xmlns.com/foaf/0.1/name"
+            })).getContextRaw(),
+          }));
+        });
+
+        it('should respect the LRU cache and discard elements once max is reached', async () => {
+          const myParser = new ContextParser({
+            contextCache: new ContextCache({ max: 1 }),
+          });
+
+          const r1 = await myParser.parse({ name: "http://xmlns.com/foaf/0.1/name" });
+          await myParser.parse({ name1: "http://xmlns.com/foaf/0.1/name" });
+          const r3 = await myParser.parse({ name: "http://xmlns.com/foaf/0.1/name" });
+          expect(r1).not.toBe(r3);
+        });
       });
 
       it('should parse an object with indirect context values', () => {
