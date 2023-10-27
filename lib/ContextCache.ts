@@ -16,17 +16,6 @@ function hashOptions(options: IParseOptions | undefined) {
   return md5(JSON.stringify(opts, Object.keys(opts).sort()));
 }
 
-function hashContext(
-  context: JsonLdContext,
-): string {
-  if (Array.isArray(context)) {
-    return md5(
-      JSON.stringify(context),
-    );
-  }
-  return typeof context === "string" ? md5(context) : md5(JSON.stringify(context));
-}
-
 export class ContextCache implements IContextCache {
   private cachedParsing: LRUCache<string, Promise<JsonLdContextNormalized>>;
 
@@ -41,10 +30,10 @@ export class ContextCache implements IContextCache {
     let hash = hashOptions(options);
 
     if (options?.parentContext && Object.keys(options.parentContext).length !== 0) {
-      hash = md5(hash + hashContext(options.parentContext));
+      hash = md5(hash + md5(JSON.stringify(context)));
     }
 
-    return md5(hash + hashContext(context,));
+    return md5(hash + md5(JSON.stringify(context)));
   }
 
   get(context: string): Promise<JsonLdContextNormalized> | undefined {

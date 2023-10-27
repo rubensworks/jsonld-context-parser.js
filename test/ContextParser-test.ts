@@ -1463,36 +1463,44 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           }));
       });
 
-      it('should resolve to the same object when parse is called on the same context', async () => {
-        await expect(parser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
-          .toBe(await parser.parse({ name: "http://xmlns.com/foaf/0.1/name" }));
-      });
+      describe('caching parser', () => {
+        let cachingParser: ContextParser;
 
-      it('should resolve to the same object when parse is called on the same context and with empty parent', async () => {
-        await expect(parser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
-          .toEqual(await parser.parse({ name: "http://xmlns.com/foaf/0.1/name" }, {
-            parentContext: (await parser.parse({})).getContextRaw(),
+        beforeEach(() => {
+          cachingParser = new ContextParser({ contextCache: new ContextCache() });
+        });
+
+        it('should resolve to the same object when parse is called on the same context', async () => {
+          await expect(cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
+          .toBe(await cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" }));
+        });
+
+        it('should resolve to the same object when parse is called on the same context and with empty parent', async () => {
+          await expect(cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
+          .toEqual(await cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" }, {
+            parentContext: (await cachingParser.parse({})).getContextRaw(),
           }));
-      });
+        });
 
-      it('should not resolve to the same object when parse is called on the same context and with non-empty parent', async () => {
-        await expect(parser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
-          .not.toEqual(await parser.parse({ name: "http://xmlns.com/foaf/0.1/name" }, {
-            parentContext: (await parser.parse({
+        it('should not resolve to the same object when parse is called on the same context and with non-empty parent', async () => {
+          await expect(cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
+          .not.toEqual(await cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" }, {
+            parentContext: (await cachingParser.parse({
               name2: "http://xmlns.com/foaf/0.1/name"
             })).getContextRaw(),
           }));
-      });
-
-      it('should respect the LRU cache and discard elements once max is reached', async () => {
-        const myParser = new ContextParser({
-          contextCache: new ContextCache({ max: 1 }),
         });
 
-        const r1 = await myParser.parse({ name: "http://xmlns.com/foaf/0.1/name" });
-        await myParser.parse({ name1: "http://xmlns.com/foaf/0.1/name" });
-        const r3 = await myParser.parse({ name: "http://xmlns.com/foaf/0.1/name" });
-        expect(r1).not.toBe(r3);
+        it('should respect the LRU cache and discard elements once max is reached', async () => {
+          const myParser = new ContextParser({
+            contextCache: new ContextCache({ max: 1 }),
+          });
+
+          const r1 = await myParser.parse({ name: "http://xmlns.com/foaf/0.1/name" });
+          await myParser.parse({ name1: "http://xmlns.com/foaf/0.1/name" });
+          const r3 = await myParser.parse({ name: "http://xmlns.com/foaf/0.1/name" });
+          expect(r1).not.toBe(r3);
+        });
       });
 
       it('should parse an object with indirect context values', () => {
