@@ -1471,7 +1471,16 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
       it('should resolve to the same object when parse is called on the same context and with empty parent', async () => {
         await expect(parser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
           .toEqual(await parser.parse({ name: "http://xmlns.com/foaf/0.1/name" }, {
-            parent: new JsonLdContextNormalized({}),
+            parentContext: (await parser.parse({})).getContextRaw(),
+          }));
+      });
+
+      it('should not resolve to the same object when parse is called on the same context and with non-empty parent', async () => {
+        await expect(parser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
+          .not.toEqual(await parser.parse({ name: "http://xmlns.com/foaf/0.1/name" }, {
+            parentContext: (await parser.parse({
+              name2: "http://xmlns.com/foaf/0.1/name"
+            })).getContextRaw(),
           }));
       });
 
