@@ -1444,18 +1444,28 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
     });
 
     describe('parse', () => {
-      it('should error when parsing a context with an invalid context entry', () => {
-        return expect(parser.parse({ '@base': true })).rejects
+      it('should error when parsing a context with an invalid context entry', async () => {
+        await expect(parser.parse({ '@base': true })).rejects
+          .toEqual(new ErrorCoded('Found an invalid @base IRI: true',
+            ERROR_CODES.INVALID_BASE_IRI));
+
+        // Testing multiple times to make sure that rejection works with caching
+        await expect(parser.parse({ '@base': true })).rejects
           .toEqual(new ErrorCoded('Found an invalid @base IRI: true',
             ERROR_CODES.INVALID_BASE_IRI));
       });
 
-      it('should parse an object with direct context values', () => {
-        return expect(parser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
+      it('should parse an object with direct context values', async () => {
+        await expect(parser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
           .toEqual(new JsonLdContextNormalized({
             name: "http://xmlns.com/foaf/0.1/name",
           }));
       });
+
+      it('should resolve to the same object when parse is called on the same context', async () => {
+        await expect(parser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
+          .toBe(await parser.parse({ name: "http://xmlns.com/foaf/0.1/name" }));
+      })
 
       it('should parse an object with indirect context values', () => {
         return expect(parser.parse({ "@context": { name: "http://xmlns.com/foaf/0.1/name" } })).resolves

@@ -732,7 +732,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    * @return {Promise<JsonLdContextNormalized>} A promise resolving to the context.
    */
   private async _parse(context: JsonLdContext,
-                     options: IParseOptions = {}): Promise<JsonLdContextNormalized> {
+                     options: IParseOptions): Promise<JsonLdContextNormalized> {
     const {
       baseIRI,
       parentContext: parentContextInitial,
