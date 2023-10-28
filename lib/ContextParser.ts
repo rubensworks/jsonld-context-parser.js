@@ -92,8 +92,7 @@ export class ContextParser {
    * @return {IJsonLdContextNormalizedRaw} The mutated input context.
    */
   public idifyReverseTerms(context: IJsonLdContextNormalizedRaw): IJsonLdContextNormalizedRaw {
-    for (const key of Object.keys(context)) {
-      const value: IPrefixValue = context[key];
+    for (const value of Object.values(context)) {
       if (value && typeof value === 'object') {
         if (value['@reverse'] && !value['@id']) {
           if (typeof value['@reverse'] !== 'string' || Util.isValidKeyword(value['@reverse'])) {
@@ -102,6 +101,7 @@ export class ContextParser {
           }
           value['@id'] = <string> value['@reverse'];
           if (Util.isPotentialKeyword(value['@reverse'])) {
+            // @assignment
             delete value['@reverse'];
           } else {
             value['@reverse'] = <any> true;
@@ -152,6 +152,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
           const value: IPrefixValue = contextRaw[key];
           let changed: boolean = false;
           if (typeof value === 'string') {
+            // @assignment
             contextRaw[key] = context.expandTerm(value, true);
             changed = changed || value !== contextRaw[key];
           } else {
@@ -162,6 +163,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
             if ('@id' in value) {
               // Use @id value for expansion
               if (id !== undefined && id !== null && typeof id === 'string') {
+                // @assignment
                 contextRaw[key]['@id'] = context.expandTerm(id, true);
                 changed = changed || id !== contextRaw[key]['@id'];
               }
@@ -170,6 +172,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
               const newId = context.expandTerm(key, true);
               if (newId !== key) {
                 // Don't set @id if expansion failed
+                // @assignment
                 contextRaw[key]['@id'] = newId;
                 changed = true;
               }
@@ -178,8 +181,10 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
               && (!value['@container'] || !(<any> value['@container'])['@type'])
               && canAddIdEntry) {
               // First check @vocab, then fallback to @base
+              // @assignment
               contextRaw[key]['@type'] = context.expandTerm(type, true);
               if (expandContentTypeToBase && type === contextRaw[key]['@type']) {
+                // @assignment
                 contextRaw[key]['@type'] = context.expandTerm(type, false);
               }
               changed = changed || type !== contextRaw[key]['@type'];
@@ -222,20 +227,22 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
    * @param {IJsonLdContextNormalizedRaw} context A context.
    */
   public containersToHash(context: IJsonLdContextNormalizedRaw) {
-    for (const key of Object.keys(context)) {
-      const value = context[key];
+    for (const value of Object.values(context)) {
       if (value && typeof value === 'object') {
         if (typeof value['@container'] === 'string') {
+          // @assignment
           value['@container'] = { [value['@container']]: true };
         } else if (Array.isArray(value['@container'])) {
           const newValue: {[key: string]: boolean} = {};
           for (const containerValue of value['@container']) {
             newValue[containerValue] = true;
           }
+          // @assignment
           value['@container'] = newValue;
         }
       }
     }
+    return context;
   }
 
   /**
@@ -256,20 +263,24 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
             if (value && typeof value === 'object') {
               if (!('@protected' in context[key])) {
                 // Mark terms with object values as protected if they don't have an @protected: false annotation
+                // @assignment
                 context[key]['@protected'] = true;
               }
             } else {
               // Convert string-based term values to object-based values with @protected: true
+              // @assignment
               context[key] = {
                 '@id': value,
                 '@protected': true,
               };
               if (Util.isSimpleTermDefinitionPrefix(value, expandOptions)) {
+                // @assignment
                 context[key]['@prefix'] = true
               }
             }
           }
         }
+        // @assignment
         delete context['@protected'];
       }
     }
@@ -290,6 +301,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
         // If the new entry is in string-mode, convert it to object-mode
         // before checking if it is identical.
         if (typeof contextAfter[key] === 'string') {
+          // @assignment
           contextAfter[key] = { '@id': contextAfter[key] };
         }
 
@@ -298,6 +310,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
         // We modify this deliberately,
         // as we need it for the value comparison (they must be identical modulo '@protected')),
         // and for the fact that this new value will override the first one.
+        // @assignment
         contextAfter[key]['@protected'] = true;
         const valueAfter = canonicalizeJson(contextAfter[key]);
 
@@ -543,8 +556,10 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
     // Give priority to @base in the parent context
     if (inheritFromParent && !('@base' in context) && options.parentContext
       && typeof options.parentContext === 'object' && '@base' in options.parentContext) {
+        // @assignment
       context['@base'] = options.parentContext['@base'];
       if (options.parentContext['@__baseDocument']) {
+        // @assignment
         context['@__baseDocument'] = true;
       }
     }
@@ -553,11 +568,14 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
     if (options.baseIRI && !options.external) {
       if (!('@base' in context)) {
         // The context base is the document base
+        // @assignment
         context['@base'] = options.baseIRI;
+        // @assignment
         context['@__baseDocument'] = true;
       } else if (context['@base'] !== null && typeof context['@base'] === 'string'
         && !Util.isValidIri(<string> context['@base'])) {
         // The context base is relative to the document base
+        // @assignment
         context['@base'] = resolve(<string> context['@base'],
           options.parentContext && options.parentContext['@base'] || options.baseIRI);
       }
@@ -596,6 +614,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    */
   public async parseInnerContexts(context: IJsonLdContextNormalizedRaw, options: IParseOptions)
     : Promise<IJsonLdContextNormalizedRaw> {
+    let newContext: IJsonLdContextNormalizedRaw = {};
     for (const key of Object.keys(context)) {
       const value = context[key];
       if (value && typeof value === 'object') {
@@ -607,8 +626,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
           // https://w3c.github.io/json-ld-api/#h-note-10
           if (this.validateContext) {
             try {
-              const parentContext = {...context};
-              parentContext[key] = {...parentContext[key]};
+              const parentContext = {...context, [key]: {...context[key]}};
               delete parentContext[key]['@context'];
               await this.parse(value['@context'],
                 { ...options, external: false, parentContext, ignoreProtection: true, ignoreRemoteScopedContexts: true, ignoreScopedContexts: true });
@@ -616,10 +634,9 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
               throw new ErrorCoded(e.message, ERROR_CODES.INVALID_SCOPED_CONTEXT);
             }
           }
-
           value['@context'] = (await this.parse(value['@context'],
             { ...options, external: false, minimalProcessing: true, ignoreRemoteScopedContexts: true, parentContext: context }))
-            .getContextRaw();
+            .getContextRaw() ;
         }
       }
     }
@@ -725,6 +742,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
       // According to the JSON-LD spec, @base must be ignored from external contexts.
       if (external) {
+        // @assignment
         delete context['@base'];
       }
 
@@ -733,7 +751,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
       // Hashify container entries
       // Do this before protected term validation as that influences term format
-      this.containersToHash(context);
+      context = this.containersToHash(context);
 
       // Don't perform any other modifications if only minimal processing is needed.
       if (minimalProcessing) {
@@ -752,6 +770,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
           // Load context
           importContext = await this.loadImportContext(this.normalizeContextIri(context['@import'], baseIRI));
+          // @assignment
           delete context['@import'];
         } else {
           throw new ErrorCoded('Context importing is not supported in JSON-LD 1.0',
@@ -776,10 +795,12 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       if ((newContext && newContext['@version'] || ContextParser.DEFAULT_PROCESSING_MODE) >= 1.1
         && ((context['@vocab'] && typeof context['@vocab'] === 'string') || context['@vocab'] === '')) {
         if (parentContext && '@vocab' in parentContext && context['@vocab'].indexOf(':') < 0) {
+          // @assignment
           newContext['@vocab'] = parentContext['@vocab'] + context['@vocab'];
         } else {
           if (Util.isCompactIri(context['@vocab']) || context['@vocab'] in newContextWrapped.getContextRaw()) {
             // @vocab is a compact IRI or refers exactly to a prefix
+            // @assignment
             newContext['@vocab'] = newContextWrapped.expandTerm(context['@vocab'], true);
           }
         }
@@ -816,7 +837,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
     // First try to retrieve the context from cache
     const cached = this.documentCache[url];
     if (cached) {
-      return typeof cached === 'string' ? cached : Array.isArray(cached) ? cached.slice() : {... cached};
+      return cached;
     }
 
     // If not in cache, load it
@@ -880,8 +901,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
     // Containers have to be converted into hash values the same way as for the importing context
     // Otherwise context validation will fail for container values
-    this.containersToHash(importContext);
-    return importContext;
+    return this.containersToHash(importContext);
   }
 
 }
