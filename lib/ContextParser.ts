@@ -614,9 +614,9 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    */
   public async parseInnerContexts(context: IJsonLdContextNormalizedRaw, options: IParseOptions)
     : Promise<IJsonLdContextNormalizedRaw> {
-    let newContext: IJsonLdContextNormalizedRaw = {};
-    for (const key of Object.keys(context)) {
-      const value = context[key];
+    let newContext: IJsonLdContextNormalizedRaw = {...context};
+    for (const key of Object.keys(newContext)) {
+      const value = newContext[key];
       if (value && typeof value === 'object') {
         if ('@context' in value && value['@context'] !== null && !options.ignoreScopedContexts) {
           // Simulate a processing based on the parent context to check if there are any (potential errors).
@@ -626,7 +626,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
           // https://w3c.github.io/json-ld-api/#h-note-10
           if (this.validateContext) {
             try {
-              const parentContext = {...context, [key]: {...context[key]}};
+              const parentContext = {...newContext, [key]: {...newContext[key]}};
               delete parentContext[key]['@context'];
               await this.parse(value['@context'],
                 { ...options, external: false, parentContext, ignoreProtection: true, ignoreRemoteScopedContexts: true, ignoreScopedContexts: true });
@@ -636,11 +636,11 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
           }
           value['@context'] = (await this.parse(value['@context'],
             { ...options, external: false, minimalProcessing: true, ignoreRemoteScopedContexts: true, parentContext: context }))
-            .getContextRaw() ;
+            .getContextRaw();
         }
       }
     }
-    return context;
+    return newContext;
   }
 
   /**
@@ -786,10 +786,11 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
         newContext = { ...parentContext, ...newContext };
       }
 
+      // Parse inner contexts with minimal processing
+      newContext = await this.parseInnerContexts(newContext, options);
+
       const newContextWrapped = new JsonLdContextNormalized(newContext);
 
-      // Parse inner contexts with minimal processing
-      await this.parseInnerContexts(newContext, options);
 
       // In JSON-LD 1.1, @vocab can be relative to @vocab in the parent context, or a compact IRI.
       if ((newContext && newContext['@version'] || ContextParser.DEFAULT_PROCESSING_MODE) >= 1.1
