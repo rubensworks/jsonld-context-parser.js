@@ -9,6 +9,13 @@ import {Util} from "./Util";
 
 // tslint:disable-next-line:no-var-requires
 const canonicalizeJson = require('canonicalize');
+const deepFreeze = (obj: any) => {
+  Object.keys(obj).forEach(prop => {
+    if (typeof obj[prop] === 'object' && !Object.isFrozen(obj[prop])) deepFreeze(obj[prop]);
+  });
+  return Object.freeze(obj);
+  // return obj;
+};
 
 /**
  * Parses JSON-LD contexts.
@@ -92,16 +99,18 @@ export class ContextParser {
    * @return {IJsonLdContextNormalizedRaw} The mutated input context.
    */
   public idifyReverseTerms(context: IJsonLdContextNormalizedRaw): IJsonLdContextNormalizedRaw {
-    for (const value of Object.values(context)) {
+    for (const key of Object.keys(context)) {
+      let value = context[key];
       if (value && typeof value === 'object') {
         if (value['@reverse'] && !value['@id']) {
           if (typeof value['@reverse'] !== 'string' || Util.isValidKeyword(value['@reverse'])) {
             throw new ErrorCoded(`Invalid @reverse value, must be absolute IRI or blank node: '${value['@reverse']}'`,
               ERROR_CODES.INVALID_IRI_MAPPING);
           }
+          // @-assignment
+          value = context[key] = {...value, '@id': value['@reverse']};
           value['@id'] = <string> value['@reverse'];
           if (Util.isPotentialKeyword(value['@reverse'])) {
-            // @assignment
             delete value['@reverse'];
           } else {
             value['@reverse'] = <any> true;
@@ -152,7 +161,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
           const value: IPrefixValue = contextRaw[key];
           let changed: boolean = false;
           if (typeof value === 'string') {
-            // @assignment
+            // @-assignment
             contextRaw[key] = context.expandTerm(value, true);
             changed = changed || value !== contextRaw[key];
           } else {
@@ -163,8 +172,8 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
             if ('@id' in value) {
               // Use @id value for expansion
               if (id !== undefined && id !== null && typeof id === 'string') {
-                // @assignment
-                contextRaw[key]['@id'] = context.expandTerm(id, true);
+                // @-assignment
+                contextRaw[key] = { ...contextRaw[key], '@id': context.expandTerm(id, true) };
                 changed = changed || id !== contextRaw[key]['@id'];
               }
             } else if (!Util.isPotentialKeyword(key) && canAddIdEntry) {
@@ -172,8 +181,8 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
               const newId = context.expandTerm(key, true);
               if (newId !== key) {
                 // Don't set @id if expansion failed
-                // @assignment
-                contextRaw[key]['@id'] = newId;
+                // @-assignment
+                contextRaw[key] = { ...contextRaw[key], '@id': newId };
                 changed = true;
               }
             }
@@ -181,13 +190,12 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
               && (!value['@container'] || !(<any> value['@container'])['@type'])
               && canAddIdEntry) {
               // First check @vocab, then fallback to @base
-              // @assignment
-              contextRaw[key]['@type'] = context.expandTerm(type, true);
-              if (expandContentTypeToBase && type === contextRaw[key]['@type']) {
-                // @assignment
-                contextRaw[key]['@type'] = context.expandTerm(type, false);
+              // @-assignment
+              const expandedType = context.expandTerm(type, !(expandContentTypeToBase && type === contextRaw[key]['@type']));
+              if (expandedType !== type) {
+                changed = true;
+                contextRaw[key] = { ...contextRaw[key], '@type': expandedType };
               }
-              changed = changed || type !== contextRaw[key]['@type'];
             }
           }
           if (!changed) {
@@ -214,7 +222,10 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
           const value = context[key];
           if (value && typeof value === 'object') {
             if (typeof value['@language'] === 'string') {
-              value['@language'] = value['@language'].toLowerCase();
+              const lowercase = value['@language'].toLowerCase();
+              if (lowercase !== value['@language']) {
+                context[key] = {...value, '@language': lowercase};
+              }
             }
           }
         }
@@ -227,18 +238,20 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
    * @param {IJsonLdContextNormalizedRaw} context A context.
    */
   public containersToHash(context: IJsonLdContextNormalizedRaw) {
-    for (const value of Object.values(context)) {
+    // let context = { ...c}
+    for (const key of Object.keys(context)) {
+      const value = context[key];
       if (value && typeof value === 'object') {
         if (typeof value['@container'] === 'string') {
-          // @assignment
-          value['@container'] = { [value['@container']]: true };
+          // @-assignment
+          context[key] = { ...value, '@container': { [value['@container']]: true } };
         } else if (Array.isArray(value['@container'])) {
           const newValue: {[key: string]: boolean} = {};
           for (const containerValue of value['@container']) {
             newValue[containerValue] = true;
           }
-          // @assignment
-          value['@container'] = newValue;
+          // @-assignment
+          context[key] = { ...value, '@container': newValue };
         }
       }
     }
@@ -263,24 +276,23 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
             if (value && typeof value === 'object') {
               if (!('@protected' in context[key])) {
                 // Mark terms with object values as protected if they don't have an @protected: false annotation
-                // @assignment
-                context[key]['@protected'] = true;
+                context[key] = {...context[key], '@protected': true};
               }
             } else {
               // Convert string-based term values to object-based values with @protected: true
-              // @assignment
+              // @-assignment
               context[key] = {
                 '@id': value,
                 '@protected': true,
               };
               if (Util.isSimpleTermDefinitionPrefix(value, expandOptions)) {
-                // @assignment
-                context[key]['@prefix'] = true
+                // @-assignment
+                context[key] = {...context[key], '@prefix': true};
               }
             }
           }
         }
-        // @assignment
+        // @-assignment
         delete context['@protected'];
       }
     }
@@ -301,7 +313,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
         // If the new entry is in string-mode, convert it to object-mode
         // before checking if it is identical.
         if (typeof contextAfter[key] === 'string') {
-          // @assignment
+          // @-assignment
           contextAfter[key] = { '@id': contextAfter[key] };
         }
 
@@ -310,8 +322,8 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
         // We modify this deliberately,
         // as we need it for the value comparison (they must be identical modulo '@protected')),
         // and for the fact that this new value will override the first one.
-        // @assignment
-        contextAfter[key]['@protected'] = true;
+        // @-assignment
+        contextAfter[key] = {...contextAfter[key], '@protected': true};
         const valueAfter = canonicalizeJson(contextAfter[key]);
 
         // Error if they are not identical
@@ -556,10 +568,10 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
     // Give priority to @base in the parent context
     if (inheritFromParent && !('@base' in context) && options.parentContext
       && typeof options.parentContext === 'object' && '@base' in options.parentContext) {
-        // @assignment
+        // @-assignment
       context['@base'] = options.parentContext['@base'];
       if (options.parentContext['@__baseDocument']) {
-        // @assignment
+        // @-assignment
         context['@__baseDocument'] = true;
       }
     }
@@ -568,14 +580,14 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
     if (options.baseIRI && !options.external) {
       if (!('@base' in context)) {
         // The context base is the document base
-        // @assignment
+        // @-assignment
         context['@base'] = options.baseIRI;
-        // @assignment
+        // @-assignment
         context['@__baseDocument'] = true;
       } else if (context['@base'] !== null && typeof context['@base'] === 'string'
         && !Util.isValidIri(<string> context['@base'])) {
         // The context base is relative to the document base
-        // @assignment
+        // @-assignment
         context['@base'] = resolve(<string> context['@base'],
           options.parentContext && options.parentContext['@base'] || options.baseIRI);
       }
@@ -614,9 +626,8 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    */
   public async parseInnerContexts(context: IJsonLdContextNormalizedRaw, options: IParseOptions)
     : Promise<IJsonLdContextNormalizedRaw> {
-    let newContext: IJsonLdContextNormalizedRaw = {...context};
-    for (const key of Object.keys(newContext)) {
-      const value = newContext[key];
+    for (const key of Object.keys(context)) {
+      const value = context[key];
       if (value && typeof value === 'object') {
         if ('@context' in value && value['@context'] !== null && !options.ignoreScopedContexts) {
           // Simulate a processing based on the parent context to check if there are any (potential errors).
@@ -626,7 +637,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
           // https://w3c.github.io/json-ld-api/#h-note-10
           if (this.validateContext) {
             try {
-              const parentContext = {...newContext, [key]: {...newContext[key]}};
+              const parentContext = {...context, [key]: {...context[key]}};
               delete parentContext[key]['@context'];
               await this.parse(value['@context'],
                 { ...options, external: false, parentContext, ignoreProtection: true, ignoreRemoteScopedContexts: true, ignoreScopedContexts: true });
@@ -634,13 +645,13 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
               throw new ErrorCoded(e.message, ERROR_CODES.INVALID_SCOPED_CONTEXT);
             }
           }
-          value['@context'] = (await this.parse(value['@context'],
-            { ...options, external: false, minimalProcessing: true, ignoreRemoteScopedContexts: true, parentContext: context }))
-            .getContextRaw();
+          context[key] = {...value, '@context': (await this.parse(value['@context'],
+          { ...options, external: false, minimalProcessing: true, ignoreRemoteScopedContexts: true, parentContext: context }))
+          .getContextRaw()}
         }
       }
     }
-    return newContext;
+    return context;
   }
 
   /**
@@ -735,14 +746,13 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       }
 
       // Make a deep clone of the given context, to avoid modifying it.
-      context = <IJsonLdContextNormalizedRaw> JSON.parse(JSON.stringify(context)); // No better way in JS at the moment.
+      context = <IJsonLdContextNormalizedRaw> {...context}; // No better way in JS at the moment.
       if (parentContext && !minimalProcessing) {
-        parentContext = <IJsonLdContextNormalizedRaw> JSON.parse(JSON.stringify(parentContext));
+        parentContext = <IJsonLdContextNormalizedRaw> {...parentContext};
       }
 
       // According to the JSON-LD spec, @base must be ignored from external contexts.
       if (external) {
-        // @assignment
         delete context['@base'];
       }
 
@@ -770,7 +780,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
           // Load context
           importContext = await this.loadImportContext(this.normalizeContextIri(context['@import'], baseIRI));
-          // @assignment
+          // @-assignment
           delete context['@import'];
         } else {
           throw new ErrorCoded('Context importing is not supported in JSON-LD 1.0',
@@ -796,14 +806,10 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       if ((newContext && newContext['@version'] || ContextParser.DEFAULT_PROCESSING_MODE) >= 1.1
         && ((context['@vocab'] && typeof context['@vocab'] === 'string') || context['@vocab'] === '')) {
         if (parentContext && '@vocab' in parentContext && context['@vocab'].indexOf(':') < 0) {
-          // @assignment
           newContext['@vocab'] = parentContext['@vocab'] + context['@vocab'];
-        } else {
-          if (Util.isCompactIri(context['@vocab']) || context['@vocab'] in newContextWrapped.getContextRaw()) {
+        } else if (Util.isCompactIri(context['@vocab']) || context['@vocab'] in newContext) {
             // @vocab is a compact IRI or refers exactly to a prefix
-            // @assignment
-            newContext['@vocab'] = newContextWrapped.expandTerm(context['@vocab'], true);
-          }
+          newContext['@vocab'] = newContextWrapped.expandTerm(context['@vocab'], true);
         }
       }
 
@@ -886,7 +892,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    */
   public async loadImportContext(importContextIri: string): Promise<IJsonLdContextNormalizedRaw> {
     // Load the context - and do a deep clone since we are about to mutate it
-    const importContext = JSON.parse(JSON.stringify(await this.load(importContextIri)));
+    let importContext = await this.load(importContextIri);
 
     // Require the context to be a non-array object
     if (typeof importContext !== 'object' || Array.isArray(importContext)) {
@@ -899,6 +905,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       throw new ErrorCoded('An imported context can not import another context: ' + importContextIri,
         ERROR_CODES.INVALID_CONTEXT_ENTRY);
     }
+    importContext = {...importContext};
 
     // Containers have to be converted into hash values the same way as for the importing context
     // Otherwise context validation will fail for container values
