@@ -863,8 +863,8 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    * @param importContextIri The full URI of an @import value.
    */
   public async loadImportContext(importContextIri: string): Promise<IJsonLdContextNormalizedRaw> {
-    // Load the context
-    const importContext = await this.load(importContextIri);
+    // Load the context - and do a deep clone since we are about to mutate it
+    const importContext = JSON.parse(JSON.stringify(await this.load(importContextIri)));
 
     // Require the context to be a non-array object
     if (typeof importContext !== 'object' || Array.isArray(importContext)) {
