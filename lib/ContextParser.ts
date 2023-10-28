@@ -179,7 +179,10 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
               && (!value['@container'] || !(<any> value['@container'])['@type'])
               && canAddIdEntry) {
               // First check @vocab, then fallback to @base
-              const expandedType = context.expandTerm(type, !(expandContentTypeToBase && type === contextRaw[key]['@type']));
+              let expandedType = context.expandTerm(type, true);
+              if (expandContentTypeToBase && type === expandedType) {
+                expandedType = context.expandTerm(type, false);
+              }
               if (expandedType !== type) {
                 changed = true;
                 contextRaw[key] = { ...contextRaw[key], '@type': expandedType };
