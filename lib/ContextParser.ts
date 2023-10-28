@@ -724,7 +724,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       }
 
       // Make a deep clone of the given context, to avoid modifying it.
-      context = <IJsonLdContextNormalizedRaw> {...context}; // No better way in JS at the moment.
+      context = <IJsonLdContextNormalizedRaw> {...context};
       if (parentContext && !minimalProcessing) {
         parentContext = <IJsonLdContextNormalizedRaw> {...parentContext};
       }
