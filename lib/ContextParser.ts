@@ -7,8 +7,21 @@ import {IJsonLdContext, IJsonLdContextNormalizedRaw, IPrefixValue, JsonLdContext
 import {JsonLdContextNormalized, defaultExpandOptions, IExpandOptions} from "./JsonLdContextNormalized";
 import {Util} from "./Util";
 
-// tslint:disable-next-line:no-var-requires
-const canonicalizeJson = require('canonicalize');
+const deepEqual = (object1: any, object2: any): boolean => {
+  const objKeys1 = Object.keys(object1);
+  const objKeys2 = Object.keys(object2);
+
+  if (objKeys1.length !== objKeys2.length) return false;
+  return objKeys1.every((key) => {
+    const value1 = object1[key];
+    const value2 = object2[key];
+    return (value1 === value2) || (isObject(value1) && isObject(value2) && deepEqual(value1, value2));
+  });
+};
+
+const isObject = (object: any) => {
+  return object != null && typeof object === "object";
+};
 
 /**
  * Parses JSON-LD contexts.
@@ -307,17 +320,13 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
         if (typeof contextAfter[key] === 'string') {
           contextAfter[key] = { '@id': contextAfter[key] };
         }
-
-        // Convert term values to strings for each comparison
-        const valueBefore = canonicalizeJson(contextBefore[key]);
         // We modify this deliberately,
         // as we need it for the value comparison (they must be identical modulo '@protected')),
         // and for the fact that this new value will override the first one.
         contextAfter[key] = {...contextAfter[key], '@protected': true};
-        const valueAfter = canonicalizeJson(contextAfter[key]);
 
         // Error if they are not identical
-        if (valueBefore !== valueAfter) {
+        if (!deepEqual(contextBefore[key], contextAfter[key])) {
           throw new ErrorCoded(`Attempted to override the protected keyword ${key} from ${
             JSON.stringify(Util.getContextValueId(contextBefore[key]))} to ${
             JSON.stringify(Util.getContextValueId(contextAfter[key]))}`,
