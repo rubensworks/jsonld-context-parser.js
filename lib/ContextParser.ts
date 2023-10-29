@@ -786,7 +786,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
       this.applyScopedProtected(importContext, { processingMode }, defaultExpandOptions);
 
-      let newContext: IJsonLdContextNormalizedRaw = { ...importContext, ...context };
+      const newContext: IJsonLdContextNormalizedRaw = Object.assign(importContext, context);
 
       // Handle terms (before protection checks)
       this.idifyReverseTerms(newContext);
@@ -796,7 +796,11 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       const keys = Object.keys(newContext);
       if (typeof parentContext === 'object') {
         // Merge different parts of the final context in order
-        newContext = { ...parentContext, ...newContext };
+        for (const key in parentContext) {
+          if (!(key in newContext)) {
+            newContext[key] = parentContext[key];
+          }
+        }
       }
 
       // Parse inner contexts with minimal processing
