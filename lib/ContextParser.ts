@@ -120,9 +120,9 @@ export class ContextParser {
    * @param {boolean} expandContentTypeToBase If @type inside the context may be expanded
    *                                          via @base if @vocab is set to null.
    */
-  public expandPrefixedTerms(context: JsonLdContextNormalized, expandContentTypeToBase: boolean) {
+  public expandPrefixedTerms(context: JsonLdContextNormalized, expandContentTypeToBase: boolean, keys = Object.keys(context.getContextRaw())) {
     const contextRaw = context.getContextRaw();
-    for (const key of Object.keys(contextRaw)) {
+    for (const key of keys) {
       // Only expand allowed keys
       if (Util.EXPAND_KEYS_BLACKLIST.indexOf(key) < 0 && !Util.isReservedInternalKeyword(key)) {
         // Error if we try to alias a keyword to something else.
@@ -291,7 +291,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
    */
   public validateKeywordRedefinitions(contextBefore: IJsonLdContextNormalizedRaw,
                                       contextAfter: IJsonLdContextNormalizedRaw,
-                                      expandOptions: IExpandOptions) {
+                                      expandOptions: IExpandOptions, keys = Object.keys(contextAfter)) {
     for (const key of Object.keys(contextAfter)) {
       if (Util.isTermProtected(contextBefore, key)) {
         // The entry in the context before will always be in object-mode
@@ -602,9 +602,9 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    * @param {IParseOptions} options Parsing options.
    * @return {IJsonLdContextNormalizedRaw} The mutated input context.
    */
-  public async parseInnerContexts(context: IJsonLdContextNormalizedRaw, options: IParseOptions)
+  public async parseInnerContexts(context: IJsonLdContextNormalizedRaw, options: IParseOptions, keys = Object.keys(context))
     : Promise<IJsonLdContextNormalizedRaw> {
-    for (const key of Object.keys(context)) {
+    for (const key of keys) {
       const value = context[key];
       if (value && typeof value === 'object') {
         if ('@context' in value && value['@context'] !== null && !options.ignoreScopedContexts) {
@@ -639,7 +639,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    * @return {Promise<JsonLdContextNormalized>} A promise resolving to the context.
    */
   public async parse(context: JsonLdContext,
-                     options: IParseOptions = {}): Promise<JsonLdContextNormalized> {
+                     options: IParseOptions = {}, ioptions: { skipValidation?: boolean } = {}): Promise<JsonLdContextNormalized> {
     const {
       baseIRI,
       parentContext: parentContextInitial,
@@ -711,6 +711,8 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
             external: !!contextIris[i] || options.external,
             parentContext: accContext.getContextRaw(),
             remoteContexts: contextIris[i] ? { ...remoteContexts, [contextIris[i]]: true } : remoteContexts,
+          }, {
+            skipValidation: i < contexts.length - 1,
           })),
         Promise.resolve(new JsonLdContextNormalized(parentContext || {})));
 
@@ -766,18 +768,24 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       }
 
       this.applyScopedProtected(importContext, { processingMode }, defaultExpandOptions);
+
       let newContext: IJsonLdContextNormalizedRaw = { ...importContext, ...context };
+
+      // Handle terms (before protection checks)
+      this.idifyReverseTerms(newContext);
+      this.normalize(newContext, { processingMode, normalizeLanguageTags });
+      this.applyScopedProtected(newContext, { processingMode }, defaultExpandOptions);
+
+      const keys = Object.keys(newContext);
       if (typeof parentContext === 'object') {
         // Merge different parts of the final context in order
-        this.applyScopedProtected(newContext, { processingMode }, defaultExpandOptions);
         newContext = { ...parentContext, ...newContext };
       }
 
       // Parse inner contexts with minimal processing
-      newContext = await this.parseInnerContexts(newContext, options);
+      await this.parseInnerContexts(newContext, options, keys);
 
       const newContextWrapped = new JsonLdContextNormalized(newContext);
-
 
       // In JSON-LD 1.1, @vocab can be relative to @vocab in the parent context, or a compact IRI.
       if ((newContext && newContext['@version'] || ContextParser.DEFAULT_PROCESSING_MODE) >= 1.1
@@ -787,24 +795,21 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
         } else if (Util.isCompactIri(context['@vocab']) || context['@vocab'] in newContext) {
             // @vocab is a compact IRI or refers exactly to a prefix
           newContext['@vocab'] = newContextWrapped.expandTerm(context['@vocab'], true);
+
         }
       }
 
-      // Handle terms (before protection checks)
-      this.idifyReverseTerms(newContext);
+      // FIXME: Add keys as a 3rd argument here for performance
       this.expandPrefixedTerms(newContextWrapped, this.expandContentTypeToBase);
 
       // In JSON-LD 1.1, check if we are not redefining any protected keywords
       if (!ignoreProtection && parentContext && processingMode >= 1.1) {
-        this.validateKeywordRedefinitions(parentContext, newContext, defaultExpandOptions);
+        this.validateKeywordRedefinitions(parentContext, newContext, defaultExpandOptions, keys);
       }
 
-      this.normalize(newContext, { processingMode, normalizeLanguageTags });
-      this.applyScopedProtected(newContext, { processingMode }, defaultExpandOptions);
-      if (this.validateContext) {
+      if (this.validateContext && !ioptions.skipValidation) {
         this.validate(newContext, { processingMode });
       }
-
       return newContextWrapped;
     } else {
       throw new ErrorCoded(`Tried parsing a context that is not a string, array or object, but got ${context}`,
