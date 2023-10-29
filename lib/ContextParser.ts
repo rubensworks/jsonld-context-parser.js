@@ -663,14 +663,13 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
                      options: IParseOptions = {}, ioptions: { skipValidation?: boolean } = {}): Promise<JsonLdContextNormalized> {
     const {
       baseIRI,
-      parentContext: parentContextInitial,
+      parentContext,
       external,
       processingMode = ContextParser.DEFAULT_PROCESSING_MODE,
       normalizeLanguageTags,
       ignoreProtection,
       minimalProcessing,
     } = options;
-    let parentContext = parentContextInitial;
     const remoteContexts = options.remoteContexts || {};
 
     // Avoid remote context overflows
@@ -748,9 +747,6 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
       // Make a deep clone of the given context, to avoid modifying it.
       context = <IJsonLdContextNormalizedRaw> {...context};
-      if (parentContext && !minimalProcessing) {
-        parentContext = <IJsonLdContextNormalizedRaw> {...parentContext};
-      }
 
       // According to the JSON-LD spec, @base must be ignored from external contexts.
       if (external) {
@@ -1003,4 +999,3 @@ export interface IParseOptions {
    */
   ignoreScopedContexts?: boolean;
 }
-
