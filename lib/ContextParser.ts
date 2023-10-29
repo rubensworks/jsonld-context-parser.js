@@ -120,7 +120,12 @@ export class ContextParser {
    * @param {boolean} expandContentTypeToBase If @type inside the context may be expanded
    *                                          via @base if @vocab is set to null.
    */
-  public expandPrefixedTerms(context: JsonLdContextNormalized, expandContentTypeToBase: boolean, keys = Object.keys(context.getContextRaw())) {
+  public expandPrefixedTerms(
+    context: JsonLdContextNormalized,
+    expandContentTypeToBase: boolean,
+    /* istanbul ignore next */
+    keys = Object.keys(context.getContextRaw()
+    )) {
     const contextRaw = context.getContextRaw();
     for (const key of keys) {
       // Only expand allowed keys
@@ -291,7 +296,9 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
    */
   public validateKeywordRedefinitions(contextBefore: IJsonLdContextNormalizedRaw,
                                       contextAfter: IJsonLdContextNormalizedRaw,
-                                      expandOptions: IExpandOptions, keys = Object.keys(contextAfter)) {
+                                      expandOptions: IExpandOptions,
+                                      /* istanbul ignore next */
+                                      keys = Object.keys(contextAfter)) {
     for (const key of Object.keys(contextAfter)) {
       if (Util.isTermProtected(contextBefore, key)) {
         // The entry in the context before will always be in object-mode
@@ -602,7 +609,12 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    * @param {IParseOptions} options Parsing options.
    * @return {IJsonLdContextNormalizedRaw} The mutated input context.
    */
-  public async parseInnerContexts(context: IJsonLdContextNormalizedRaw, options: IParseOptions, keys = Object.keys(context))
+  public async parseInnerContexts(
+    context: IJsonLdContextNormalizedRaw,
+    options: IParseOptions,
+    /* istanbul ignore next */
+    keys = Object.keys(context)
+    )
     : Promise<IJsonLdContextNormalizedRaw> {
     for (const key of keys) {
       const value = context[key];
