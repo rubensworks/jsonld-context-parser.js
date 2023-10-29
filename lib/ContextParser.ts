@@ -312,18 +312,19 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
                                       expandOptions: IExpandOptions,
                                       /* istanbul ignore next */
                                       keys = Object.keys(contextAfter)) {
-    for (const key of Object.keys(contextAfter)) {
+    for (const key of keys) {
       if (Util.isTermProtected(contextBefore, key)) {
         // The entry in the context before will always be in object-mode
         // If the new entry is in string-mode, convert it to object-mode
         // before checking if it is identical.
         if (typeof contextAfter[key] === 'string') {
-          contextAfter[key] = { '@id': contextAfter[key] };
-        }
+          contextAfter[key] = { '@id': contextAfter[key], '@protected': true };
+        } else {
         // We modify this deliberately,
         // as we need it for the value comparison (they must be identical modulo '@protected')),
         // and for the fact that this new value will override the first one.
-        contextAfter[key] = {...contextAfter[key], '@protected': true};
+          contextAfter[key] = {...contextAfter[key], '@protected': true};
+        }
 
         // Error if they are not identical
         if (!deepEqual(contextBefore[key], contextAfter[key])) {
@@ -794,10 +795,14 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       this.applyScopedProtected(newContext, { processingMode }, defaultExpandOptions);
 
       const keys = Object.keys(newContext);
+
+      const overlappingKeys: string[] = [];
       if (typeof parentContext === 'object') {
         // Merge different parts of the final context in order
         for (const key in parentContext) {
-          if (!(key in newContext)) {
+          if (key in newContext) {
+            overlappingKeys.push(key);
+          } else {
             newContext[key] = parentContext[key];
           }
         }
@@ -825,7 +830,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
       // In JSON-LD 1.1, check if we are not redefining any protected keywords
       if (!ignoreProtection && parentContext && processingMode >= 1.1) {
-        this.validateKeywordRedefinitions(parentContext, newContext, defaultExpandOptions, keys);
+        this.validateKeywordRedefinitions(parentContext, newContext, defaultExpandOptions, overlappingKeys);
       }
 
       if (this.validateContext && !ioptions.skipValidation) {
