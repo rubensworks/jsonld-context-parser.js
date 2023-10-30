@@ -117,14 +117,9 @@ export class ContextParser {
    * @param {boolean} expandContentTypeToBase If @type inside the context may be expanded
    *                                          via @base if @vocab is set to null.
    */
-  public expandPrefixedTerms(
-    context: JsonLdContextNormalized,
-    expandContentTypeToBase: boolean,
-    /* istanbul ignore next */
-    keys = Object.keys(context.getContextRaw()
-    )) {
+  public expandPrefixedTerms(context: JsonLdContextNormalized, expandContentTypeToBase: boolean, keys?: string[]) {
     const contextRaw = context.getContextRaw();
-    for (const key of keys) {
+    for (const key of (keys || Object.keys(contextRaw))) {
       // Only expand allowed keys
       if (Util.EXPAND_KEYS_BLACKLIST.indexOf(key) < 0 && !Util.isReservedInternalKeyword(key)) {
         // Error if we try to alias a keyword to something else.
@@ -245,7 +240,6 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
         }
       }
     }
-    return context;
   }
 
   /**
@@ -293,10 +287,9 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
    */
   public validateKeywordRedefinitions(contextBefore: IJsonLdContextNormalizedRaw,
                                       contextAfter: IJsonLdContextNormalizedRaw,
-                                      expandOptions: IExpandOptions,
-                                      /* istanbul ignore next */
-                                      keys = Object.keys(contextAfter)) {
-    for (const key of keys) {
+                                      expandOptions?: IExpandOptions,
+                                      keys?: string[]) {
+    for (const key of (keys ?? Object.keys(contextAfter) )) {
       if (Util.isTermProtected(contextBefore, key)) {
         // The entry in the context before will always be in object-mode
         // If the new entry is in string-mode, convert it to object-mode
@@ -603,14 +596,8 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    * @param {IParseOptions} options Parsing options.
    * @return {IJsonLdContextNormalizedRaw} The mutated input context.
    */
-  public async parseInnerContexts(
-    context: IJsonLdContextNormalizedRaw,
-    options: IParseOptions,
-    /* istanbul ignore next */
-    keys = Object.keys(context)
-    )
-    : Promise<IJsonLdContextNormalizedRaw> {
-    for (const key of keys) {
+  public async parseInnerContexts(context: IJsonLdContextNormalizedRaw, options: IParseOptions, keys?: string[]): Promise<IJsonLdContextNormalizedRaw> {
+    for (const key of (keys ?? Object.keys(context))) {
       const value = context[key];
       if (value && typeof value === 'object') {
         if ('@context' in value && value['@context'] !== null && !options.ignoreScopedContexts) {
@@ -743,7 +730,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
       // Hashify container entries
       // Do this before protected term validation as that influences term format
-      context = this.containersToHash(context);
+      this.containersToHash(context);
 
       // Don't perform any other modifications if only minimal processing is needed.
       if (minimalProcessing) {
@@ -809,8 +796,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
         }
       }
 
-      // FIXME: Add keys as a 3rd argument here for performance
-      this.expandPrefixedTerms(newContextWrapped, this.expandContentTypeToBase);
+      this.expandPrefixedTerms(newContextWrapped, this.expandContentTypeToBase, keys);
 
       // In JSON-LD 1.1, check if we are not redefining any protected keywords
       if (!ignoreProtection && parentContext && processingMode >= 1.1) {
@@ -901,7 +887,8 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
     // Containers have to be converted into hash values the same way as for the importing context
     // Otherwise context validation will fail for container values
-    return this.containersToHash(importContext);
+    this.containersToHash(importContext);
+    return importContext;
   }
 
 }

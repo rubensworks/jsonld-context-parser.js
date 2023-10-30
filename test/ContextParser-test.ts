@@ -3,6 +3,7 @@ import {
   ERROR_CODES,
   ErrorCoded,
   FetchDocumentLoader,
+  IDocumentLoader,
   JsonLdContextNormalized,
 } from "../index";
 
@@ -114,25 +115,26 @@ describe('ContextParser', () => {
   });
 
   describe('when instantiated without options', () => {
-    let parser: any;
+    let parser: ContextParser;
 
     beforeEach(() => {
       parser = new ContextParser();
     });
 
     it('should have a default document loader', async () => {
-      expect(parser.documentLoader).toBeInstanceOf(FetchDocumentLoader);
+      expect((<any>parser).documentLoader).toBeInstanceOf(FetchDocumentLoader);
     });
   });
 
   describe('when instantiated with empty options', () => {
-    let parser: any;
+    let parser: ContextParser;
 
     beforeEach(() => {
       parser = new ContextParser({});
     });
 
     it('should have a default document loader', async () => {
+      // @ts-expect-error
       expect(parser.documentLoader).toBeInstanceOf(FetchDocumentLoader);
     });
   });
@@ -151,8 +153,8 @@ describe('ContextParser', () => {
   });
 
   describe('when instantiated with options and a document loader', () => {
-    let documentLoader: any;
-    let parser: any;
+    let documentLoader: IDocumentLoader;
+    let parser: ContextParser;
 
     beforeEach(() => {
       documentLoader = new FetchDocumentLoader();
@@ -160,7 +162,7 @@ describe('ContextParser', () => {
     });
 
     it('should have the given document loader', async () => {
-      expect(parser.documentLoader).toBe(documentLoader);
+      expect((<any> parser).documentLoader).toBe(documentLoader);
     });
 
     describe('expandPrefixedTerms with expandContentTypeToBase true', () => {
@@ -1445,6 +1447,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
     describe('parse', () => {
       it('should error when parsing a context with an invalid context entry', () => {
+        // @ts-expect-error
         return expect(parser.parse({ '@base': true })).rejects
           .toEqual(new ErrorCoded('Found an invalid @base IRI: true',
             ERROR_CODES.INVALID_BASE_IRI));
@@ -1544,6 +1547,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
       });
 
       it('should parse with a base IRI and not override the inner @base', () => {
+        // @ts-expect-error
         return expect(parser.parse({ '@base': 'http://myotherexample.org/' }, 'http://myexample.org/'))
           .resolves.toEqual(new JsonLdContextNormalized({
             '@base': 'http://myotherexample.org/',
@@ -1628,10 +1632,12 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
       });
 
       it('should cache documents', async () => {
+        // @ts-expect-error
         const spy = jest.spyOn(parser.documentLoader, 'load');
 
         await parser.parse('http://example.org/simple.jsonld');
 
+        // @ts-expect-error
         expect(parser.documentCache['http://example.org/simple.jsonld']).toEqual({
           name: "http://xmlns.com/foaf/0.1/name",
           xsd: "http://www.w3.org/2001/XMLSchema#",
@@ -1803,6 +1809,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
       });
 
       it('should parse an array with an object and a string resolving to an array when cached', () => {
+        // @ts-expect-error
         parser.documentCache['http://example.org/simplearray.jsonld'] = [{
           nickname: 'http://xmlns.com/foaf/0.1/nick',
         }];
@@ -3067,18 +3074,21 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
 
     describe('for parsing invalid values', () => {
       it('should error when parsing true', () => {
+        // @ts-expect-error
         return expect(parser.parse(true)).rejects
           .toEqual(new ErrorCoded('Tried parsing a context that is not a string, array or object, but got true',
             ERROR_CODES.INVALID_LOCAL_CONTEXT));
       });
 
       it('should error when parsing false', () => {
+        // @ts-expect-error
         return expect(parser.parse(false)).rejects
           .toEqual(new ErrorCoded('Tried parsing a context that is not a string, array or object, but got false',
             ERROR_CODES.INVALID_LOCAL_CONTEXT));
       });
 
       it('should error when parsing a number', () => {
+        // @ts-expect-error
         return expect(parser.parse(1)).rejects
           .toEqual(new ErrorCoded('Tried parsing a context that is not a string, array or object, but got 1',
             ERROR_CODES.INVALID_LOCAL_CONTEXT));
@@ -3524,5 +3534,26 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
       });
     });
 
+    describe('#validateKeyowrdRedefinitions', () => {
+      it('should return true when validating over the same context', async () => {
+        const context = new JsonLdContextNormalized({
+          '@base': 'http://base.org/',
+          '@vocab': 'http://vocab.org/',
+          'p': 'http://vocab.org/p',
+        });
+        expect(parser.validateKeywordRedefinitions(context, context)).toBeFalsy();
+      });
+    });
+
+    describe('#parseInnerContexts', () => {
+      it('return the same context when calling parseInnerContexts on a context with no inner contexts', async () => {
+        const context = new JsonLdContextNormalized({
+          '@base': 'http://base.org/',
+          '@vocab': 'http://vocab.org/',
+          'p': 'http://vocab.org/p',
+        });
+        expect(parser.parseInnerContexts(context, {})).resolves.toEqual(context);
+      });
+    });
   });
 });
