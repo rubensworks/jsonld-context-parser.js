@@ -5,23 +5,7 @@ import {FetchDocumentLoader} from "./FetchDocumentLoader";
 import {IDocumentLoader} from "./IDocumentLoader";
 import {IJsonLdContext, IJsonLdContextNormalizedRaw, IPrefixValue, JsonLdContext} from "./JsonLdContext";
 import {JsonLdContextNormalized, defaultExpandOptions, IExpandOptions} from "./JsonLdContextNormalized";
-import {Util} from "./Util";
-
-const deepEqual = (object1: any, object2: any): boolean => {
-  const objKeys1 = Object.keys(object1);
-  const objKeys2 = Object.keys(object2);
-
-  if (objKeys1.length !== objKeys2.length) return false;
-  return objKeys1.every((key) => {
-    const value1 = object1[key];
-    const value2 = object2[key];
-    return (value1 === value2) || (isObject(value1) && isObject(value2) && deepEqual(value1, value2));
-  });
-};
-
-const isObject = (object: any) => {
-  return object != null && typeof object === "object";
-};
+import {Util,deepEqual} from "./Util";
 
 /**
  * Parses JSON-LD contexts.

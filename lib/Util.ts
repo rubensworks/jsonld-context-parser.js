@@ -248,3 +248,18 @@ export class Util {
     return key.startsWith('@__');
   }
 }
+
+export const deepEqual = (object1: any, object2: any): boolean => {
+  const objKeys1 = Object.keys(object1);
+  const objKeys2 = Object.keys(object2);
+
+  if (objKeys1.length !== objKeys2.length) return false;
+  return objKeys1.every((key) => {
+    const value1 = object1[key];
+    const value2 = object2[key];
+    return (value1 === value2) || (isObject(value1) && isObject(value2) && deepEqual(value1, value2));
+  });
+};
+const isObject = (object: any) => {
+  return object !== null && typeof object === "object";
+};
