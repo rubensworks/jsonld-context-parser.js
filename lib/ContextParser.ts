@@ -631,8 +631,12 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    * @param {IParseOptions} options Optional parsing options.
    * @return {Promise<JsonLdContextNormalized>} A promise resolving to the context.
    */
+  public async parse(context: JsonLdContext, options?: IParseOptions): Promise<JsonLdContextNormalized>
   public async parse(context: JsonLdContext,
-                     options: IParseOptions = {}, ioptions: { skipValidation?: boolean } = {}): Promise<JsonLdContextNormalized> {
+                     options: IParseOptions = {},
+                     // These options are only for internal use on recursive calls and should not be used by
+                     // libraries consuming this function
+                     internalOptions: { skipValidation?: boolean } = {}): Promise<JsonLdContextNormalized> {
     const {
       baseIRI,
       parentContext,
@@ -703,9 +707,11 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
             external: !!contextIris[i] || options.external,
             parentContext: accContext.getContextRaw(),
             remoteContexts: contextIris[i] ? { ...remoteContexts, [contextIris[i]]: true } : remoteContexts,
-          }, {
-            skipValidation: i < contexts.length - 1,
-          })),
+          },
+          // @ts-expect-error: This third argument causes a type error because we have hidden it from consumers
+            {
+              skipValidation: i < contexts.length - 1,
+            })),
         Promise.resolve(new JsonLdContextNormalized(parentContext || {})));
 
       // Override the base IRI if provided.
@@ -803,7 +809,7 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
         this.validateKeywordRedefinitions(parentContext, newContext, defaultExpandOptions, overlappingKeys);
       }
 
-      if (this.validateContext && !ioptions.skipValidation) {
+      if (this.validateContext && !internalOptions.skipValidation) {
         this.validate(newContext, { processingMode });
       }
       return newContextWrapped;
