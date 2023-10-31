@@ -599,6 +599,8 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
    * @param {IJsonLdContextNormalizedRaw} context A context.
    * @param {IParseOptions} options Parsing options.
    * @return {IJsonLdContextNormalizedRaw} The mutated input context.
+   * @param {string[]} keys Optional set of keys from the context to parseInnerContexts of. If left undefined, all
+   * keys in the context will be iterated over.
    */
   public async parseInnerContexts(context: IJsonLdContextNormalizedRaw, options: IParseOptions, keys?: string[]): Promise<IJsonLdContextNormalizedRaw> {
     for (const key of (keys ?? Object.keys(context))) {
