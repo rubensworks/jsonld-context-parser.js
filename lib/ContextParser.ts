@@ -5,7 +5,7 @@ import {FetchDocumentLoader} from "./FetchDocumentLoader";
 import {IDocumentLoader} from "./IDocumentLoader";
 import {IJsonLdContext, IJsonLdContextNormalizedRaw, IPrefixValue, JsonLdContext} from "./JsonLdContext";
 import {JsonLdContextNormalized, defaultExpandOptions, IExpandOptions} from "./JsonLdContextNormalized";
-import {Util,deepEqual} from "./Util";
+import {Util} from "./Util";
 
 /**
  * Parses JSON-LD contexts.
@@ -116,6 +116,8 @@ export class ContextParser {
    * @param {IJsonLdContextNormalizedRaw} context A context.
    * @param {boolean} expandContentTypeToBase If @type inside the context may be expanded
    *                                          via @base if @vocab is set to null.
+   * @param {string[]} keys Optional set of keys from the context to expand. If left undefined, all
+   * keys in the context will be expanded.
    */
   public expandPrefixedTerms(context: JsonLdContextNormalized, expandContentTypeToBase: boolean, keys?: string[]) {
     const contextRaw = context.getContextRaw();
@@ -284,6 +286,8 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
    * @param {IJsonLdContextNormalizedRaw} contextBefore The context that may contain some protected terms.
    * @param {IJsonLdContextNormalizedRaw} contextAfter A new context that is being applied on the first one.
    * @param {IExpandOptions} expandOptions Options that are needed for any expansions during this validation.
+   * @param {string[]} keys Optional set of keys from the context to validate. If left undefined, all
+   * keys defined in contextAfter will be checked.
    */
   public validateKeywordRedefinitions(contextBefore: IJsonLdContextNormalizedRaw,
                                       contextAfter: IJsonLdContextNormalizedRaw,
@@ -304,7 +308,7 @@ Tried mapping ${key} to ${JSON.stringify(keyValue)}`, ERROR_CODES.INVALID_KEYWOR
         }
 
         // Error if they are not identical
-        if (!deepEqual(contextBefore[key], contextAfter[key])) {
+        if (!Util.deepEqual(contextBefore[key], contextAfter[key])) {
           throw new ErrorCoded(`Attempted to override the protected keyword ${key} from ${
             JSON.stringify(Util.getContextValueId(contextBefore[key]))} to ${
             JSON.stringify(Util.getContextValueId(contextAfter[key]))}`,

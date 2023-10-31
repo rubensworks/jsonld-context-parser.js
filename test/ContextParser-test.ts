@@ -3534,7 +3534,7 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
       });
     });
 
-    describe('#validateKeyowrdRedefinitions', () => {
+    describe('#validateKeywordRedefinitions', () => {
       it('should return true when validating over the same context', async () => {
         const context = new JsonLdContextNormalized({
           '@base': 'http://base.org/',
