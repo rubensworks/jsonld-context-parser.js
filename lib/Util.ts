@@ -247,4 +247,27 @@ export class Util {
   public static isReservedInternalKeyword(key: string) {
     return key.startsWith('@__');
   }
+
+  /**
+   * Check if two objects are deepEqual to on another.
+   * @param object1 The first object to test.
+   * @param object2 The second object to test.
+   */
+  public static deepEqual(object1: any, object2: any): boolean {
+    const objKeys1 = Object.keys(object1);
+    const objKeys2 = Object.keys(object2);
+
+    if (objKeys1.length !== objKeys2.length) return false;
+    return objKeys1.every((key) => {
+      const value1 = object1[key];
+      const value2 = object2[key];
+      return (value1 === value2) || (
+        value1 !== null &&
+        value2 !== null &&
+        typeof value1 === "object" &&
+        typeof value2 === "object" &&
+        this.deepEqual(value1, value2)
+      );
+    });
+  };
 }
