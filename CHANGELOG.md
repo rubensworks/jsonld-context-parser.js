@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v2.4.0"></a>
+## [v2.4.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.3.3...v2.4.0) - 2023-11-07
+
+### Changed
+* [Remove deep cloning of contexts during parsing](https://github.com/rubensworks/jsonld-context-parser.js/commit/28596b5ebbea44beec7b12b56c60fde9a2d73b22)
+
 <a name="v2.3.3"></a>
 ## [v2.3.3](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.3.2...v2.3.3) - 2023-10-12
 
