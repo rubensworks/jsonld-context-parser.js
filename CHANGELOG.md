@@ -1,6 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v3.0.0"></a>
+## [v3.0.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.4.0...v3.0.0) - 2024-06-13
+
+### BREAKING CHANGE
+* [Remove cross fetch (#76)](https://github.com/rubensworks/jsonld-context-parser.js/commit/8d26fba6cb2e8c54f998a2eafeee49a4688abe36)
+    This is not a breaking change for users of Node 18+
+
 <a name="v2.4.0"></a>
 ## [v2.4.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.3.3...v2.4.0) - 2023-11-07
 
