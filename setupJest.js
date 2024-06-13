@@ -1,5 +1,3 @@
-require('cross-fetch/polyfill');
-
 // Mock fetch to our local files
 global.fetch = jest.fn().mockImplementation((url) => {
   let data;

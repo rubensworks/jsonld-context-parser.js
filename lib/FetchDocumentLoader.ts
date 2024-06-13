@@ -1,4 +1,3 @@
-import 'cross-fetch/polyfill';
 import {IDocumentLoader} from "./IDocumentLoader";
 import {IJsonLdContext} from "./JsonLdContext";
 import {ERROR_CODES, ErrorCoded} from "./ErrorCoded";

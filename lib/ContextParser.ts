@@ -1,4 +1,3 @@
-import 'cross-fetch/polyfill';
 import {resolve} from "relative-to-absolute-iri";
 import {ERROR_CODES, ErrorCoded} from "./ErrorCoded";
 import {FetchDocumentLoader} from "./FetchDocumentLoader";
