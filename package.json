@@ -89,7 +89,7 @@
   },
   "dependencies": {
     "@types/http-link-header": "^1.0.1",
-    "@types/node": "^18.0.0",
+    "@types/node": "^22.0.0",
     "http-link-header": "^1.0.2",
     "relative-to-absolute-iri": "^1.0.5"
   }
