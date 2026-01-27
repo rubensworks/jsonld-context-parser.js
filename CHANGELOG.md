@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v3.1.0"></a>
+## [v3.1.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v3.0.0...v3.1.0) - 2026-01-27
+
+### Added
+* [Add disallowDirectlyNestedContext parse option](https://github.com/rubensworks/jsonld-context-parser.js/commit/f514cf4fe35c4776eeb323560d44299a3e70e8f0)
+
 <a name="v3.0.0"></a>
 ## [v3.0.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v2.4.0...v3.0.0) - 2024-06-13
 
