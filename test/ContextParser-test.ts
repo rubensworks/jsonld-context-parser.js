@@ -1581,6 +1581,25 @@ Tried mapping @id to {}`, ERROR_CODES.KEYWORD_REDEFINITION));
           .toEqual(new ErrorCoded('Invalid @prefix definition for \'./something\' (\'{"@type":"@id","@prefix":true}\'',
             ERROR_CODES.INVALID_TERM_DEFINITION));
       });
+
+      it('should error on aliasing of @context when disallowDirectlyNestedContext is true', async () => {
+        return expect(parser.parse({
+          '@context': { 'p': 'ex:p' },
+        }, { disallowDirectlyNestedContext: true })).rejects.toThrow(new ErrorCoded(`Keywords can not be aliased to something else.
+Tried mapping @context to {"p":"ex:p"}`, ERROR_CODES.KEYWORD_REDEFINITION));
+      });
+
+      it('should not error on aliasing of @context with empty options', async () => {
+        return expect(parser.parse({
+          '@context': {'p': 'ex:p'},
+        }, {})).resolves.toEqual(new JsonLdContextNormalized({ 'p': 'ex:p' }));
+      });
+
+      it('should not error on aliasing of @context with undefined options', async () => {
+        return expect(parser.parse({
+          '@context': {'p': 'ex:p'},
+        })).resolves.toEqual(new JsonLdContextNormalized({ 'p': 'ex:p' }));
+      });
     });
 
     describe('for parsing URLs', () => {

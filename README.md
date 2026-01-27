@@ -122,6 +122,7 @@ Optionally, the following parsing options can be passed:
 * `minimalProcessing`: If the context should only be parsed and validated, without performing normalizations and other modifications. _(Default: `false`)_
 * `ignoreRemoteScopedContexts`: If true, a remote context that will be looked up, and is already contained in `remoteContexts`, will not emit an error but will produce an empty context. _(Default: `false`)_
 * `remoteContexts`: A hash containing all remote contexts that have been looked up before. _(Default: `false`)_
+* `disallowDirectlyNestedContext`: If directly nested contexts in the form of `{ @context: { @context: ... }}` should be disallowed. _(Default: `false`)_
 
 ```javascript
 const myContext = await myParser.parse({ ... }, {

@@ -725,6 +725,10 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       return reducedContexts;
     } else if (typeof context === 'object') {
       if ('@context' in context) {
+        if (options?.disallowDirectlyNestedContext) {
+          throw new ErrorCoded(`Keywords can not be aliased to something else.
+Tried mapping @context to ${JSON.stringify(context['@context'])}`, ERROR_CODES.KEYWORD_REDEFINITION);
+        }
         return await this.parse(context['@context'], options);
       }
 
@@ -989,4 +993,8 @@ export interface IParseOptions {
    * This is done to avoid combinatorial explosions when handling a scoped context if there are many scoped contexts.
    */
   ignoreScopedContexts?: boolean;
+  /**
+   * If directly nested contexts in the form of `{ @context: { @context: ... }}` should be disallowed.
+   */
+  disallowDirectlyNestedContext?: boolean; // TODO: consider removing this and defaulting to true in next major.
 }
