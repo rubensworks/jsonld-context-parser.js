@@ -15,7 +15,7 @@ jobs:
           key: ${{ runner.os }}-lint-modules-${{ hashFiles('**/yarn.lock') }}
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
-          node-version: 20.x
+          node-version: 24.x
       - run: yarn install
       - run: yarn run lint
 
@@ -25,7 +25,6 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         node-version:
-          - 20.x
           - 22.x
           - 24.x
     steps:
@@ -78,6 +77,6 @@ jobs:
           key: ${{ runner.os }}-webpack-modules-${{ hashFiles('**/yarn.lock') }}
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
-          node-version: 20.x
+          node-version: 24.x
       - run: yarn install
       - run: npx webpack
