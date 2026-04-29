@@ -48,7 +48,7 @@
     "coveralls": "^3.0.0",
     "jest": "^30.0.0",
     "manual-git-changelog": "^1.0.0",
-    "pre-commit": "^1.2.2",
+    "pre-commit": "^2.0.0",
     "ts-jest": "^29.0.0",
     "ts-loader": "^9.3.1",
     "tslint": "^6.0.0",
