@@ -82,7 +82,8 @@
     "coveralls": "jest --coverage && cat ./coverage/lcov.info | coveralls",
     "lint": "tslint index.ts lib/**/*.ts test/**/*.ts test/*.ts --exclude '**/*.d.ts'",
     "build": "tsc",
-    "build-watch": "tsc --watch",
+    "build-watch": "tsc --watch" ,
+    "bundle": "esbuild index.ts --format=esm --bundle --outfile=docs/bundle.js",
     "validate": "npm ls",
     "prepare": "npm run build",
     "version": "manual-git-changelog onversion"
