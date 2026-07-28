@@ -1,0 +1,46 @@
+<html>
+  <head>
+    <title>JSON-LD Context Hardener</title>
+    <meta http-equiv="content-security-policy" content="frame-src 'none'">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fomantic-ui/2.9.0/semantic.min.css" integrity="sha512-PwhgdrueUt7iVICnZMjYcbiLalCztrVfzUIYXekIK8hZu4DQP141GrKh6fUHmNERWi4bGdBXIZqtBZnsSzHEMg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mustache.js/4.1.0/mustache.min.js" integrity="sha512-HYiNpwSxYuji84SQbCU5m9kHEsRqwWypXgJMBtbRSumlx1iBB6QaxgEBZHSHEGM+fKyCX/3Kb5V5jeVXm0OglQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script type="module">
+      import './app.js';
+    </script>
+    <style>
+      .main.grid { padding-top: 3em !important }
+      .main.grid > .row { padding-top: 1.4em !important }
+      .main.grid, .main.grid .ui.form, .main.grid .ui.form .field, .main.grid .ui.form .field textarea { height: stretch; max-height: none; }
+    </style>
+    </head>
+  <body>
+    <div class="ui fixed top menu">
+      <div class="item">
+        <button class="ui button" @click="pickFile()">Choose Context...</button>
+      </div>
+      <div class="disabled item" v-show="filename" v-text="filename"></div>
+    </div>
+
+    <main class="ui main very compact grid" v-scope @vue:mounted="updateHardenedContext()">
+      <div class="row">
+        <div class="eight wide column">
+          <div class="ui form">
+            <div class="field">
+              <label class="ui top attached label">Original Context</label>
+              <textarea ref="input" v-model="contextString" @input="updateHardenedContext()" placeholder="JSON-LD Context"></textarea>
+            </div>
+            <div class="ui error message" :class="{ visible: parseError.length > 0 }" v-text="parseError"></div>
+          </div>
+        </div>
+        <div class="eight wide column">
+          <div class="ui form">
+            <div class="field">
+              <label class="ui top attached label">Hardened Context</label>
+              <textarea v-model="hardenedContext" readonly></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
