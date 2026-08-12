@@ -85,12 +85,14 @@
     "build-watch": "tsc --watch",
     "validate": "npm ls",
     "prepare": "npm run build",
-    "version": "manual-git-changelog onversion"
+    "version": "manual-git-changelog onversion",
+    "perf": "npm run build && node perf/bench.js"
   },
   "dependencies": {
     "@types/http-link-header": "^1.0.1",
     "@types/node": "^18.0.0",
     "http-link-header": "^1.0.2",
+    "lru-cache": "^10.2.0",
     "relative-to-absolute-iri": "^1.0.5"
   }
 }

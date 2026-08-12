@@ -1,4 +1,5 @@
 import {
+  ContextCache,
   ContextParser,
   ERROR_CODES,
   ErrorCoded,
@@ -6,6 +7,23 @@ import {
   IDocumentLoader,
   JsonLdContextNormalized,
 } from "../index";
+
+/**
+ * A {@link ContextCache} that records get() hits and misses, used to observe base-independent reuse.
+ */
+class CountingContextCache extends ContextCache {
+  public hits = 0;
+  public misses = 0;
+  public get(key: string) {
+    const value = super.get(key);
+    if (value) {
+      this.hits++;
+    } else {
+      this.misses++;
+    }
+    return value;
+  }
+}
 
 describe('ContextParser', () => {
   describe('normalizeContextIri', () => {
@@ -3132,6 +3150,27 @@ Tried mapping @context to {"p":"ex:p"}`, ERROR_CODES.KEYWORD_REDEFINITION));
         }));
       });
 
+      it('should preserve an array-valued scoped context loaded from a URL', () => {
+        // The remote context resolves to an array, which is minimally processed and must be kept
+        // as an array (not shallow-cloned into an index-keyed object) when its base IRI is applied.
+        return expect(parser.parse({
+          prop: {
+            '@context': 'http://example.org/array.jsonld',
+            '@id': 'http://ex.org/prop',
+          },
+        }, { processingMode: 1.1 })).resolves.toEqual(new JsonLdContextNormalized({
+          prop: {
+            '@context': [
+              {
+                name: "http://xmlns.com/foaf/0.1/name",
+                xsd: "http://www.w3.org/2001/XMLSchema#",
+              },
+            ],
+            '@id': 'http://ex.org/prop',
+          },
+        }));
+      });
+
       it('should preload remote URLs in an array', () => {
         return expect(parser.parse({
           prop: {
@@ -3573,6 +3612,281 @@ Tried mapping @context to {"p":"ex:p"}`, ERROR_CODES.KEYWORD_REDEFINITION));
         });
         expect(parser.parseInnerContexts(context, {})).resolves.toEqual(context);
       });
+    });
+  });
+});
+
+describe('with a context cache', () => {
+  let cachingParser: ContextParser;
+
+  beforeEach(() => {
+    cachingParser = new ContextParser({ contextCache: new ContextCache() });
+  });
+
+  it('should resolve to the same object when the same context is parsed twice', async () => {
+    const first = await cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" });
+    const second = await cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" });
+    expect(second).toBe(first);
+  });
+
+  it('should still produce a correct result on a cache hit', async () => {
+    await cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" });
+    await expect(cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" })).resolves
+      .toEqual(new JsonLdContextNormalized({ name: "http://xmlns.com/foaf/0.1/name" }));
+  });
+
+  it('should not collapse different contexts onto the same entry', async () => {
+    const a = await cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" });
+    const b = await cachingParser.parse({ name2: "http://xmlns.com/foaf/0.1/name" });
+    expect(a).not.toBe(b);
+    expect(b.getContextRaw()).toEqual({ name2: "http://xmlns.com/foaf/0.1/name" });
+  });
+
+  it('should treat an empty parent context the same as no parent context', async () => {
+    const emptyRaw = (await cachingParser.parse({})).getContextRaw();
+    const withoutParent = await cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" });
+    const withEmptyParent = await cachingParser.parse({ name: "http://xmlns.com/foaf/0.1/name" }, {
+      parentContext: emptyRaw,
+    });
+    expect(withEmptyParent).toBe(withoutParent);
+  });
+
+  it('should not collapse parses that differ only in their non-empty parent context', async () => {
+    const withB = await cachingParser.parse({ a: "http://example.org/a" }, {
+      parentContext: { b: "http://example.org/b" },
+    });
+    const withC = await cachingParser.parse({ a: "http://example.org/a" }, {
+      parentContext: { c: "http://example.org/c" },
+    });
+    expect(withB.getContextRaw()).toEqual({ a: "http://example.org/a", b: "http://example.org/b" });
+    expect(withC.getContextRaw()).toEqual({ a: "http://example.org/a", c: "http://example.org/c" });
+    expect(withB).not.toBe(withC);
+  });
+
+  it('should reuse normalized contexts across parsers that share a cache', async () => {
+    const cache = new ContextCache();
+    const parserA = new ContextParser({ contextCache: cache });
+    const parserB = new ContextParser({ contextCache: cache });
+    const resultA = await parserA.parse({ name: "http://xmlns.com/foaf/0.1/name" });
+    const resultB = await parserB.parse({ name: "http://xmlns.com/foaf/0.1/name" });
+    expect(resultB).toBe(resultA);
+  });
+
+  it('should consistently reject when a cached context is invalid', async () => {
+    // @ts-expect-error
+    await expect(cachingParser.parse({ '@base': true })).rejects
+      .toEqual(new ErrorCoded('Found an invalid @base IRI: true', ERROR_CODES.INVALID_BASE_IRI));
+    // @ts-expect-error
+    await expect(cachingParser.parse({ '@base': true })).rejects
+      .toEqual(new ErrorCoded('Found an invalid @base IRI: true', ERROR_CODES.INVALID_BASE_IRI));
+  });
+
+  it('should respect the LRU bound and re-parse an evicted context', async () => {
+    const boundedParser = new ContextParser({ contextCache: new ContextCache({ max: 1 }) });
+    const first = await boundedParser.parse({ name: "http://xmlns.com/foaf/0.1/name" });
+    // This second, different context evicts the first from the size-1 cache.
+    await boundedParser.parse({ name2: "http://xmlns.com/foaf/0.1/name" });
+    const third = await boundedParser.parse({ name: "http://xmlns.com/foaf/0.1/name" });
+    expect(third).not.toBe(first);
+    expect(third.getContextRaw()).toEqual(first.getContextRaw());
+  });
+});
+
+describe('ContextParser context cache (base-IRI independence)', () => {
+  it('should reuse a URL context across different base IRIs via one shared cache', async () => {
+    // A cache that records get() hits and misses, to observe base-independent reuse.
+    const cache = new CountingContextCache();
+    const sharedParser = new ContextParser({ contextCache: cache });
+
+    // Reference results from an uncached parser, one per (distinct) document base IRI.
+    const refA = (await new ContextParser()
+      .parse('http://example.org/simple.jsonld', { baseIRI: 'http://a.example/doc' })).getContextRaw();
+    const refB = (await new ContextParser()
+      .parse('http://example.org/simple.jsonld', { baseIRI: 'http://b.example/doc' })).getContextRaw();
+
+    // Parse the same context under two different base IRIs through the one shared cache.
+    const resultA = await sharedParser
+      .parse('http://example.org/simple.jsonld', { baseIRI: 'http://a.example/doc' });
+    const resultB = await sharedParser
+      .parse('http://example.org/simple.jsonld', { baseIRI: 'http://b.example/doc' });
+
+    // (a) Both results are byte-identical to the uncached parse (each carries its own base).
+    expect(resultA.getContextRaw()).toEqual(refA);
+    expect(resultB.getContextRaw()).toEqual(refB);
+    expect(resultA.getContextRaw()['@base']).toBe('http://a.example/doc');
+    expect(resultB.getContextRaw()['@base']).toBe('http://b.example/doc');
+
+    // (b) Exactly one miss: the first parse populated the base-independent external entry and
+    // the second (different base IRI) hit it. A hit despite a different base, together with the
+    // correct per-result @base above, proves the shared entry was not corrupted by the first
+    // parse's base stamp (which is applied on a clone).
+    expect(cache.misses).toBe(1);
+    expect(cache.hits).toBe(1);
+  });
+
+  it('should reuse a URL context across different document base IRIs (with a scoped context)', async () => {
+    // A context with a scoped (nested) context, so that normalizing it under a document base
+    // stamps that base into a nested `@context` too (as the CSS boot contexts do). The cached
+    // (base-independent) entry must re-base every such nested base on retrieval.
+    const loader = {
+      load: async () => ({
+        '@context': {
+          name: 'http://xmlns.com/foaf/0.1/name',
+          scoped: { '@id': 'http://example.org/scoped', '@context': {} },
+          // An array-valued (scoped) context, so the sentinel re-basing also traverses arrays.
+          scopedArray: { '@id': 'http://example.org/scopedArray', '@context': [
+            { inner: 'http://example.org/inner' } ] },
+        },
+      }),
+    };
+    const cache = new CountingContextCache();
+    const cachedParser = new ContextParser({ documentLoader: loader, contextCache: cache });
+    const uncached = new ContextParser({ documentLoader: loader });
+
+    const optionsA = { baseIRI: 'http://a.example/doc', parentContext: {
+      '@base': 'http://a.example/doc', '@__baseDocument': true } };
+    const optionsB = { baseIRI: 'http://b.example/doc', parentContext: {
+      '@base': 'http://b.example/doc', '@__baseDocument': true } };
+
+    const refA = (await uncached.parse('http://example.org/ctx', optionsA)).getContextRaw();
+    const refB = (await uncached.parse('http://example.org/ctx', optionsB)).getContextRaw();
+
+    const a = (await cachedParser.parse('http://example.org/ctx', optionsA)).getContextRaw();
+    const b = (await cachedParser.parse('http://example.org/ctx', optionsB)).getContextRaw();
+
+    // Byte-identical to the uncached parse, with each document's own base in the nested context.
+    expect(a).toEqual(refA);
+    expect(b).toEqual(refB);
+    expect((<any> a.scoped['@context'])['@base']).toBe('http://a.example/doc');
+    expect((<any> b.scoped['@context'])['@base']).toBe('http://b.example/doc');
+    // The second (different base) parse hit the single base-independent entry.
+    expect(cache.misses).toBe(1);
+    expect(cache.hits).toBe(1);
+  });
+
+  it('should not cache a base-dependent external context, but still return correct results', async () => {
+    // A relative @vocab makes the term IRIs genuinely depend on the document base, so a plain
+    // base substitution cannot reproduce them: the sentinel result must fail verification and
+    // not be cached, while every parse still returns the correct (base-carrying) result.
+    const loader = {
+      load: async () => ({ '@context': { '@vocab': 'v/', term: {} } }),
+    };
+    const cache = new CountingContextCache();
+    const cachedParser = new ContextParser({ documentLoader: loader, contextCache: cache });
+    const uncached = new ContextParser({ documentLoader: loader });
+
+    const optionsA = { baseIRI: 'http://a.example/doc', parentContext: {
+      '@base': 'http://a.example/doc', '@__baseDocument': true } };
+    const optionsB = { baseIRI: 'http://b.example/doc', parentContext: {
+      '@base': 'http://b.example/doc', '@__baseDocument': true } };
+
+    const refA = (await uncached.parse('http://example.org/ctx', optionsA)).getContextRaw();
+    const refB = (await uncached.parse('http://example.org/ctx', optionsB)).getContextRaw();
+    const a = (await cachedParser.parse('http://example.org/ctx', optionsA)).getContextRaw();
+    const b = (await cachedParser.parse('http://example.org/ctx', optionsB)).getContextRaw();
+
+    expect(a).toEqual(refA);
+    expect(b).toEqual(refB);
+    expect((<any> a.term)['@id']).toBe('http://a.example/v/term');
+    expect((<any> b.term)['@id']).toBe('http://b.example/v/term');
+    // Base-dependent: never cached, so both parses miss.
+    expect(cache.hits).toBe(0);
+    expect(cache.misses).toBe(2);
+  });
+
+  it('should fall back to the real parse when the sentinel base makes normalization throw', async () => {
+    // This term maps a (base-relative) key to exactly the IRI it expands to under the document
+    // base; under the sentinel base the expansion differs, so validation of the sentinel parse
+    // throws. The real parse is authoritative and must still succeed.
+    const loader = {
+      load: async () => ({ '@context': { 'foo/bar': 'http://a.example/foo/bar' } }),
+    };
+    const cache = new CountingContextCache();
+    const cachedParser = new ContextParser({ documentLoader: loader, contextCache: cache });
+    const uncached = new ContextParser({ documentLoader: loader });
+
+    const options = { baseIRI: 'http://a.example/doc', parentContext: {
+      '@base': 'http://a.example/', '@__baseDocument': true } };
+
+    const ref = (await uncached.parse('http://example.org/ctx', options)).getContextRaw();
+    const result = (await cachedParser.parse('http://example.org/ctx', options)).getContextRaw();
+
+    expect(result).toEqual(ref);
+    expect(result['foo/bar']).toBe('http://a.example/foo/bar');
+    // Sentinel parse threw during verification, so nothing was cached.
+    expect(cache.hits).toBe(0);
+    expect(cache.misses).toBe(1);
+  });
+});
+
+describe('ContextCache', () => {
+  let cache: ContextCache;
+
+  beforeEach(() => {
+    cache = new ContextCache();
+  });
+
+  describe('hash', () => {
+    it('should produce equal keys for equal context and options', () => {
+      expect(cache.hash({ a: 'http://example.org/a' }, {}))
+        .toBe(cache.hash({ a: 'http://example.org/a' }, {}));
+    });
+
+    it('should produce different keys for different contexts', () => {
+      expect(cache.hash({ a: 'http://example.org/a' }, {}))
+        .not.toBe(cache.hash({ a: 'http://example.org/b' }, {}));
+    });
+
+    it('should produce different keys for different non-empty parent contexts', () => {
+      expect(cache.hash({ a: 'http://example.org/a' }, { parentContext: { b: 'http://example.org/b' } }))
+        .not.toBe(cache.hash({ a: 'http://example.org/a' }, { parentContext: { c: 'http://example.org/c' } }));
+    });
+
+    it('should treat an empty parent context the same as no parent context', () => {
+      expect(cache.hash({ a: 'http://example.org/a' }, { parentContext: {} }))
+        .toBe(cache.hash({ a: 'http://example.org/a' }, {}));
+    });
+
+    it('should produce different keys for different options', () => {
+      expect(cache.hash({ a: 'http://example.org/a' }, { processingMode: 1.0 }))
+        .not.toBe(cache.hash({ a: 'http://example.org/a' }, { processingMode: 1.1 }));
+    });
+
+    it('should ignore option key ordering', () => {
+      expect(cache.hash({ a: 'http://example.org/a' }, { external: true, baseIRI: 'http://base.org/' }))
+        .toBe(cache.hash({ a: 'http://example.org/a' }, { baseIRI: 'http://base.org/', external: true }));
+    });
+
+    it('should ignore undefined option values', () => {
+      expect(cache.hash({ a: 'http://example.org/a' }, { external: undefined }))
+        .toBe(cache.hash({ a: 'http://example.org/a' }, {}));
+    });
+
+    it('should handle being called without options', () => {
+      expect(cache.hash({ a: 'http://example.org/a' }, undefined))
+        .toBe(cache.hash({ a: 'http://example.org/a' }, {}));
+    });
+  });
+
+  describe('get and set', () => {
+    it('should return undefined for an unknown key', () => {
+      expect(cache.get('unknown')).toBeUndefined();
+    });
+
+    it('should round-trip a stored value', () => {
+      const promise = Promise.resolve(new JsonLdContextNormalized({ a: 'http://example.org/a' }));
+      cache.set('key', promise);
+      expect(cache.get('key')).toBe(promise);
+    });
+
+    it('should evict the least-recently-used entry when the bound is exceeded', () => {
+      const bounded = new ContextCache({ max: 1 });
+      const first = Promise.resolve(new JsonLdContextNormalized({ a: 'http://example.org/a' }));
+      const second = Promise.resolve(new JsonLdContextNormalized({ b: 'http://example.org/b' }));
+      bounded.set('first', first);
+      bounded.set('second', second);
+      expect(bounded.get('first')).toBeUndefined();
+      expect(bounded.get('second')).toBe(second);
     });
   });
 });
