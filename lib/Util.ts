@@ -147,7 +147,7 @@ export class Util {
       return contextValue;
     }
     const id = contextValue['@id'];
-    return id ? id : null;
+    return id ? id : <any> null;
   }
 
   /**
