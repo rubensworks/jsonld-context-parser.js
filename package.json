@@ -44,7 +44,9 @@
   },
   "sideEffects": false,
   "devDependencies": {
+    "@types/http-link-header": "^1.0.1",
     "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.0",
     "coveralls": "^3.0.0",
     "jest": "^30.0.0",
     "manual-git-changelog": "^1.0.0",
@@ -88,8 +90,6 @@
     "version": "manual-git-changelog onversion"
   },
   "dependencies": {
-    "@types/http-link-header": "^1.0.1",
-    "@types/node": "^24.0.0",
     "http-link-header": "^1.0.2",
     "relative-to-absolute-iri": "^1.0.5"
   }
