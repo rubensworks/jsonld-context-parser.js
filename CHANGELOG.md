@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+<a name="v3.1.1"></a>
+## [v3.1.1](https://github.com/rubensworks/jsonld-context-parser.js/compare/v3.1.0...v3.1.1) - 2026-09-01
+
+### Fixed
+* [Fix application/json contexts not being dereferenced (#90)](https://github.com/rubensworks/jsonld-context-parser.js/commit/c545d84dabc0059dbb1fcbf38240997e8e5e4e37)
+
 <a name="v3.1.0"></a>
 ## [v3.1.0](https://github.com/rubensworks/jsonld-context-parser.js/compare/v3.0.0...v3.1.0) - 2026-01-27
 
