@@ -2,6 +2,7 @@ import {resolve} from "relative-to-absolute-iri";
 import {ERROR_CODES, ErrorCoded} from "./ErrorCoded";
 import {FetchDocumentLoader} from "./FetchDocumentLoader";
 import {IDocumentLoader} from "./IDocumentLoader";
+import {IContextCache} from "./IContextCache";
 import {IJsonLdContext, IJsonLdContextNormalizedRaw, IPrefixValue, JsonLdContext} from "./JsonLdContext";
 import {JsonLdContextNormalized, defaultExpandOptions, IExpandOptions} from "./JsonLdContextNormalized";
 import {Util} from "./Util";
@@ -13,16 +14,28 @@ export class ContextParser {
 
   public static readonly DEFAULT_PROCESSING_MODE: number = 1.1;
 
+  /**
+   * A fixed, unguessable, absolute-IRI sentinel used to stand in for a per-document base IRI while
+   * an external context is normalized and cached base-independently (see
+   * {@link ContextParser#parseExternalCached}). It is substituted back to the real document base on
+   * every cache retrieval. The `.invalid` TLD guarantees it never resolves and the random suffix
+   * guarantees it cannot collide with real context data.
+   */
+  private static readonly BASE_SENTINEL: string =
+    'https://jsonld-context-parser.invalid/base-sentinel-4f9a7c2e8b1d/';
+
   private readonly documentLoader: IDocumentLoader;
   private readonly documentCache: {[url: string]: JsonLdContext};
   private readonly validateContext: boolean;
   private readonly expandContentTypeToBase: boolean;
   private readonly remoteContextsDepthLimit: number;
   private readonly redirectSchemaOrgHttps: boolean;
+  private readonly contextCache?: IContextCache;
 
   constructor(options?: IContextParserOptions) {
     options = options || {};
     this.documentLoader = options.documentLoader || new FetchDocumentLoader();
+    this.contextCache = options.contextCache;
     this.documentCache = {};
     this.validateContext = !options.skipValidation;
     this.expandContentTypeToBase = !!options.expandContentTypeToBase;
@@ -615,13 +628,13 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
             try {
               const parentContext = {...context, [key]: {...context[key]}};
               delete parentContext[key]['@context'];
-              await this.parse(value['@context'],
+              await this._parse(value['@context'],
                 { ...options, external: false, parentContext, ignoreProtection: true, ignoreRemoteScopedContexts: true, ignoreScopedContexts: true });
             } catch (e) {
               throw new ErrorCoded(e.message, ERROR_CODES.INVALID_SCOPED_CONTEXT);
             }
           }
-          context[key] = {...value, '@context': (await this.parse(value['@context'],
+          context[key] = {...value, '@context': (await this._parse(value['@context'],
           { ...options, external: false, minimalProcessing: true, ignoreRemoteScopedContexts: true, parentContext: context }))
           .getContextRaw()}
         }
@@ -632,16 +645,294 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
 
   /**
    * Parse a JSON-LD context in any form.
+   *
+   * When a context cache was passed to this parser (via the `contextCache` option), the normalized
+   * result is memoized: subsequent calls with an equal context (and equal options) resolve to a
+   * cached {@link JsonLdContextNormalized} without re-normalizing. This is a large performance win
+   * when the same context is parsed many times, e.g. when a single cache is shared across parsers
+   * that each handle one of many documents referencing the same context.
+   *
+   * Note: when a cache is in use the returned normalized context may be shared across calls and must
+   * therefore not be mutated by the caller.
    * @param {JsonLdContext} context A context, URL to a context, or an array of contexts/URLs.
    * @param {IParseOptions} options Optional parsing options.
    * @return {Promise<JsonLdContextNormalized>} A promise resolving to the context.
    */
-  public async parse(context: JsonLdContext, options?: IParseOptions): Promise<JsonLdContextNormalized>
-  public async parse(context: JsonLdContext,
-                     options: IParseOptions = {},
-                     // These options are only for internal use on recursive calls and should not be used by
-                     // libraries consuming this function
-                     internalOptions: { skipValidation?: boolean } = {}): Promise<JsonLdContextNormalized> {
+  public async parse(context: JsonLdContext, options: IParseOptions = {}): Promise<JsonLdContextNormalized> {
+    // Inline object contexts are memoized at this top level (their key legitimately captures the
+    // base IRI, which they may bake into the result). String/array (external reference) contexts
+    // are instead memoized at the base-independent external-context boundary inside `_parse`
+    // (keyed on the context's own URL rather than the per-call document base IRI). Caching those
+    // here would key on the document base IRI and therefore never hit when the same context is
+    // parsed under many different document base IRIs (the Community Solid Server boot workload).
+    if (typeof context === 'object' && context !== null && !Array.isArray(context)) {
+      return this.parseCached(context, options);
+    }
+    return this._parse(context, options);
+  }
+
+  /**
+   * Apply the document base IRI to (a shallow clone of) the given normalized context.
+   *
+   * This is used after parsing a (possibly cached) external context: {@link ContextParser#applyBaseEntry}
+   * only writes the top-level `@base`/`@__baseDocument`, so cloning the raw shallowly is sufficient to
+   * keep the (possibly-shared) cached entry unmutated while still stamping the per-call base. A non-object
+   * raw (a bare IRI string produced for a cyclic scoped context) is returned unchanged, matching the
+   * pass-through behaviour of {@link ContextParser#applyBaseEntry} for string contexts.
+   * @param parsed A parsed, normalized context whose base IRI must be applied.
+   * @param options Parsing options carrying the base IRI to apply.
+   * @return A normalized context with the base IRI applied, sharing no mutable state with `parsed`.
+   */
+  public applyBaseEntryCloned(parsed: JsonLdContextNormalized, options: IParseOptions): JsonLdContextNormalized {
+    const rawContext: any = parsed.getContextRaw();
+    // Clone before stamping (preserving array-ness) so a possibly-shared cached entry is never
+    // mutated; `applyBaseEntry` only writes top-level keys. A bare IRI string raw (produced for a
+    // cyclic scoped context) has no top-level keys to clone and is passed through unchanged.
+    let raw = rawContext;
+    if (Array.isArray(rawContext)) {
+      raw = [ ...rawContext ];
+    } else if (typeof rawContext === 'object' && rawContext !== null) {
+      raw = { ...rawContext };
+    }
+    return new JsonLdContextNormalized(this.applyBaseEntry(raw, options, true));
+  }
+
+  /**
+   * Fetch the given URL as a raw JSON-LD context.
+   * @param url An URL.
+   * @return A promise resolving to a raw JSON-LD context.
+   */
+  public async load(url: string): Promise<JsonLdContext> {
+    // First try to retrieve the context from cache
+    const cached = this.documentCache[url];
+    if (cached) {
+      return cached;
+    }
+
+    // If not in cache, load it
+    let document: IJsonLdContext;
+    try {
+      document = await this.documentLoader.load(url);
+    } catch (e) {
+      throw new ErrorCoded(`Failed to load remote context ${url}: ${e.message}`,
+        ERROR_CODES.LOADING_REMOTE_CONTEXT_FAILED);
+    }
+
+    // Validate the context
+    if (!('@context' in document)) {
+      throw new ErrorCoded(`Missing @context in remote context at ${url}`,
+        ERROR_CODES.INVALID_REMOTE_CONTEXT);
+    }
+
+    return this.documentCache[url] = document['@context'];
+  }
+
+  /**
+   * Override the given context that may be loaded.
+   *
+   * This will check whether or not the url is recursively being loaded.
+   * @param url An URL.
+   * @param options Parsing options.
+   * @return An overridden context, or null.
+   *         Optionally an error can be thrown if a cyclic context is detected.
+   */
+  public getOverriddenLoad(url: string, options: IParseOptions): IJsonLdContextNormalizedRaw | null {
+    if (url in (options.remoteContexts || {})) {
+      if (options.ignoreRemoteScopedContexts) {
+        return <IJsonLdContextNormalizedRaw> <any> url;
+      } else {
+        throw new ErrorCoded('Detected a cyclic context inclusion of ' + url,
+          ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Load an @import'ed context.
+   * @param importContextIri The full URI of an @import value.
+   */
+  public async loadImportContext(importContextIri: string): Promise<IJsonLdContextNormalizedRaw> {
+    // Load the context - and do a deep clone since we are about to mutate it
+    let importContext = await this.load(importContextIri);
+
+    // Require the context to be a non-array object
+    if (typeof importContext !== 'object' || Array.isArray(importContext)) {
+      throw new ErrorCoded('An imported context must be a single object: ' + importContextIri,
+        ERROR_CODES.INVALID_REMOTE_CONTEXT);
+    }
+
+    // Error if the context contains another @import
+    if ('@import' in importContext) {
+      throw new ErrorCoded('An imported context can not import another context: ' + importContextIri,
+        ERROR_CODES.INVALID_CONTEXT_ENTRY);
+    }
+    importContext = {...importContext};
+
+    // Containers have to be converted into hash values the same way as for the importing context
+    // Otherwise context validation will fail for container values
+    this.containersToHash(importContext);
+    return importContext;
+  }
+
+  /**
+   * Parse the given context, memoizing the normalized result in the {@link IContextCache} (if any).
+   *
+   * The cache key is derived (via {@link IContextCache#hash}) from the context content and the given
+   * options, so this must only be called when the whole normalized result is a pure function of that
+   * key. It is used for top-level object contexts (where the base IRI, if any, is legitimately part
+   * of the key and baked into the returned result).
+   * @param {JsonLdContext} context A context, URL to a context, or an array of contexts/URLs.
+   * @param {IParseOptions} options Parsing options.
+   * @return {Promise<JsonLdContextNormalized>} A promise resolving to the normalized context.
+   */
+  private parseCached(context: JsonLdContext, options: IParseOptions): Promise<JsonLdContextNormalized> {
+    if (!this.contextCache) {
+      return this._parse(context, options);
+    }
+
+    const key = this.contextCache.hash(context, options);
+    const cached = this.contextCache.get(key);
+    if (cached) {
+      return cached;
+    }
+
+    const parsed = this._parse(context, options);
+    this.contextCache.set(key, parsed);
+    return parsed;
+  }
+
+  /**
+   * Parse a loaded external context, memoizing its normalization in the {@link IContextCache}
+   * independently of the per-document base IRI.
+   *
+   * The expensive normalization of a loaded external context (term expansion, IRI validation,
+   * container hashing, keyword-redefinition checks) is identical no matter which document references
+   * it; only the *document base* threads through as the top-level `@base`/`@__baseDocument` and as
+   * the `@base` of any (scoped) `@context` the context stamps. To share one cache entry across every
+   * referencing document, the normalization is computed once with the document base replaced by a
+   * fixed {@link ContextParser#BASE_SENTINEL}, and the real base is substituted back on each
+   * retrieval (see {@link ContextParser#rebaseSentinel}).
+   *
+   * Because a document base *could* in principle also affect normalization in a way that a plain
+   * substitution cannot reproduce (a relative `@vocab`, or `@type`-to-`@base` expansion resolving
+   * the base into term IRIs), the sentinel result is verified once, on the miss, to re-base
+   * byte-for-byte to the real (base-carrying) parse before it is cached; otherwise it is not cached
+   * and the real parse is returned. The real parse is always authoritative (it validates and may
+   * throw), so caching never changes what is returned for any context.
+   * @param {JsonLdContext} context A loaded external context (its content, not a URL).
+   * @param {IParseOptions} options Parsing options; `baseIRI` is the context's own URL.
+   * @return {Promise<JsonLdContextNormalized>} A promise resolving to the normalized context.
+   */
+  private async parseExternalCached(context: JsonLdContext, options: IParseOptions): Promise<JsonLdContextNormalized> {
+    if (!this.contextCache) {
+      return this._parse(context, options);
+    }
+
+    const parentContext = options.parentContext;
+    const documentBase = parentContext && typeof parentContext === 'object'
+      && typeof parentContext['@base'] === 'string' ? <string> parentContext['@base'] : undefined;
+
+    // Without a document base in the parent context the normalization is already independent of the
+    // per-document base (any stamped `@base` is the context's own stable URL), so cache it as-is.
+    if (documentBase === undefined) {
+      const key = this.contextCache.hash(context, options);
+      const cached = this.contextCache.get(key);
+      if (cached) {
+        return cached;
+      }
+      const parsed = this._parse(context, options);
+      this.contextCache.set(key, parsed);
+      return parsed;
+    }
+
+    // Replace the per-document base by a fixed sentinel so the entry is shared across documents.
+    const sentinelOptions = {
+      ...options,
+      parentContext: { ...parentContext, '@base': ContextParser.BASE_SENTINEL },
+    };
+    const sentinelKey = this.contextCache.hash(context, sentinelOptions);
+    const cachedSentinel = this.contextCache.get(sentinelKey);
+    if (cachedSentinel) {
+      return this.rebaseSentinel(await cachedSentinel, documentBase);
+    }
+
+    // Miss: the real (base-carrying) parse is authoritative. Attempt the sentinel parse and only
+    // cache it when re-basing it reproduces the real result byte-for-byte.
+    const real = await this._parse(context, options);
+    let sentinelResult: JsonLdContextNormalized | undefined;
+    try {
+      sentinelResult = await this._parse(context, sentinelOptions);
+    } catch {
+      // The sentinel base made normalization fail where the real base did not: not cacheable.
+      sentinelResult = undefined;
+    }
+    if (sentinelResult
+      && Util.deepEqual(this.rebaseSentinel(sentinelResult, documentBase).getContextRaw(), real.getContextRaw())) {
+      this.contextCache.set(sentinelKey, Promise.resolve(sentinelResult));
+    }
+    return real;
+  }
+
+  /**
+   * Substitute the sentinel base back to the given document base in the given normalized context.
+   *
+   * The substitution is copy-on-write: subtrees that do not contain the sentinel are shared with the
+   * (possibly cached, read-only) input, so a cached entry is never mutated.
+   * @param parsed A normalized context whose document base is {@link ContextParser#BASE_SENTINEL}.
+   * @param base The real document base to substitute in.
+   * @return A normalized context with the sentinel replaced by `base`.
+   */
+  private rebaseSentinel(parsed: JsonLdContextNormalized, base: string): JsonLdContextNormalized {
+    return new JsonLdContextNormalized(<IJsonLdContextNormalizedRaw> this.replaceSentinel(parsed.getContextRaw(), base));
+  }
+
+  /**
+   * Copy-on-write deep replacement of every string exactly equal to {@link ContextParser#BASE_SENTINEL}
+   * by `base`. Object subtrees that contain no sentinel are shared with the input (returned by
+   * reference) so a cached entry is never mutated.
+   *
+   * The sentinel only ever appears as an `@base` value inside objects, never inside an array; any
+   * (hypothetical) sentinel within an array is caught by the miss-time verification (which then does
+   * not cache the entry), so arrays are safely returned as-is.
+   * @param value A value from a normalized context (string, array, object, or primitive).
+   * @param base The value to substitute for the sentinel.
+   * @return The value with sentinels replaced (a new value only where something changed).
+   */
+  private replaceSentinel(value: any, base: string): any {
+    if (typeof value === 'string') {
+      return value === ContextParser.BASE_SENTINEL ? base : value;
+    }
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      let changed = false;
+      const out: {[key: string]: any} = {};
+      for (const key of Object.keys(value)) {
+        const replaced = this.replaceSentinel(value[key], base);
+        changed = changed || replaced !== value[key];
+        out[key] = replaced;
+      }
+      return changed ? out : value;
+    }
+    return value;
+  }
+
+  /**
+   * Internal implementation of {@link ContextParser#parse}.
+   *
+   * Loaded external contexts are memoized (via {@link ContextParser#parseExternalCached}) at the
+   * point where they are recursively parsed: their expensive normalization is independent of the
+   * per-document base IRI, so the same external context is normalized once and reused across every
+   * document that references it. The per-document base IRI is re-applied afterwards (substituted for
+   * the sentinel and, at the top level, stamped by {@link ContextParser#applyBaseEntryCloned} on a
+   * shallow clone), so a cached entry is never mutated by an outer parse.
+   * @param {JsonLdContext} context A context, URL to a context, or an array of contexts/URLs.
+   * @param {IParseOptions} options Optional parsing options.
+   * @param internalOptions Options for internal use on recursive calls only; not for consumers.
+   * @return {Promise<JsonLdContextNormalized>} A promise resolving to the context.
+   */
+  private async _parse(context: JsonLdContext,
+                       options: IParseOptions = {},
+                       internalOptions: { skipValidation?: boolean } = {}): Promise<JsonLdContextNormalized> {
     const {
       baseIRI,
       parentContext,
@@ -674,15 +965,16 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       if (overriddenLoad) {
         return new JsonLdContextNormalized(overriddenLoad);
       }
-      const parsedStringContext = await this.parse(await this.load(contextIri),
+      const parsedStringContext = await this.parseExternalCached(await this.load(contextIri),
         {
           ...options,
           baseIRI: contextIri,
           external: true,
           remoteContexts: { ...remoteContexts, [contextIri]: true },
         });
-      this.applyBaseEntry(parsedStringContext.getContextRaw(), options, true);
-      return parsedStringContext;
+      // Apply the (per-call) document base IRI on a shallow clone, so that the possibly-shared
+      // cached entry (whose normalization is base-independent) is never mutated.
+      return this.applyBaseEntryCloned(parsedStringContext, options);
     } else if (Array.isArray(context)) {
       // As a performance consideration, first load all external contexts in parallel.
       const contextIris: string[] = [];
@@ -706,30 +998,36 @@ must be one of ${Util.CONTAINERS.join(', ')}`, ERROR_CODES.INVALID_CONTAINER_MAP
       }
 
       const reducedContexts = await contexts.reduce((accContextPromise, contextEntry, i) => accContextPromise
-          .then((accContext) => this.parse(contextEntry, {
-            ...options,
-            baseIRI: contextIris[i] || options.baseIRI,
-            external: !!contextIris[i] || options.external,
-            parentContext: accContext.getContextRaw(),
-            remoteContexts: contextIris[i] ? { ...remoteContexts, [contextIris[i]]: true } : remoteContexts,
-          },
-          // @ts-expect-error: This third argument causes a type error because we have hidden it from consumers
-            {
-              skipValidation: i < contexts.length - 1,
-            })),
+          .then((accContext) => {
+            const isFinal = i === contexts.length - 1;
+            const subOptions = {
+              ...options,
+              baseIRI: contextIris[i] || options.baseIRI,
+              external: !!contextIris[i] || options.external,
+              parentContext: accContext.getContextRaw(),
+              remoteContexts: contextIris[i] ? { ...remoteContexts, [contextIris[i]]: true } : remoteContexts,
+            };
+            // Memoize external (URL) entries at this base-independent boundary: their normalization
+            // is keyed on the context's own URL (via `parseExternalCached`), not the per-call
+            // document base IRI. Only the final entry is memoized here; non-final entries skip
+            // validation (as upstream does) because the accumulated result is validated once at the
+            // end.
+            return contextIris[i] && isFinal
+              ? this.parseExternalCached(contextEntry, subOptions)
+              : this._parse(contextEntry, subOptions, { skipValidation: !isFinal });
+          }),
         Promise.resolve(new JsonLdContextNormalized(parentContext || {})));
 
-      // Override the base IRI if provided.
-      this.applyBaseEntry(reducedContexts.getContextRaw(), options, true);
-
-      return reducedContexts;
+      // Override the base IRI if provided, on a shallow clone so that a possibly-shared cached
+      // sub-result is never mutated.
+      return this.applyBaseEntryCloned(reducedContexts, options);
     } else if (typeof context === 'object') {
       if ('@context' in context) {
         if (options?.disallowDirectlyNestedContext) {
           throw new ErrorCoded(`Keywords can not be aliased to something else.
 Tried mapping @context to ${JSON.stringify(context['@context'])}`, ERROR_CODES.KEYWORD_REDEFINITION);
         }
-        return await this.parse(context['@context'], options);
+        return await this._parse(context['@context'], options);
       }
 
       // Make a deep clone of the given context, to avoid modifying it.
@@ -828,84 +1126,6 @@ Tried mapping @context to ${JSON.stringify(context['@context'])}`, ERROR_CODES.K
     }
   }
 
-  /**
-   * Fetch the given URL as a raw JSON-LD context.
-   * @param url An URL.
-   * @return A promise resolving to a raw JSON-LD context.
-   */
-  public async load(url: string): Promise<JsonLdContext> {
-    // First try to retrieve the context from cache
-    const cached = this.documentCache[url];
-    if (cached) {
-      return cached;
-    }
-
-    // If not in cache, load it
-    let document: IJsonLdContext;
-    try {
-      document = await this.documentLoader.load(url);
-    } catch (e) {
-      throw new ErrorCoded(`Failed to load remote context ${url}: ${e.message}`,
-        ERROR_CODES.LOADING_REMOTE_CONTEXT_FAILED);
-    }
-
-    // Validate the context
-    if (!('@context' in document)) {
-      throw new ErrorCoded(`Missing @context in remote context at ${url}`,
-        ERROR_CODES.INVALID_REMOTE_CONTEXT);
-    }
-
-    return this.documentCache[url] = document['@context'];
-  }
-
-  /**
-   * Override the given context that may be loaded.
-   *
-   * This will check whether or not the url is recursively being loaded.
-   * @param url An URL.
-   * @param options Parsing options.
-   * @return An overridden context, or null.
-   *         Optionally an error can be thrown if a cyclic context is detected.
-   */
-  public getOverriddenLoad(url: string, options: IParseOptions): IJsonLdContextNormalizedRaw | null {
-    if (url in (options.remoteContexts || {})) {
-      if (options.ignoreRemoteScopedContexts) {
-        return <IJsonLdContextNormalizedRaw> <any> url;
-      } else {
-        throw new ErrorCoded('Detected a cyclic context inclusion of ' + url,
-          ERROR_CODES.RECURSIVE_CONTEXT_INCLUSION);
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Load an @import'ed context.
-   * @param importContextIri The full URI of an @import value.
-   */
-  public async loadImportContext(importContextIri: string): Promise<IJsonLdContextNormalizedRaw> {
-    // Load the context - and do a deep clone since we are about to mutate it
-    let importContext = await this.load(importContextIri);
-
-    // Require the context to be a non-array object
-    if (typeof importContext !== 'object' || Array.isArray(importContext)) {
-      throw new ErrorCoded('An imported context must be a single object: ' + importContextIri,
-        ERROR_CODES.INVALID_REMOTE_CONTEXT);
-    }
-
-    // Error if the context contains another @import
-    if ('@import' in importContext) {
-      throw new ErrorCoded('An imported context can not import another context: ' + importContextIri,
-        ERROR_CODES.INVALID_CONTEXT_ENTRY);
-    }
-    importContext = {...importContext};
-
-    // Containers have to be converted into hash values the same way as for the importing context
-    // Otherwise context validation will fail for container values
-    this.containersToHash(importContext);
-    return importContext;
-  }
-
 }
 
 export interface IContextParserOptions {
@@ -913,6 +1133,14 @@ export interface IContextParserOptions {
    * An optional loader that should be used for fetching external JSON-LD contexts.
    */
   documentLoader?: IDocumentLoader;
+  /**
+   * An optional cache for normalized contexts.
+   *
+   * When provided, the result of {@link ContextParser#parse} is memoized per
+   * `(context, options)` pair. A single cache instance may be shared across multiple
+   * {@link ContextParser} instances to reuse normalized contexts across them.
+   */
+  contextCache?: IContextCache;
   /**
    * By default, JSON-LD contexts will be validated.
    * This can be disabled by setting this option to true.
